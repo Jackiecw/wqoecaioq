@@ -1,0 +1,2 @@
+d:\Code\internal-site-2\frontend\src\components\admin\ProductManagement.vue:298: // On desktop, auto-select first. On mobile, maybe not?
+d:\Code\internal-site-2\frontend\src\components\finance\FinanceBatchOps.vue:317: failedRows: [{ row: '?', error: error.response?.data?.error || '上传失败，请检查文件格式或联系管理员。' }]

@@ -1,0 +1,49 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "start": "node index.js",
+    "dev": "nodemon --exec ts-node index.ts",
+    "dev:ts": "nodemon --exec ts-node index.ts",
+    "build": "tsc",
+    "start:ts": "ts-node index.ts",
+    "migrate": "prisma migrate dev",
+    "postinstall": "prisma generate",
+    "migrate:logistics": "node scripts/migrateLogistics.js"
+  },
+  "type": "commonjs",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.10.1",
+    "nodemon": "^3.1.11",
+    "prisma": "^6.18.0",
+    "supertest": "^7.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.18.0",
+    "axios": "^1.7.7",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "winston": "^3.18.3",
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
+  }
+}

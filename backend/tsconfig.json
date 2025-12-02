@@ -1,0 +1,40 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "commonjs",
+        "lib": [
+            "ES2020"
+        ],
+        "outDir": "./dist",
+        "rootDir": "./",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "sourceMap": true,
+        "allowJs": true,
+        "baseUrl": ".",
+        "typeRoots": [
+            "./node_modules/@types",
+            "./src/types"
+        ],
+        "paths": {
+            "*": [
+                "node_modules/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*",
+        "routes/**/*",
+        "tests/**/*",
+        "index.ts",
+        "prisma/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}

@@ -1,0 +1,53 @@
+# ./docker-compose.yml
+
+version: '3.8'
+
+services:
+  # 1. 数据库服务 (使用 .env 变量)
+  db:
+    image: postgres:15-alpine
+    container_name: internal_site_2_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:             # <--- 新增这部分
+      - "5433:5432"    # <--- 将容器的 5432 映射到电脑的 5433
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # 数据库端口 5432 不需要对外部暴露，保持内部访问最安全
+
+  # 2. 后端服务 (Node.js)
+  backend:
+    build: ./backend  # 告诉 Docker 去 ./backend 目录找 Dockerfile
+    container_name: internal_site_2_backend
+    restart: always
+    environment:
+      # (关键) 将 .env 变量注入后端容器
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD_ENCODED}@db:5432/${POSTGRES_DB}"
+      JWT_SECRET: ${JWT_SECRET}
+      EXCHANGE_RATE_API_KEY: ${EXCHANGE_RATE_API_KEY}
+      PORT: 3000
+    ports:
+      - "3100:3000"
+    volumes:
+      # (关键) 持久化用户上传的文件
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      - db # 确保在后端启动前，数据库已启动
+
+  # 3. 前端服务 (Vue + Nginx)
+  frontend:
+    build: ./frontend # 告诉 Docker 去 ./frontend 目录找 Dockerfile
+    container_name: internal_site_2_frontend
+    restart: always
+    ports:
+      # 你的网站将通过服务器的 5000 端口访问
+      - "5000:80" # 将服务器的 5000 端口 映射到 Nginx 容器的 80 端口
+    depends_on:
+      - backend # 确保在前端启动前，后端已启动
+
+volumes:
+  db-data:
+    driver: local
