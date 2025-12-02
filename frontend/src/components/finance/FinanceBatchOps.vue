@@ -72,7 +72,7 @@
 
           <ArrowUpTrayIcon class="h-5 w-5 mr-2" />
 
-          {{ isLoading.import ? '上传中..' : '开始导入 }}
+          {{ isLoading.import ? '上传中..' : '开始导入' }}
 
         </button>
 

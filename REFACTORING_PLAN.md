@@ -62,6 +62,7 @@ Refactor the existing Vue 3 + Express + Prisma monolith into a modern, robust, a
 - [MODIFY] `package.json`: Add `tsx`, `typescript`, `ts-node`.
 - [ACTION] Rename `.js` files to `.ts` and fix type errors (starting with Services).
 - [ACTION] Generate Prisma Types (`npx prisma generate`) and apply to Service methods.
+- [ACTION] **Unify Routes**: Move `backend/routes/*.ts` to `backend/src/routes/` and update entry point.
 
 ---
 
@@ -71,7 +72,7 @@ Refactor the existing Vue 3 + Express + Prisma monolith into a modern, robust, a
 #### [Frontend] State Management
 - [NEW] `frontend/src/stores/`: Setup **Pinia** stores.
     - `useAuthStore`: User session and permissions.
-    - `useGlobalStore`: Country selection, currency settings.
+    - [NEW] `useGlobalStore`: Country selection, currency settings.
 
 #### [Frontend] API Layer
 - [NEW] `frontend/src/services/`: Encapsulate API calls (e.g., `auth.service.js`, `sales.service.js`).

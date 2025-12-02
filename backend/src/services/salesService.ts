@@ -23,7 +23,7 @@ const asNumber = (value: any, fallback: number) => {
     return parsed;
 };
 
-function normalizePagination(query: any) {
+export function normalizePagination(query: any) {
     const page = Math.max(DEFAULT_PAGE, asNumber(query.page, DEFAULT_PAGE));
     const requestedSize = asNumber(query.pageSize, DEFAULT_PAGE_SIZE);
     const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, requestedSize));
@@ -34,7 +34,7 @@ function normalizePagination(query: any) {
     };
 }
 
-function buildRecordDateFilter(startDate: string | undefined, endDate: string | undefined) {
+export function buildRecordDateFilter(startDate: string | undefined, endDate: string | undefined) {
     if (!startDate && !endDate) return null;
 
     const start = startDate ? new Date(startDate) : null;
@@ -62,7 +62,7 @@ function buildRecordDateFilter(startDate: string | undefined, endDate: string | 
     return null;
 }
 
-function buildSalesDataWhere(query: any, user: any) {
+export function buildSalesDataWhere(query: any, user: any) {
     const where: any = {};
 
     // 1. Base Permissions
@@ -114,13 +114,13 @@ function buildSalesDataWhere(query: any, user: any) {
     return { where };
 }
 
-function buildSalesDataOrder(query: any) {
+export function buildSalesDataOrder(query: any) {
     const sortBy = query.sortBy && SALES_SORTABLE_FIELDS.has(query.sortBy) ? query.sortBy : 'recordDate';
     const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
     return { [sortBy]: sortOrder };
 }
 
-function appendManagePermission(rows: any[], supervisedCountries: any[] = [], isAdmin = false) {
+export function appendManagePermission(rows: any[], supervisedCountries: any[] = [], isAdmin = false) {
     const supervised = supervisedCountries || [];
     return rows.map((row) => ({
         ...row,
@@ -469,6 +469,21 @@ class SalesService {
             topStores,
             topProducts
         };
+    }
+    async getStoresList(user: any) {
+        const { role, operatedCountries = [] } = user;
+        const where: any = {};
+
+        if (role !== 'admin') {
+            const operatedCodes = operatedCountries.map((c: any) => c.code || c);
+            where.countryCode = { in: operatedCodes };
+        }
+
+        return await prisma.store.findMany({
+            where,
+            include: { country: true },
+            orderBy: { name: 'asc' }
+        });
     }
 }
 

@@ -1,12 +1,15 @@
 import express from 'express';
 import operationController from '../controllers/operationController';
-import authMiddleware from '../middlewares/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import adminMiddleware from '../middlewares/adminMiddleware';
 
 const router = express.Router();
 
 // Public (Authenticated)
 router.get('/operation/data', authMiddleware, operationController.getModules);
+router.get('/countries', authMiddleware, operationController.getCountries);
+router.get('/links', authMiddleware, operationController.getLinks);
+router.get('/rates', authMiddleware, operationController.getRates);
 
 // Admin
 router.post('/admin/operation-modules', adminMiddleware, operationController.createModule);

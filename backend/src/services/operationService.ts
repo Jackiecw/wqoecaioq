@@ -18,6 +18,18 @@ export class OperationService {
         });
     }
 
+    async getCountries() {
+        return await prisma.managedCountry.findMany({
+            orderBy: { name: 'asc' }
+        });
+    }
+
+    async getLinks() {
+        return await prisma.commonLink.findMany({
+            orderBy: { displayOrder: 'asc' }
+        });
+    }
+
     async createModule(data: any) {
         const { name, ownerId, countryCode } = data;
 

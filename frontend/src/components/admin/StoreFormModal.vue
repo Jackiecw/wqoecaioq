@@ -139,7 +139,7 @@ import {
 } from '@headlessui/vue';
 import apiClient from '../../api';
 
-// --- 1. Props & Emits (不变) ---
+// --- 1. Props & Emits ---
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -152,11 +152,11 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'store-created', 'store-updated']);
 
-// --- 2. 内部状态(修改) ---
+// --- 2. Internal State ---
 const defaultFormData = () => ({
   name: '',
   platform: '',
-  countryCode: '', // ⬅️ 【修改】
+  countryCode: '',
   status: 'ACTIVE',
   platformStoreId: '',
   registeredAt: null,
@@ -164,149 +164,144 @@ const defaultFormData = () => ({
 
 const formData = ref(defaultFormData());
 const errorMessage = ref('');
-
-// (用于存储下拉菜单选项)
-const options = ref({
-  platforms: [],
-  // countries: [], // (已删除)
-  storeStatuses: [],
-});
-const countriesList = ref([]); // ⬅️ 【新增】
 const isLoadingOptions = ref(false);
 
-// (不变) 计算属性
+// Options
+const options = ref({
+  platforms: [],
+  storeStatuses: [],
+});
+const countriesList = ref([]);
+
+// --- 3. Computed Properties ---
 const isEditMode = computed(() => !!props.storeToEditId);
-const dialogTitle = computed(() => isEditMode.value ? '编辑店铺' : '创建新店铺');
-const submitButtonText = computed(() => isEditMode.value ? '保存更改' : '创建店铺');
+const dialogTitle = computed(() => isEditMode.value ? '编辑店铺' : '新建店铺');
+const submitButtonText = computed(() => isEditMode.value ? '保存' : '创建');
 
+// --- 4. Methods ---
 
-// --- 3. 核心逻辑 (API 调用) (修改) ---
+// Fetch dropdown options (Platforms, Statuses)
+async function fetchOptions() {
+  try {
+    const response = await apiClient.get('/admin/management-options');
+    options.value = response.data;
+  } catch (error) {
+    console.error('Failed to fetch options:', error);
+    errorMessage.value = '加载选项失败，请刷新重试';
+  }
+}
 
-// ⬇️ 【新增】获取国家列表
+// Fetch available countries
 async function fetchCountries() {
-  if (countriesList.value.length > 0) return;
   try {
     const response = await apiClient.get('/admin/countries');
     countriesList.value = response.data;
   } catch (error) {
-    console.error('加载国家列表失败:', error);
-    errorMessage.value = "无法加载国家选项，请重试。";
+    console.error('Failed to fetch countries:', error);
+    errorMessage.value = '加载国家列表失败';
   }
 }
 
-// (获取下拉菜单选项) (修改)
-async function fetchOptions() {
-  // (不变)
-  if (options.value.platforms.length > 0) return; 
-  
+// Fetch store details for editing
+async function fetchStoreDetails(id) {
   isLoadingOptions.value = true;
-  
-  // ⬇️ 【修改】
-  //    我们现在并行获取 options (平台, 状态) 和 countries (国家列表)
   try {
-    const [optionsResponse, countriesResponse] = await Promise.all([
-      apiClient.get('/admin/management-options'),
-      apiClient.get('/admin/countries')
-    ]);
+    const response = await apiClient.get(`/admin/stores/${id}`);
+    const store = response.data;
     
-    options.value = optionsResponse.data;
-    countriesList.value = countriesResponse.data;
-
+    // Populate form
+    formData.value = {
+      name: store.name,
+      platform: store.platform,
+      countryCode: store.countryCode,
+      status: store.status,
+      platformStoreId: store.platformStoreId || '',
+      registeredAt: store.registeredAt ? store.registeredAt.split('T')[0] : null,
+    };
   } catch (error) {
-    console.error('加载表单选项失败:', error);
-    errorMessage.value = "无法加载表单选项，请重试。";
+    console.error('Failed to fetch store details:', error);
+    errorMessage.value = '加载店铺详情失败';
   } finally {
     isLoadingOptions.value = false;
   }
 }
 
-// (获取单个店铺的详情 (修改)
-async function fetchStoreDetails() {
-  if (!isEditMode.value) return;
-  try {
-    const response = await apiClient.get(`/admin/stores/${props.storeToEditId}`);
-    const store = response.data;
-    
-    formData.value = {
-      name: store.name,
-      platform: store.platform,
-      countryCode: store.countryCode, // ⬅️ 【修改】
-      status: store.status,
-      platformStoreId: store.platformStoreId || '',
-      registeredAt: store.registeredAt ? new Date(store.registeredAt).toISOString().split('T')[0] : null,
-    };
-  } catch (error) {
-    console.error('获取店铺详情失败:', error);
-    errorMessage.value = '无法加载店铺详情。';
-  }
-}
-
-
-// (提交表单) (修改)
+// Handle Form Submission
 async function handleSubmit() {
   errorMessage.value = '';
+  
+  // Basic Validation
+  if (!formData.value.name || !formData.value.platform || !formData.value.countryCode) {
+    errorMessage.value = '请填写所有必填项 (*)。';
+    return;
+  }
 
-  const payload = {
-    ...formData.value,
-    registeredAt: formData.value.registeredAt || null
-    // ⬅️ (关键) `formData` 中现在是 `countryCode`
-    //    这与我们后端 `storeSchema` 期望的一致
-  };
+  // Prepare payload
+  const payload = { ...formData.value };
+  
+  // Format registeredAt to ISO string if present
+  if (payload.registeredAt) {
+    payload.registeredAt = new Date(payload.registeredAt).toISOString();
+  } else {
+    payload.registeredAt = null;
+  }
+
+  // Handle empty platformStoreId
+  if (!payload.platformStoreId) {
+    payload.platformStoreId = null;
+  }
 
   try {
     if (isEditMode.value) {
-      const response = await apiClient.put(`/admin/stores/${props.storeToEditId}`, payload);
-      // ⬇️ 【修改】返回的 response 仍然是 store 对象, 
-      //    但我们需要在主上显示 store.country.name
-      //    因此我们必须重新获取列表
-      //    (或者 让 PUT /stores/:id 返回一个包含 country 的对象
-      //    (为了简单起见，我们先按原样发送，在下一个文件 StoreManagement.vue 中处理
-      
-      // (为了正确更新UI, 我们需要返回包含country对象的数组
-      // (简单起见，我们让父组件重新加载)
-      emit('store-updated'); // (修改) 不再发送数据，只发送信号
+      await apiClient.put(`/admin/stores/${props.storeToEditId}`, payload);
+      emit('store-updated');
     } else {
-      const response = await apiClient.post('/admin/stores', payload);
-      emit('store-created', response.data); // (不变)
+      await apiClient.post('/admin/stores', payload);
+      emit('store-created');
     }
     closeModal();
   } catch (error) {
-    console.error('操作店铺失败:', error);
-    if (error.response && error.response.data.error) {
-      errorMessage.value = error.response.data.error;
-    } else {
-      errorMessage.value = '操作失败，请检查网络或联系管理员。';
-    }
+    console.error('Operation failed:', error);
+    errorMessage.value = error.response?.data?.error || '操作失败，请重试。';
   }
 }
 
-// --- 4. 辅助函数 (修改) ---
-
-watch(() => props.isOpen, (newVal) => {
-  if (newVal) {
-    resetForm();
-    fetchOptions(); // (修改) 此函数现在也获取国家
-    
-    if (isEditMode.value) {
-      fetchStoreDetails();
-    }
-  }
-});
-
-// (不变)
 function closeModal() {
   emit('close');
+  // Reset form after a short delay to allow transition to finish
+  setTimeout(() => {
+    formData.value = defaultFormData();
+    errorMessage.value = '';
+  }, 300);
 }
 
-// (不变)
-function resetForm() {
-  formData.value = defaultFormData();
-  errorMessage.value = '';
-}
+// --- 5. Watchers ---
+
+// Initialize when modal opens
+watch(() => props.isOpen, async (newVal) => {
+  if (newVal) {
+    isLoadingOptions.value = true;
+    errorMessage.value = '';
+    
+    // Load options if not already loaded
+    if (options.value.platforms.length === 0) {
+      await Promise.all([fetchOptions(), fetchCountries()]);
+    }
+
+    // If edit mode, fetch details
+    if (props.storeToEditId) {
+      await fetchStoreDetails(props.storeToEditId);
+    } else {
+      // Reset for new store
+      formData.value = defaultFormData();
+    }
+    
+    isLoadingOptions.value = false;
+  }
+});
 </script>
 
 <style scoped>
-/* (不变) */
 .input-group {
   display: flex;
   flex-direction: column;

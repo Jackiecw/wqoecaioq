@@ -318,7 +318,7 @@ const options = ref({
 const selectedFile = ref(null); 
 const previewUrl = ref(null); 
 const errorMessage = ref('');
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
 
 const isEditMode = computed(() => !!props.productToEditId);
 const dialogTitle = computed(() => isEditMode.value ? '编辑产品 (产品目录)' : '创建新产品(产品目录)');

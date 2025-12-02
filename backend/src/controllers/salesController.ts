@@ -76,6 +76,15 @@ class SalesController {
             next(error);
         }
     }
+
+    async getStoresList(req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = await salesService.getStoresList((req as any).user);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 export default new SalesController();

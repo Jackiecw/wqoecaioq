@@ -4,12 +4,12 @@
       <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/70">Weekly Rhythm</p>
-          <h2 class="mt-2 text-3xl font-semibold">报中心</h2>
-          <p class="mt-2 text-sm text-white/80">回顾本成果、记录问题并制定下一步计划。</p>
+          <h2 class="mt-2 text-3xl font-semibold">周报中心</h2>
+          <p class="mt-2 text-sm text-white/80">回顾本周成果、记录问题并制定下一步计划。</p>
         </div>
         <div class="grid gap-4 text-sm sm:grid-cols-2">
           <div class="rounded-2xl border border-white/30 bg-white/10 p-4 backdrop-blur">
-            <p class="text-white/70">本期</p>
+            <p class="text-white/70">本周周期</p>
             <p class="mt-1 text-xl font-semibold">{{ currentWeekRange }}</p>
           </div>
           <div class="rounded-2xl border border-white/30 bg-white/10 p-4 backdrop-blur">
@@ -24,9 +24,9 @@
       <div class="flex flex-col gap-3 border-b border-[#E5E7EB] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#94A3B8]">Weekly Control</p>
-          <h3 class="mt-1 text-2xl font-semibold text-[#1F2937]">报概览</h3>
+          <h3 class="mt-1 text-2xl font-semibold text-[#1F2937]">周报概览</h3>
         </div>
-        <p class="text-sm text-[#6B7280]">保持节奏，让团队同步每重点。</p>
+        <p class="text-sm text-[#6B7280]">保持节奏，让团队同步每周重点。</p>
       </div>
 
       <div class="px-6 pt-4">
@@ -41,7 +41,7 @@
                 : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
             ]"
           >
-            报填写
+            周报填写
           </button>
           <button
             v-if="canViewReports"
@@ -53,7 +53,7 @@
                 : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
             ]"
           >
-            报查看
+            周报查看
           </button>
         </nav>
       </div>
@@ -76,8 +76,8 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import WeeklyReportForm from './WeeklyReportForm.vue';
-import ViewReports from './ViewReports.vue';
+import WeeklyReportForm from '@/components/reports/WeeklyReportForm.vue';
+import ViewReports from '@/components/reports/ViewReports.vue';
 
 const authStore = useAuthStore();
 

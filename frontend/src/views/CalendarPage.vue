@@ -141,7 +141,7 @@ import zhCnLocale from '@fullcalendar/core/locales/zh-cn';
 import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/20/solid';
 import { useAuthStore } from '../stores/auth';
 import apiClient from '../api';
-import EventModal from './EventModal.vue';
+import EventModal from '@/components/common/EventModal.vue';
 
 const viewNameMap = {
   month: 'dayGridMonth',

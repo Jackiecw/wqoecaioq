@@ -1,179 +1,192 @@
 <template>
   <div class="space-y-6">
-    <h2 class="text-3xl font-bold text-stone-900">销售数据管理</h2>
+    <div class="flex justify-between items-center">
+      <h2 class="text-3xl font-bold tracking-tight text-stone-900">销售数据管理</h2>
+    </div>
 
-    <div class="p-4 bg-white rounded-lg shadow space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="input-group">
-          <label for="startDate">开始日期</label>
-          <input type="date" id="startDate" v-model="filters.startDate" class="form-input" />
-        </div>
-        <div class="input-group">
-          <label for="endDate">结束日期</label>
-          <input type="date" id="endDate" v-model="filters.endDate" class="form-input" />
-        </div>
-        
-        <div class="input-group">
-          <label for="filterCountry">国家</label>
-          <select id="filterCountry" v-model="filters.countryCode" class="form-input">
-            <option value="">所有国家</option>
-            <option v-for="country in countryOptions" :key="country.code" :value="country.code">
-              {{ country.name }} ({{ country.code }})
-            </option>
-          </select>
-        </div>
-        
-        <div class="input-group">
-          <label for="filterPlatform">平台</label>
-          <select id="filterPlatform" v-model="filters.platform" class="form-input">
-            <option value="">所有平台</option>
-            <option v-for="platform in platformOptions" :key="platform" :value="platform">
-              {{ platform }}
-            </option>
-          </select>
-        </div>
-        
-        <div class="input-group">
-          <label for="filterStore">店铺</label>
-          <select id="filterStore" v-model="filters.storeId" :disabled="!filters.countryCode && !filters.platform" class="form-input disabled:bg-gray-100">
-            <option value="">所有店铺</option>
-            <option v-for="store in storeOptions" :key="store.id" :value="store.id">
-              {{ store.name }}
-            </option>
-          </select>
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>筛选条件</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="space-y-2">
+            <Label for="startDate">开始日期</Label>
+            <Input type="date" id="startDate" v-model="filters.startDate" />
+          </div>
+          <div class="space-y-2">
+            <Label for="endDate">结束日期</Label>
+            <Input type="date" id="endDate" v-model="filters.endDate" />
+          </div>
+          
+          <div class="space-y-2">
+            <Label>国家</Label>
+            <Select v-model="filters.countryCode">
+              <SelectTrigger>
+                <SelectValue placeholder="所有国家" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有国家</SelectItem>
+                <SelectItem v-for="country in countryOptions" :key="country.code" :value="country.code">
+                  {{ country.name }} ({{ country.code }})
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div class="space-y-2">
+            <Label>平台</Label>
+            <Select v-model="filters.platform">
+              <SelectTrigger>
+                <SelectValue placeholder="所有平台" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有平台</SelectItem>
+                <SelectItem v-for="platform in platformOptions" :key="platform" :value="platform">
+                  {{ platform }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div class="space-y-2">
+            <Label>店铺</Label>
+            <Select v-model="filters.storeId" :disabled="!filters.countryCode && !filters.platform">
+              <SelectTrigger>
+                <SelectValue placeholder="所有店铺" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有店铺</SelectItem>
+                <SelectItem v-for="store in storeOptions" :key="store.id" :value="store.id">
+                  {{ store.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div class="input-group">
-          <label for="filterStatus">订单状态</label>
-          <select id="filterStatus" v-model="filters.orderStatus" class="form-input">
-            <option value="">所有状态</option>
-            <option v-for="(label, value) in ORDER_STATUS_MAP" :key="value" :value="value">
-              {{ label }}
-            </option>
-          </select>
+          <div class="space-y-2">
+            <Label>订单状态</Label>
+            <Select v-model="filters.orderStatus">
+              <SelectTrigger>
+                <SelectValue placeholder="所有状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有状态</SelectItem>
+                <SelectItem v-for="(label, value) in ORDER_STATUS_MAP" :key="value" :value="value">
+                  {{ label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
-      
-      <div class="flex justify-end space-x-4">
-        <button @click="resetFilters" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-          <ArrowPathIcon class="h-5 w-5 inline-block -mt-1 mr-1" />
+      </CardContent>
+      <CardFooter class="flex justify-end space-x-4">
+        <Button variant="outline" @click="resetFilters">
+          <ArrowPathIcon class="h-4 w-4 mr-2" />
           重置
-        </button>
-        <button @click="fetchData(true)" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-          <FunnelIcon class="h-5 w-5 inline-block -mt-1 mr-1" />
+        </Button>
+        <Button @click="fetchData(true)">
+          <FunnelIcon class="h-4 w-4 mr-2" />
           查询
-        </button>
-      </div>
-    </div>
+        </Button>
+      </CardFooter>
+    </Card>
 
-    <p v-if="isLoading" class="text-stone-500">正在加载数据...</p>
-    <p v-if="errorMessage" class="text-red-600">{{ errorMessage }}</p>
+    <div v-if="isLoading" class="text-center py-10 text-muted-foreground">正在加载数据...</div>
+    <div v-if="errorMessage" class="text-red-600 font-medium">{{ errorMessage }}</div>
     
-    <div v-if="!isLoading && salesData.length > 0" class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-stone-200">
-          <thead class="bg-stone-50">
-            <tr>
-              <th @click="setSort('recordDate')" class="table-th cursor-pointer">
-                日期 <SortIcon :field="'recordDate'" :sorting="sorting" />
-              </th>
-              <th class="table-th">国家</th>
-              <th class="table-th">店铺</th>
-              <th class="table-th">商品链接 / SKU</th>
-              <th class="table-th">状态</th>
-              <th @click="setSort('salesVolume')" class="table-th cursor-pointer">
-                销量 <SortIcon :field="'salesVolume'" :sorting="sorting" />
-              </th>
-              <th @click="setSort('revenue')" class="table-th cursor-pointer">
-                销售额 <SortIcon :field="'revenue'" :sorting="sorting" />
-              </th>
-              <th class="table-th">备注</th>
-              <th class="table-th">录入人</th>
-              <th class="table-th">操作</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-stone-200">
-            <tr v-for="row in salesData" :key="row.id">
-              <td class="table-td">{{ formatDate(row.recordDate) }}</td>
-              <td class="table-td">{{ row.store.country.name }}</td>
-              <td class="table-td">{{ row.store.name }}</td>
-              <td class="table-td">
-                <div v-if="row.listing && row.listing.productCode" class="flex flex-col">
-                  <span class="font-semibold text-indigo-600">{{ row.listing.productCode }}</span>
-                  <span class="text-xs text-stone-500">{{ row.product.sku }}</span>
-                </div>
-                <div v-else class="text-stone-600">
-                  {{ row.product.sku }} <span class="text-xs text-stone-400">(旧数据)</span>
-                </div>
-              </td>
-              <td class="table-td">
-                <span v-if="row.orderStatus" :class="getStatusClass(row.orderStatus)" class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                  {{ ORDER_STATUS_MAP[row.orderStatus] || row.orderStatus }}
+    <div v-if="!isLoading && salesData.length > 0" class="rounded-md border bg-white">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead @click="setSort('recordDate')" class="cursor-pointer hover:bg-muted/50">
+              <div class="flex items-center space-x-1">
+                <span>日期</span>
+                <span class="inline-block w-4">
+                  <ChevronUpIcon v-if="sorting.by === 'recordDate' && sorting.order === 'asc'" class="h-4 w-4" />
+                  <ChevronDownIcon v-if="sorting.by === 'recordDate' && sorting.order === 'desc'" class="h-4 w-4" />
                 </span>
-                <span v-else class="text-gray-400">-</span>
-              </td>
-              <td class="table-td">{{ row.salesVolume }}</td>
-              <td class="table-td">{{ row.revenue.toFixed(2) }}</td>
-              <td class="table-td max-w-xs truncate" :title="row.notes || ''">{{ row.notes || 'N/A' }}</td>
-              <td class="table-td">{{ row.enteredBy.nickname }}</td>
-              <td class="table-td">
-                <div v-if="row.canManage">
-                  <button @click="openEditModal(row)" class="text-indigo-600 hover:text-indigo-900 mr-4">
-                    修改
-                  </button>
-                  <button @click="handleDelete(row.id)" class="text-red-600 hover:text-red-900">
-                    删除
-                  </button>
-                </div>
-                <span v-else class="text-gray-400 text-xs">无权限</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-        <div class="flex flex-1 justify-between sm:hidden">
-          <button @click="changePage(page - 1)" :disabled="page <= 1" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-            上一
-          </button>
-          <button @click="changePage(page + 1)" :disabled="page >= totalPages" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
-            下一
-          </button>
-        </div>
-        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm text-gray-700">
-              显示
-              <span class="font-medium">{{ (page - 1) * pageSize + 1 }}</span>
-              到
-              <span class="font-medium">{{ Math.min(page * pageSize, total) }}</span>
-              条，共
-              <span class="font-medium">{{ total }}</span>
-              条
-            </p>
-          </div>
-          <div>
-            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-              <button @click="changePage(page - 1)" :disabled="page <= 1" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                <span class="sr-only">上一</span>
-                <ChevronLeftIcon class="h-5 w-5" aria-hidden="true" />
-              </button>
-              <span class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
-                {{ page }} / {{ totalPages }}
+              </div>
+            </TableHead>
+            <TableHead>国家</TableHead>
+            <TableHead>店铺</TableHead>
+            <TableHead>商品链接 / SKU</TableHead>
+            <TableHead>状态</TableHead>
+            <TableHead @click="setSort('salesVolume')" class="cursor-pointer hover:bg-muted/50">
+              <div class="flex items-center space-x-1">
+                <span>销量</span>
+                <span class="inline-block w-4">
+                  <ChevronUpIcon v-if="sorting.by === 'salesVolume' && sorting.order === 'asc'" class="h-4 w-4" />
+                  <ChevronDownIcon v-if="sorting.by === 'salesVolume' && sorting.order === 'desc'" class="h-4 w-4" />
+                </span>
+              </div>
+            </TableHead>
+            <TableHead @click="setSort('revenue')" class="cursor-pointer hover:bg-muted/50">
+              <div class="flex items-center space-x-1">
+                <span>销售额</span>
+                <span class="inline-block w-4">
+                  <ChevronUpIcon v-if="sorting.by === 'revenue' && sorting.order === 'asc'" class="h-4 w-4" />
+                  <ChevronDownIcon v-if="sorting.by === 'revenue' && sorting.order === 'desc'" class="h-4 w-4" />
+                </span>
+              </div>
+            </TableHead>
+            <TableHead>备注</TableHead>
+            <TableHead>录入人</TableHead>
+            <TableHead>操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="row in salesData" :key="row.id">
+            <TableCell>{{ formatDate(row.recordDate) }}</TableCell>
+            <TableCell>{{ row.store.country.name }}</TableCell>
+            <TableCell>{{ row.store.name }}</TableCell>
+            <TableCell>
+              <div v-if="row.listing && row.listing.productCode" class="flex flex-col">
+                <span class="font-semibold text-primary">{{ row.listing.productCode }}</span>
+                <span class="text-xs text-muted-foreground">{{ row.product.sku }}</span>
+              </div>
+              <div v-else class="text-muted-foreground">
+                {{ row.product.sku }} <span class="text-xs text-stone-400">(旧数据)</span>
+              </div>
+            </TableCell>
+            <TableCell>
+              <span v-if="row.orderStatus" :class="getStatusClass(row.orderStatus)" class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                {{ ORDER_STATUS_MAP[row.orderStatus] || row.orderStatus }}
               </span>
-              <button @click="changePage(page + 1)" :disabled="page >= totalPages" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                <span class="sr-only">下一</span>
-                <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
-              </button>
-            </nav>
-          </div>
+              <span v-else class="text-muted-foreground">-</span>
+            </TableCell>
+            <TableCell>{{ row.salesVolume }}</TableCell>
+            <TableCell>{{ row.revenue.toFixed(2) }}</TableCell>
+            <TableCell class="max-w-xs truncate" :title="row.notes || ''">{{ row.notes || 'N/A' }}</TableCell>
+            <TableCell>{{ row.enteredBy.nickname }}</TableCell>
+            <TableCell>
+              <div v-if="row.canManage" class="flex space-x-2">
+                <Button variant="ghost" size="sm" @click="openEditModal(row)">修改</Button>
+                <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="handleDelete(row.id)">删除</Button>
+              </div>
+              <span v-else class="text-muted-foreground text-xs">无权限</span>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+
+      <div class="flex items-center justify-between px-4 py-4 border-t">
+        <div class="text-sm text-muted-foreground">
+          显示 {{ (page - 1) * pageSize + 1 }} 到 {{ Math.min(page * pageSize, total) }} 条，共 {{ total }} 条
+        </div>
+        <div class="flex items-center space-x-2">
+          <Button variant="outline" size="sm" @click="changePage(page - 1)" :disabled="page <= 1">
+            <ChevronLeftIcon class="h-4 w-4" />
+          </Button>
+          <span class="text-sm font-medium">{{ page }} / {{ totalPages }}</span>
+          <Button variant="outline" size="sm" @click="changePage(page + 1)" :disabled="page >= totalPages">
+            <ChevronRightIcon class="h-4 w-4" />
+          </Button>
         </div>
       </div>
-
     </div>
     
-    <div v-if="!isLoading && salesData.length === 0 && !errorMessage" class="p-6 bg-white rounded-lg shadow text-center text-stone-500">
+    <div v-if="!isLoading && salesData.length === 0 && !errorMessage" class="p-8 text-center text-muted-foreground bg-white rounded-lg border">
       <p>未找到符合条件的数据。</p>
     </div>
   </div>
@@ -186,16 +199,32 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
-import apiClient from '../../api';
 import { useAuthStore } from '../../stores/auth';
 import useStoreListings from '../../composables/useStoreListings';
 import SalesDataEditModal from './SalesDataEditModal.vue';
+import { salesService } from '../../services/salesService';
 import { FunnelIcon, ArrowPathIcon, ChevronUpIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/20/solid';
 
+// Shadcn Components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
 // --- 常量 (Constants) ---
-const ORDER_STATUS_MAP = {
+const ORDER_STATUS_MAP: Record<string, string> = {
   'PENDING': '待付款',
   'READY_TO_SHIP': '待发货',
   'SHIPPED': '已发货',
@@ -206,12 +235,12 @@ const ORDER_STATUS_MAP = {
 };
 
 // --- 状态(State) ---
-const salesData = ref([]);
+const salesData = ref<any[]>([]);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const authStore = useAuthStore();
 
-// 分状态
+// 分页状态
 const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
@@ -223,6 +252,7 @@ const {
   fetchStores,
   storesError,
 } = useStoreListings();
+
 const defaultFilters = () => ({
   startDate: '',
   endDate: '',
@@ -239,16 +269,7 @@ const isModalOpen = ref(false);
 const selectedSaleData = ref(null);
 
 // --- 帮助组件：排序图标---
-const SortIcon = {
-  props: ['field', 'sorting'],
-  components: { ChevronUpIcon, ChevronDownIcon },
-  template: `
-    <span class="inline-block w-4">
-      <ChevronUpIcon v-if="sorting.by === field && sorting.order === 'asc'" class="h-4 w-4" />
-      <ChevronDownIcon v-if="sorting.by === field && sorting.order === 'desc'" class="h-4 w-4" />
-    </span>
-  `
-};
+// SortIcon logic inlined in template
 
 // --- 核心方法 (Methods) ---
 
@@ -259,7 +280,7 @@ async function fetchData(resetPage = false) {
   isLoading.value = true;
   errorMessage.value = '';
   
-  const params = {
+  const params: any = {
     sortBy: sorting.value.by,
     sortOrder: sorting.value.order,
     page: page.value,
@@ -267,23 +288,23 @@ async function fetchData(resetPage = false) {
   };
   
   for (const key in filters.value) {
-    if (filters.value[key]) {
-      params[key] = filters.value[key];
+    if ((filters.value as any)[key]) {
+      params[key] = (filters.value as any)[key];
     }
   }
 
   try {
-    const response = await apiClient.get('/sales-data', { params });
+    const data = await salesService.getSalesData(params);
     
-    if (Array.isArray(response.data)) {
+    if (Array.isArray(data)) {
       // 兼容旧接口
-      salesData.value = response.data;
-      total.value = response.data.length;
+      salesData.value = data;
+      total.value = data.length;
     } else {
-      // 新分接口
-      salesData.value = response.data.data;
-      total.value = response.data.total;
-      page.value = response.data.page;
+      // 新分页接口
+      salesData.value = data.data;
+      total.value = data.total;
+      page.value = data.page;
     }
   } catch (error) {
     console.error('获取销售数据失败', error);
@@ -293,7 +314,7 @@ async function fetchData(resetPage = false) {
   }
 }
 
-function changePage(newPage) {
+function changePage(newPage: number) {
   if (newPage < 1 || newPage > totalPages.value) return;
   page.value = newPage;
   fetchData(false);
@@ -304,28 +325,21 @@ onMounted(() => {
   fetchStores();
 });
 
-watch(() => storesError.value, (val) => {
-  if (val) {
-    errorMessage.value = val;
-  }
-});
-
-// ... (后续代码如 countryOptions, platformOptions 等保持不变)
 const countryOptions = computed(() => {
-  const uniqueCountriesMap = new Map();
-  stores.value.forEach(store => {
+  const uniqueCountriesMap = new Map<string, any>();
+  stores.value.forEach((store: any) => {
     if (store.country) {
       uniqueCountriesMap.set(store.country.code, store.country);
     }
   });
   const allUniqueCountries = Array.from(uniqueCountriesMap.values())
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
   if (authStore.role === 'admin') {
     return allUniqueCountries; 
   }
-  const userCountryCodes = authStore.operatedCountries; 
-  return allUniqueCountries.filter(country => 
+  const userCountryCodes = authStore.operatedCountries || []; 
+  return allUniqueCountries.filter((country: any) => 
     userCountryCodes.includes(country.code)
   );
 });
@@ -333,9 +347,9 @@ const countryOptions = computed(() => {
 const platformOptions = computed(() => {
   let storesToFilter = stores.value;
   if (filters.value.countryCode) {
-    storesToFilter = storesToFilter.filter(store => store.countryCode === filters.value.countryCode);
+    storesToFilter = storesToFilter.filter((store: any) => store.countryCode === filters.value.countryCode);
   }
-  const platforms = storesToFilter.map(store => store.platform);
+  const platforms = storesToFilter.map((store: any) => store.platform);
   return [...new Set(platforms)].sort();
 });
 
@@ -343,55 +357,55 @@ const storeOptions = computed(() => {
   let storesToFilter = stores.value;
   
   if (filters.value.countryCode) {
-    storesToFilter = storesToFilter.filter(store => 
+    storesToFilter = storesToFilter.filter((store: any) => 
       store.countryCode === filters.value.countryCode
     );
   }
   if (filters.value.platform) {
-    storesToFilter = storesToFilter.filter(store =>
+    storesToFilter = storesToFilter.filter((store: any) =>
       store.platform === filters.value.platform
     );
   }
   
-  return storesToFilter.sort((a, b) => a.name.localeCompare(b.name));
+  return storesToFilter.sort((a: any, b: any) => a.name.localeCompare(b.name));
 });
 
-watch(() => filters.value.countryCode, () => {
-  filters.value.storeId = '';
-});
-watch(() => filters.value.platform, () => {
+watch(() => storesError.value, (val) => {
+  if (val) {
+    errorMessage.value = val;
+  }
   filters.value.storeId = '';
 });
 
 function resetFilters() {
   filters.value = defaultFilters();
   sorting.value = { by: 'recordDate', order: 'desc' };
-  fetchData(true); // 重置筛选时也重置码
+  fetchData(true); // 重置筛选时也重置页码
 }
 
-function setSort(field) {
+function setSort(field: string) {
   if (sorting.value.by === field) {
     sorting.value.order = sorting.value.order === 'asc' ? 'desc' : 'asc';
   } else {
     sorting.value.by = field;
     sorting.value.order = 'desc';
   }
-  fetchData(false); // 排序时保持在当前
+  fetchData(false); // 排序时保持在当前页
 }
 
-async function handleDelete(id) {
+async function handleDelete(id: string) {
   if (confirm('确定要删除这条销售数据吗？此操作不可逆。')) {
     try {
-      await apiClient.delete(`/sales-data/${id}`);
+      await salesService.delete(id);
       salesData.value = salesData.value.filter(row => row.id !== id);
-    } catch (error) {
+    } catch (error: any) {
       console.error('删除失败:', error);
       errorMessage.value = error.response?.data?.error || '删除失败，请重试。';
     }
   }
 }
 
-function openEditModal(row) {
+function openEditModal(row: any) {
   selectedSaleData.value = row;
   isModalOpen.value = true;
 }
@@ -401,7 +415,7 @@ function closeModal() {
   selectedSaleData.value = null;
 }
 
-function handleSaleUpdated(updatedRow) {
+function handleSaleUpdated(updatedRow: any) {
   const index = salesData.value.findIndex(row => row.id === updatedRow.id);
   if (index !== -1) {
     salesData.value[index] = updatedRow;
@@ -409,13 +423,13 @@ function handleSaleUpdated(updatedRow) {
   closeModal();
 }
 
-function formatDate(dateString) {
+function formatDate(dateString: string) {
   if (!dateString) return 'N/A';
   return new Date(dateString).toISOString().split('T')[0];
 }
 
-function getStatusClass(status) {
-  const classes = {
+function getStatusClass(status: string) {
+  const classes: Record<string, string> = {
     'PENDING': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
     'READY_TO_SHIP': 'bg-blue-50 text-blue-700 ring-blue-600/20',
     'SHIPPED': 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
@@ -429,35 +443,5 @@ function getStatusClass(status) {
 </script>
 
 <style scoped>
-.input-group {
-  display: flex;
-  flex-direction: column;
-}
-.input-group label {
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
-  font-size: 0.875rem; 
-}
-.form-input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-.table-th {
-  padding: 0.75rem 1.5rem; 
-  text-align: left;
-  font-size: 0.75rem; 
-  font-weight: 500;
-  color: #6b7280; 
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.table-td {
-  padding: 1rem 1.5rem; 
-  white-space: nowrap;
-  font-size: 0.875rem; 
-  color: #374151; 
-}
+/* Removed custom styles in favor of Tailwind/Shadcn */
 </style>

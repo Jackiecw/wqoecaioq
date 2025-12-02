@@ -240,13 +240,13 @@ import { FunnelIcon, ArrowPathIcon, ChevronUpIcon, ChevronDownIcon } from '@hero
 
 const paymentMethodMap = {
 
-  ALIPAY: '支付,
+  ALIPAY: '支付宝',
 
   WECHAT_PAY: '微信支付',
 
   BANK_TRANSFER: '银行转账',
 
-  CREDIT_CARD: '信用卡,
+  CREDIT_CARD: '信用卡',
 
   CASH: '现金',
 
@@ -382,7 +382,7 @@ async function fetchData(showLoading = true) {
 
     console.error('获取支出数据失败:', error);
 
-    errorMessage.value = '获取数据失败，请重试;
+    errorMessage.value = '获取数据失败，请重试';
 
   } finally {
 
@@ -548,7 +548,7 @@ function setSort(field) {
 
 async function handleDelete(id) {
 
-  if (confirm('确定要删除这条支出数据吗？此操作不可逆)) {
+  if (confirm('确定要删除这条支出数据吗？此操作不可逆')) {
 
     try {
 
@@ -560,7 +560,7 @@ async function handleDelete(id) {
 
       console.error('删除失败:', error);
 
-      errorMessage.value = error.response?.data?.error || '删除失败，请重试;
+      errorMessage.value = error.response?.data?.error || '删除失败，请重试';
 
     }
 

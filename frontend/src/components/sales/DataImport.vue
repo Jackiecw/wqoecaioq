@@ -127,8 +127,12 @@
 
 import { ref, computed, onMounted, watch } from 'vue'
 import useStoreListings from '../../composables/useStoreListings'
+import { useAuthStore } from '@/stores/auth'
+import BatchImport from './BatchImport.vue'
+import SalesForm from './SalesForm.vue'
+import ImportHistory from './ImportHistory.vue'
 
-
+const authStore = useAuthStore()
 const { stores, fetchStores, storesLoading } = useStoreListings()
 
 

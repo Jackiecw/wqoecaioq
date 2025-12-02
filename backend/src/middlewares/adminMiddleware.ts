@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import authMiddleware from './authMiddleware';
+import { authMiddleware } from './authMiddleware';
 
 const adminMiddleware = (req: Request, res: Response, next: NextFunction) => {
     authMiddleware(req, res, () => {

@@ -533,7 +533,7 @@ const uploadAndPreview = async () => {
 
     if (!selectedStore) {
 
-        alert("请选择有效的店);
+        alert("请选择有效的店铺");
 
         return;
 
@@ -635,7 +635,7 @@ const confirmImport = async () => {
 
     if (selectedCount.value === 0) {
 
-        alert("请至少选择一条数);
+        alert("请至少选择一条数据");
 
         return;
 

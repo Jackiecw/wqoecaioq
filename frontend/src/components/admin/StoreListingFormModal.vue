@@ -201,7 +201,7 @@ const isLoadingMessage = ref('');
 const selectedFile = ref(null);
 const previewUrl = ref(null);
 const errorMessage = ref('');
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
 
 const isEditMode = computed(() => !!props.listingToEditId);
 const {

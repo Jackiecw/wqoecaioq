@@ -187,7 +187,7 @@ const handleSubmit = async () => {
     if (error.response?.data?.error) {
       errorMessage.value = error.response.data.error;
     } else {
-      errorMessage.value = '提交失败，请检查网络或联系管理员。;
+      errorMessage.value = '提交失败，请检查网络或联系管理员。';
     }
   }
 };

@@ -1,6 +1,6 @@
 import express from 'express';
 import logisticsController from '../controllers/logisticsController';
-import authMiddleware from '../middlewares/authMiddleware';
+import { authMiddleware } from '../middlewares/authMiddleware';
 import adminMiddleware from '../middlewares/adminMiddleware';
 
 const router = express.Router();

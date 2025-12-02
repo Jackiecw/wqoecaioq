@@ -42,6 +42,34 @@ export class OperationController {
         }
     }
 
+    async getCountries(req: Request, res: Response, next: NextFunction) {
+        try {
+            const countries = await operationService.getCountries();
+            res.json(countries);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async getLinks(req: Request, res: Response, next: NextFunction) {
+        try {
+            const links = await operationService.getLinks();
+            res.json(links);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async getRates(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { getRates } = require('../utils/dataHelpers');
+            const data = await getRates();
+            res.json(data);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     async createModule(req: Request, res: Response, next: NextFunction) {
         try {
             const validation = moduleSchema.safeParse(req.body);

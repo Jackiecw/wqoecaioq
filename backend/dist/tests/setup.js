@@ -1,0 +1,26 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.prisma = void 0;
+const client_1 = require("@prisma/client");
+const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
+const vitest_1 = require("vitest");
+// Explicitly load backend/.env for tests
+dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '../.env') });
+exports.prisma = new client_1.PrismaClient();
+(0, vitest_1.beforeAll)(async () => {
+    // Connect to database
+    await exports.prisma.$connect();
+});
+(0, vitest_1.afterAll)(async () => {
+    // Disconnect from database
+    await exports.prisma.$disconnect();
+});
+(0, vitest_1.afterEach)(async () => {
+    // Optional: Clean up database after each test if needed
+    // await prisma.user.deleteMany();
+});
+//# sourceMappingURL=setup.js.map

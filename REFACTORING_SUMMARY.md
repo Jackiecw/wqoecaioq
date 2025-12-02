@@ -13,35 +13,47 @@ The project is undergoing a major refactoring to modernize the backend architect
     -   Ensured UTF-8 encoding for Chinese characters.
     -   Established an isolated database environment on port 5433.
 
-### Phase 4: Frontend Modernization
--   **Status**: ✅ Mostly Completed
--   **Key Achievements**:
-    -   **Directory Structure**: `src/views` and `src/components` are now properly organized.
-        -   `src/views`: Contains page-level components (`Dashboard.vue`, `Login.vue`, etc.).
-        -   `src/components`: Organized into feature-specific subdirectories (`admin`, `common`, `dashboard`, `finance`, `logistics`, `reports`, `sales`).
-    -   **Routing**: `src/router/index.js` has been updated to reflect the new structure.
-    -   **Cleanup**: Previous issues with incorrect file/folder naming (e.g., `finance` folder vs file) appear to be resolved.
+### Phase 2: Backend Architecture Overhaul
+-   **Status**: ✅ Completed
+-   **Completed Modules**:
+    -   **Auth Module**: `authController.ts` + `authService.ts`.
+    -   **Sales Module**: `salesController.ts` + `salesService.ts`.
+    -   **Product/Store**: `productController.ts`, `storeListingController.ts` + Services.
+    -   **Finance**: `financeController.ts` + `financeService.ts`.
+    -   **Logistics**: `logisticsController.ts` + `logisticsService.ts`.
+    -   **Admin/Management**: `adminController.ts`, `managementController.ts` + Services.
+    -   **Operations/Performance**: `operationController.ts`, `performanceController.ts` + Services.
+    -   **Sales Import**: `salesImportController.ts` + `salesImportService.ts`.
+-   **Pending Modules**:
+    -   None.
+
+### Phase 3: TypeScript Migration
+-   **Status**: ✅ Completed
+-   **Completed**:
+    -   Infrastructure (`config`, `logger`, `middlewares`).
+    -   All business modules migrated to TypeScript.
+    -   Legacy `.js` routes deleted (`salesImport.js`, `data.js`).
+-   **Pending**:
+    -   None.
 
 ## In Progress Phases
 
-### Phase 2: Backend Architecture Overhaul
--   **Status**: 🚧 Partially Completed
--   **Completed Modules**:
-    -   **Auth Module**: Migrated to `controllers/authController.ts` + `services/authService.ts`.
-    -   **Sales Module**: Migrated to `controllers/salesController.ts` + `services/salesService.ts`.
--   **Pending Modules**:
-    -   **Store/Product Module**: Still in `routes/products.js`, `routes/storeListings.js`.
-    -   **Finance Module**: Still in `routes/finance.js`.
-    -   **Logistics Module**: Still in `routes/logistics.js`.
-    -   **Admin/Management**: Still in `routes/admin.js`, `routes/management.js`.
-
-### Phase 3: TypeScript Migration
--   **Status**: 🚧 Partially Completed
--   **Completed**:
-    -   Infrastructure (`config`, `logger`, `middlewares`).
-    -   Auth and Sales modules.
+### Phase 4: Frontend Modernization
+-   **Status**: 🚧 In Progress
+-   **Key Achievements**:
+    -   **Directory Structure**: Organized `src/views` and `src/components`.
+    -   **Routing**: Updated `src/router/index.js`.
+    -   **State Management**: Pinia stores set up (`useAuthStore`).
+    -   **API Layer**: Created `src/services/` (`apiClient.ts`, `authService.ts`, `salesService.ts`).
+    -   **TypeScript Conversion**: Converted `auth.js` and `useStoreListings.js` to TypeScript.
+    -   **Build Fixes**: Resolved all syntax and type errors to ensure `npm run build` passes.
+    -   **UI Components**: Started migration to Shadcn-vue (Button, Input, Table, etc.).
 -   **Pending**:
-    -   All remaining legacy route files (`.js`) need to be migrated to TypeScript controllers/services.
+    -   **Full Shadcn-vue Migration**: Continue refactoring components like `SalesDataManagement.vue` to fully utilize Shadcn-vue.
+    -   **Completed**:
+        -   ✅ **Remaining JS Files**: Converted `router/index.js`, `main.js`, `useManagedCountries.js` to TypeScript.
+        -   ✅ **Global Store**: Created `useGlobalStore`.
+        -   ✅ **Backend Structure**: Unified all routes into `backend/src/routes`.
 
 ## Pending Phases
 
@@ -52,11 +64,10 @@ The project is undergoing a major refactoring to modernize the backend architect
     -   Worker processes.
 
 ## Next Steps Plan
-1.  **Complete Phase 2 & 3 for Remaining Modules**:
-    -   Migrate `products.js` and `storeListings.js` to `ProductController`/`Service` and `StoreController`/`Service` (TypeScript).
-    -   Migrate `finance.js` to `FinanceController`/`Service` (TypeScript).
-    -   Migrate `logistics.js` to `LogisticsController`/`Service` (TypeScript).
-2.  **Frontend Polish**:
-    -   Verify all imports in the new component structure are correct (ensure no broken relative paths).
-    -   Migrate frontend API calls to use the new `services/` layer (as per plan, currently likely using direct axios or mixed).
+1.  **Frontend Refactoring**:
+    -   Complete Shadcn-vue integration in `SalesDataManagement.vue`.
+    -   Refactor other key views (`FinancePage`, `CalendarPage`) to use new services and components.
+2.  **Frontend TypeScript**:
+    -   Convert `main.js` and `router/index.js` to TypeScript.
+    -   Add proper type definitions for all Vue components.
 3.  **Phase 5**: Start implementing Async Queues.

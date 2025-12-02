@@ -32,7 +32,7 @@
 
           <input type="text" id="itemDescription" v-model="formData.itemDescription" required 
 
-                 placeholder="例如: Facebook 广告费 class="form-input" />
+                 placeholder="例如: Facebook 广告费" class="form-input" />
 
         </div>
 
@@ -237,13 +237,13 @@ const authStore = useAuthStore();
 
 const paymentMethodMap = {
 
-  ALIPAY: '支付,
+  ALIPAY: '支付宝',
 
   WECHAT_PAY: '微信支付',
 
   BANK_TRANSFER: '银行转账',
 
-  CREDIT_CARD: '信用卡,
+  CREDIT_CARD: '信用卡',
 
   CASH: '现金',
 
@@ -345,7 +345,7 @@ async function fetchStores() {
 
     console.error('获取店铺列表失败:', error);
 
-    errorMessage.value = '无法加载店铺选项，请联系管理员。;
+    errorMessage.value = '无法加载店铺选项，请联系管理员。';
 
   } finally {
 
@@ -371,7 +371,7 @@ async function fetchFinanceOptions() {
 
     console.error('获取财务选项失败:', error);
 
-    errorMessage.value = '无法加载财务选项，请联系管理员。;
+    errorMessage.value = '无法加载财务选项，请联系管理员。';
 
   } finally {
 
@@ -553,7 +553,7 @@ const handleSubmit = async () => {
 
     } else {
 
-      errorMessage.value = '提交失败，请检查网络或联系管理员;
+      errorMessage.value = '提交失败，请检查网络或联系管理员';
 
     }
 

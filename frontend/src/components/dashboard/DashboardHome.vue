@@ -91,7 +91,7 @@
               </p>
             </div>
             <div class="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <label class="text-sm font-medium text-[#6B7280]">本 GMV</label>
+              <label class="text-sm font-medium text-[#6B7280]">本周 GMV</label>
               <p class="mt-2 text-2xl font-bold text-[#1F2937]">
                 {{ formatCurrency(summaryData.gmv.thisWeek, summaryData.gmv.currency) }}
               </p>
@@ -118,9 +118,9 @@
             <button @click="isScheduleOpen = true" class="text-left text-lg font-semibold text-[#1F2937] transition hover:text-[#3B82F6]">
               日程总览
             </button>
-            <p class="mt-3 text-sm font-medium text-[#1F2937]">本重点</p>
+            <p class="mt-3 text-sm font-medium text-[#1F2937]">本周重点</p>
             <p class="mt-1 text-sm text-[#6B7280] line-clamp-5">
-              {{ summaryData.schedule.planNextWeek || '暂无计划，建议在报中补充' }}
+              {{ summaryData.schedule.planNextWeek || '暂无计划，建议在周报中补充' }}
             </p>
           </article>
 
@@ -291,7 +291,7 @@ const remainingManualRefreshes = ref(null);
 const manualRefreshStatus = ref({
   isRefreshing: false,
   error: '',
-});
+  });
 const allCountries = ref([]);
 const allStores = ref([]);
 const selectedCountryCode = ref(null);
@@ -325,7 +325,7 @@ const highlightMetrics = computed(() => {
   if (isLoading.value.summary) {
     return [
       { label: '今日 GMV', value: '加载中', sub: '数据抓取中' },
-      { label: '本 GMV', value: '加载中', sub: '数据抓取中' },
+      { label: '本周 GMV', value: '加载中', sub: '数据抓取中' },
       { label: '本月 GMV', value: '加载中', sub: '数据抓取中' },
       { label: '团队计划', value: '同步中', sub: '请稍候' },
     ];
@@ -339,7 +339,7 @@ const highlightMetrics = computed(() => {
       sub: `≈ ${formatCurrency(cny.today, 'CNY')}`,
     },
     {
-      label: '本 GMV',
+      label: '本周 GMV',
       value: formatCurrency(gmv.thisWeek, gmv.currency),
       sub: `≈ ${formatCurrency(cny.thisWeek, 'CNY')}`,
     },
@@ -351,7 +351,7 @@ const highlightMetrics = computed(() => {
     {
       label: '团队计划',
       value: schedule.planNextWeek ? '已同步' : '待填写',
-      sub: schedule.planNextWeek || '报 > 下计划',
+      sub: schedule.planNextWeek || '周报 > 下周计划',
     },
   ];
 });
@@ -499,7 +499,11 @@ async function fetchFilterOptions() {
 }
 
 async function fetchDashboardData() {
-  if (!selectedCountryCode.value || !selectedStoreId.value) return;
+  if (!selectedCountryCode.value || !selectedStoreId.value) {
+    isLoading.value.summary = false;
+    isLoading.value.rates = false;
+    return;
+  }
 
   isLoading.value.summary = true;
   isLoading.value.rates = true;

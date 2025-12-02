@@ -156,10 +156,15 @@
 
 
 <script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import apiClient from '@/api';
+import LinkModal from './LinkModal.vue';
+import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/20/solid';
 
 const isLoading = ref(true);
-
 const errorMessage = ref('');
+const links = ref([]); // Added missing links ref
 
 
 

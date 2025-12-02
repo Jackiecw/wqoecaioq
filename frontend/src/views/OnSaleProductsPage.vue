@@ -123,7 +123,7 @@
                         代码：{{ listing.productCode || '未设置' }}
                       </p>
                       <p class="text-xs text-[#94A3B8] truncate">
-                        {{ listing.store.country.name }} · {{ listing.store.name }}
+                        {{ listing.store?.country?.name }} · {{ listing.store?.name }}
                       </p>
                       <p class="mt-2 text-sm font-semibold text-[#2563EB]">
                         {{ formatLocalPrice(listing.currentPrice, getCurrencyCode(listing)) }}
@@ -170,9 +170,9 @@
               <div class="flex-1 space-y-3">
                 <div class="flex items-center gap-2 text-sm text-[#64748B]">
                   <span class="rounded-full bg-[#EEF2FF] px-3 py-1 font-semibold text-[#4338CA]">
-                    {{ selectedListing.store.country.code }}
+                    {{ selectedListing.store?.country?.code }}
                   </span>
-                  <span>{{ selectedListing.store.name }}</span>
+                  <span>{{ selectedListing.store?.name }}</span>
                 </div>
                 <h3 class="text-2xl font-semibold text-[#111827]">
                   {{ selectedListing.storeTitle || '未命名商品' }}
@@ -264,7 +264,7 @@ const isModalOpen = ref(false);
 const listingToEditId = ref(null);
 const selectedListingId = ref(null);
 const ratesData = ref({});
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
 const placeholderImage = 'https://via.placeholder.com/320x320?text=Listing';
 
 const searchKeyword = ref('');

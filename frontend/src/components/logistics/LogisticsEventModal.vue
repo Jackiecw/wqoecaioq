@@ -360,13 +360,13 @@ const form = reactive({
 
 const statusSteps = [
 
-  { key: 'IN_PRODUCTION', label: '生产 },
+  { key: 'IN_PRODUCTION', label: '生产中' },
 
   { key: 'PRODUCTION_DONE', label: '生产完成' },
 
-  { key: 'SHIPPED_OUT', label: '已出 },
+  { key: 'SHIPPED_OUT', label: '已出货' },
 
-  { key: 'CONTAINER_LOADED', label: '已装 },
+  { key: 'CONTAINER_LOADED', label: '已装柜' },
 
   { key: 'EXPORTED', label: '出口' },
 
@@ -374,7 +374,7 @@ const statusSteps = [
 
   { key: 'IMPORTED', label: '进口' },
 
-  { key: 'DELIVERING', label: '派 },
+  { key: 'DELIVERING', label: '派送中' },
 
   { key: 'WAREHOUSED', label: '入仓' },
 
@@ -443,7 +443,7 @@ async function fetchDetail() {
 
     console.error(e);
 
-    errorMessage.value = e.response?.data?.error || '获取详情失败，可能是服务器错误或数据不一致;
+    errorMessage.value = e.response?.data?.error || '获取详情失败，可能是服务器错误或数据不一致';
 
   }
 

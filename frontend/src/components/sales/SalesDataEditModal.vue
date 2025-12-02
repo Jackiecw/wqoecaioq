@@ -1,305 +1,125 @@
 <template>
-
-  <TransitionRoot appear :show="isOpen" as="template">
-
-    <Dialog as="div" @close="closeModal" class="relative z-10">
-
-      
-
-      <TransitionChild
-
-        as="template"
-
-        enter="duration-300 ease-out"
-
-        enter-from="opacity-0"
-
-        enter-to="opacity-100"
-
-        leave="duration-200 ease-in"
-
-        leave-from="opacity-100"
-
-        leave-to="opacity-0"
-
-      >
-
-        <div class="fixed inset-0 bg-black/25" />
-
-      </TransitionChild>
-
-
-
-      <div class="fixed inset-0 overflow-y-auto">
-
-        <div class="flex min-h-full items-center justify-center p-4 text-center">
-
-          
-
-          <TransitionChild
-
-            as="template"
-
-            enter="duration-300 ease-out"
-
-            enter-from="opacity-0 scale-95"
-
-            enter-to="opacity-100 scale-100"
-
-            leave="duration-200 ease-in"
-
-            leave-from="opacity-100 scale-100"
-
-            leave-to="opacity-0 scale-95"
-
-          >
-
-            <DialogPanel class="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-
-              
-
-              <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900">
-
-                修改销售数据
-              </DialogTitle>
-
-              
-
-              <div v-if="isLoading" class="mt-4 p-6 text-center text-stone-500">
-
-                正在加载表单选项...
-
-              </div>
-
-
-
-              <form v-if="!isLoading" @submit.prevent="handleSubmit" class="mt-4">
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                  
-
-                  <div class="space-y-2">
-
-                    <label for="edit_recordDate" class="form-label">记录日期 *</label>
-
-                    <input type="date" id="edit_recordDate" v-model="formData.recordDate" required class="form-input" />
-
-                  </div>
-
-
-
-                  <div class="space-y-2">
-
-                    <label for="edit_country" class="form-label">国家 *</label>
-
-                    <select id="edit_country" v-model="selectedCountry" required class="form-input">
-
-                      <option disabled value="">请选择国家...</option>
-
-                      <option v-for="country in countryOptions" :key="country.code" :value="country.code">
-
-                        {{ country.name }} ({{ country.code }})
-
-                      </option>
-
-                    </select>
-
-                  </div>
-
-                  
-
-                  <div class="space-y-2">
-
-                    <label for="edit_platform" class="form-label">平台 *</label>
-
-                    <select id="edit_platform" v-model="selectedPlatform" required :disabled="!selectedCountry" class="form-input disabled:bg-gray-100">
-
-                      <option disabled value="">请选择平台...</option>
-
-                      <option v-for="platform in platformOptions" :key="platform" :value="platform">
-
-                        {{ platform }}
-
-                      </option>
-
-                    </select>
-
-                  </div>
-
-                  
-
-                  <div class="space-y-2">
-
-                    <label for="edit_store" class="form-label">店铺名称 *</label>
-
-                    <select id="edit_store" v-model="formData.storeId" required :disabled="!selectedPlatform" class="form-input disabled:bg-gray-100">
-
-                      <option disabled value="">请选择店铺...</option>
-
-                      <option v-for="store in storeOptions" :key="store.id" :value="store.id">
-
-                        {{ store.name }}
-
-                      </option>
-
-                    </select>
-
-                  </div>
-
-
-
-                  <div class="space-y-2 md:col-span-2">
-
-                    <label for="edit_listing" class="form-label">
-
-                      选择商品链接 (Listing) *
-
-                      <span class="text-xs font-normal text-stone-500 ml-1">格式: [商品代码] 标题 (SKU)</span>
-
-                    </label>
-
-                    <select 
-
-                      id="edit_listing" 
-
-                      v-model="formData.listingId" 
-
-                      required 
-
-                      :disabled="!formData.storeId || isLoadingListings" 
-
-                      class="form-input disabled:bg-gray-100"
-
-                    >
-
-                      <option disabled value="">
-
-                        {{ isLoadingListings ? '加载链接..' : '请选择具体链接...' }}
-
-                      </option>
-
-                      <option v-for="listing in storeListings" :key="listing.id" :value="listing.id">
-
-                        <template v-if="listing.productCode">
-
-                          [{{ listing.productCode }}]
-
-                        </template>
-
-                        {{ listing.storeTitle || '未命名链接' }} 
-
-                        ({{ listing.product.sku }})
-
-                      </option>
-
-                    </select>
-
-                    
-
-                    <p v-if="!saleDataToEdit?.listingId && !formData.listingId" class="text-xs text-amber-600 mt-1">
-
-                      提示：这是一条旧数据，请重新关联到一个具体的商品链接
-                    </p>
-
-                  </div>
-
-
-
-                  <div class="space-y-2">
-
-                    <label for="edit_salesVolume" class="form-label">销量 *</label>
-
-                    <input type="number" id="edit_salesVolume" v-model="formData.salesVolume" required class="form-input" />
-
-                  </div>
-
-                  
-
-                  <div class="space-y-2">
-
-                    <label for="edit_revenue" class="form-label">销售额 *</label>
-
-                    <input type="number" step="0.01" id="edit_revenue" v-model="formData.revenue" required class="form-input" />
-
-                  </div>
-
-
-
-                  <div class="space-y-2">
-
-                    <label for="edit_status" class="form-label">订单状态</label>
-
-                    <select id="edit_status" v-model="formData.orderStatus" class="form-input">
-
-                      <option value="">未设置</option>
-
-                      <option v-for="(label, value) in ORDER_STATUS_MAP" :key="value" :value="value">
-
-                        {{ label }}
-
-                      </option>
-
-                    </select>
-
-                  </div>
-
-                  
-
-                  <div class="space-y-2 md:col-span-2">
-
-                    <label for="edit_notes" class="form-label">备注 (可选)</label>
-
-                    <textarea id="edit_notes" rows="3" v-model="formData.notes" class="form-input"></textarea>
-
-                  </div>
-
-
-
-                </div>
-
-                
-
-                <p v-if="errorMessage" class="text-red-600 text-sm mt-4">
-
-                  {{ errorMessage }}
-
-                </p>
-
-
-
-                <div class="mt-6 flex justify-end space-x-4">
-
-                  <button type="button" @click="closeModal" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-
-                    取消
-
-                  </button>
-
-                  <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-
-                    保存更改
-
-                  </button>
-
-                </div>
-
-              </form>
-
-              
-
-            </DialogPanel>
-
-          </TransitionChild>
-
-        </div>
-
+  <Dialog :open="isOpen" @update:open="(val) => !val && closeModal()">
+    <DialogContent class="sm:max-w-[600px]">
+      <DialogHeader>
+        <DialogTitle>修改销售数据</DialogTitle>
+      </DialogHeader>
+
+      <div v-if="isLoading" class="py-6 text-center text-muted-foreground">
+        正在加载表单选项...
       </div>
 
-    </Dialog>
+      <form v-else @submit.prevent="handleSubmit" class="grid gap-4 py-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid gap-2">
+            <Label for="edit_recordDate">记录日期 *</Label>
+            <Input type="date" id="edit_recordDate" v-model="formData.recordDate" required />
+          </div>
 
-  </TransitionRoot>
+          <div class="grid gap-2">
+            <Label>国家 *</Label>
+            <Select v-model="selectedCountry" required>
+              <SelectTrigger>
+                <SelectValue placeholder="请选择国家..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="country in countryOptions" :key="country.code" :value="country.code">
+                  {{ country.name }} ({{ country.code }})
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
+          <div class="grid gap-2">
+            <Label>平台 *</Label>
+            <Select v-model="selectedPlatform" :disabled="!selectedCountry" required>
+              <SelectTrigger>
+                <SelectValue placeholder="请选择平台..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="platform in platformOptions" :key="platform" :value="platform">
+                  {{ platform }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div class="grid gap-2">
+            <Label>店铺名称 *</Label>
+            <Select v-model="formData.storeId" :disabled="!selectedPlatform" required>
+              <SelectTrigger>
+                <SelectValue placeholder="请选择店铺..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="store in storeOptions" :key="store.id" :value="store.id">
+                  {{ store.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div class="grid gap-2 md:col-span-2">
+            <Label>
+              选择商品链接 (Listing) *
+              <span class="text-xs font-normal text-muted-foreground ml-1">格式: [商品代码] 标题 (SKU)</span>
+            </Label>
+            <Select v-model="formData.listingId" :disabled="!formData.storeId || isLoadingListings" required>
+              <SelectTrigger>
+                <SelectValue :placeholder="isLoadingListings ? '加载链接..' : '请选择具体链接...'" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="listing in storeListings" :key="listing.id" :value="listing.id">
+                  <span v-if="listing.productCode">[{{ listing.productCode }}] </span>
+                  {{ listing.storeTitle || '未命名链接' }} ({{ listing.product.sku }})
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p v-if="!saleDataToEdit?.listingId && !formData.listingId" class="text-[0.8rem] text-amber-600">
+              提示：这是一条旧数据，请重新关联到一个具体的商品链接
+            </p>
+          </div>
+
+          <div class="grid gap-2">
+            <Label for="edit_salesVolume">销量 *</Label>
+            <Input type="number" id="edit_salesVolume" v-model="formData.salesVolume" required />
+          </div>
+
+          <div class="grid gap-2">
+            <Label for="edit_revenue">销售额 *</Label>
+            <Input type="number" step="0.01" id="edit_revenue" v-model="formData.revenue" required />
+          </div>
+
+          <div class="grid gap-2">
+            <Label>订单状态</Label>
+            <Select v-model="formData.orderStatus">
+              <SelectTrigger>
+                <SelectValue placeholder="未设置" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="(label, value) in ORDER_STATUS_MAP" :key="value" :value="value">
+                  {{ label }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div class="grid gap-2 md:col-span-2">
+            <Label for="edit_notes">备注 (可选)</Label>
+            <Textarea id="edit_notes" v-model="formData.notes" rows="3" />
+          </div>
+        </div>
+
+        <p v-if="errorMessage" class="text-destructive text-sm mt-2">
+          {{ errorMessage }}
+        </p>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="closeModal">取消</Button>
+          <Button type="submit">保存更改</Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
 </template>
 
 
@@ -307,25 +127,28 @@
 <script setup>
 
 import { ref, watch, computed } from 'vue';
-
 import {
-
-  TransitionRoot,
-
-  TransitionChild,
-
   Dialog,
-
-  DialogPanel,
-
+  DialogContent,
+  DialogHeader,
   DialogTitle,
-
-} from '@headlessui/vue';
-
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import apiClient from '../../api';
-
 import { useAuthStore } from '../../stores/auth';
-
 import useStoreListings from '../../composables/useStoreListings';
 
 
@@ -709,44 +532,6 @@ function closeModal() {
 
 
 <style scoped>
-
-.form-label {
-
-  display: block;
-
-  margin-bottom: 0.5rem;
-
-  color: #333;
-
-  font-weight: bold;
-
-  font-size: 0.875rem; /* 14px */
-
-}
-
-.form-input {
-
-  display: block;
-
-  width: 100%;
-
-  padding: 0.75rem;
-
-  border: 1px solid #ddd;
-
-  border-radius: 4px;
-
-  font-size: 1rem;
-
-}
-
-.form-input:disabled {
-
-  background-color: #f3f4f6;
-
-  cursor: not-allowed;
-
-}
-
+/* Custom styles removed in favor of Shadcn/Tailwind */
 </style>
 

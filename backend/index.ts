@@ -11,7 +11,7 @@ import errorHandler from './src/middlewares/errorHandler';
 import AppError from './src/utils/AppError';
 
 // Routes
-import registerRoutes from './routes';
+import registerRoutes from './src/routes';
 
 // Initialize App
 const app = express();
@@ -64,6 +64,8 @@ app.use(errorHandler);
 if (require.main === module) {
     const server = app.listen(config.PORT, config.HOST, () => {
         logger.info(`🚀 Server running on http://${config.HOST}:${config.PORT}`);
+        // Keep process alive
+        setInterval(() => { }, 1000 * 60 * 60);
     });
 
     // Process Handlers

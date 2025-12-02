@@ -91,7 +91,8 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
 import apiClient from '../../api';
-import ReportDetailModal from './ReportDetailModal.vue'; // ⬅️ 【新增import { useAuthStore } from '../../stores/auth';
+import ReportDetailModal from './ReportDetailModal.vue';
+import { useAuthStore } from '../../stores/auth';
 
 
 // --- (API 和加载逻辑不变) ---
@@ -121,11 +122,11 @@ async function fetchReports() {
 
     if (error.response && error.response.status === 403) {
 
-      errorMessage.value = '您没有权限查看此内容;
+      errorMessage.value = '您没有权限查看此内容';
 
     } else {
 
-      errorMessage.value = '获取报列表失败，请稍后重试;
+      errorMessage.value = '获取报列表失败，请稍后重试';
 
     }
 
@@ -171,7 +172,7 @@ function closeReportModal() {
 
 async function handleDeleteReport(reportId) {
   if (!isSuperAdmin.value) return;
-  if (!confirm('确定要删除这份报吗？该操作不可恢复)) {
+  if (!confirm('确定要删除这份报吗？该操作不可恢复')) {
     return;
   }
   errorMessage.value = '';

@@ -149,10 +149,10 @@ const isEditMode = computed(() => !!formData.value.id);
 const isDeleteDisabled = computed(() => authStore.role !== 'admin' && formData.value.createdByAdmin);
 
 const labels = [
-  { value: 'default', name: '默认（蓝, color: '#4f46e5' },
+  { value: 'default', name: '默认（蓝）', color: '#4f46e5' },
   { value: 'important', name: '重要（玫红）', color: '#db2777' },
   { value: 'meeting', name: '会议（青绿）', color: '#059669' },
-  { value: 'reminder', name: '提醒（琥珀, color: '#d97706' },
+  { value: 'reminder', name: '提醒（琥珀）', color: '#d97706' },
 ];
 
 watch(() => props.isOpen, async (newVal) => {
@@ -245,7 +245,7 @@ function handleSave() {
 }
 
 function handleDelete() {
-  if (!confirm('确定要删除这个日程吗)) return;
+  if (!confirm('确定要删除这个日程吗？')) return;
   emit('delete', formData.value.id);
 }
 </script>

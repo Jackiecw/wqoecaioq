@@ -340,7 +340,7 @@ async function handleSubmit() {
 
     } else {
 
-      errorMessage.value = '操作失败，请检查网络或联系管理员。;
+      errorMessage.value = '操作失败，请检查网络或联系管理员。';
 
     }
 

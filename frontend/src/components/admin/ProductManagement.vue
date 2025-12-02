@@ -256,7 +256,7 @@ const currentProductToEditId = ref(null);
 const selectedProductId = ref(null);
 const searchKeyword = ref('');
 const selectedCategory = ref('ALL');
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
 
 // Mobile state
 const showMobileDetail = ref(false);

@@ -310,13 +310,13 @@ const errorMessage = ref('');
 
 const paymentMethodMap = {
 
-  ALIPAY: '支付,
+  ALIPAY: '支付宝',
 
   WECHAT_PAY: '微信支付',
 
   BANK_TRANSFER: '银行转账',
 
-  CREDIT_CARD: '信用卡,
+  CREDIT_CARD: '信用卡',
 
   CASH: '现金',
 
@@ -388,7 +388,7 @@ async function fetchStoresAndOptions() {
 
  {
 
-    errorMessage.value = '无法加载表单选项;
+    errorMessage.value = '无法加载表单选项';
 
   }
 
@@ -589,7 +589,7 @@ async function handleSubmit() {
 
     } else {
 
-      errorMessage.value = error.response?.data?.error || '更新失败，请重试;
+      errorMessage.value = error.response?.data?.error || '更新失败，请重试';
 
     }
 

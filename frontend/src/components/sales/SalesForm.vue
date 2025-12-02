@@ -122,7 +122,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { useStoreListings } from '../../composables/useStoreListings';
+import useStoreListings from '../../composables/useStoreListings';
 import apiClient from '@/api';
 
 const props = defineProps({
