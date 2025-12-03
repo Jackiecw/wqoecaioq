@@ -70,6 +70,20 @@ export class OperationController {
         }
     }
 
+    async refreshRates(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { getRates } = require('../utils/dataHelpers');
+            const data = await getRates({ forceRefresh: true });
+            res.json({
+                rates: data.rates,
+                updatedAt: data.lastFetched ? new Date(data.lastFetched).toISOString() : new Date().toISOString(),
+                remainingRefreshes: null,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     async createModule(req: Request, res: Response, next: NextFunction) {
         try {
             const validation = moduleSchema.safeParse(req.body);

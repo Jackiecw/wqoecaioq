@@ -13,6 +13,8 @@ router.post('/sales', authMiddleware_1.authMiddleware, salesController_1.default
 router.get('/sales-data', authMiddleware_1.authMiddleware, salesController_1.default.findAll);
 // Get Sales Stats
 router.get('/sales-data/stats', authMiddleware_1.authMiddleware, salesController_1.default.getStats);
+// Get Stores List (Public/Auth)
+router.get('/stores-list', authMiddleware_1.authMiddleware, salesController_1.default.getStoresList);
 // Update Sales Data
 router.put('/sales-data/:id', authMiddleware_1.authMiddleware, salesController_1.default.update);
 // Delete Sales Data

@@ -10,6 +10,7 @@ router.get('/operation/data', authMiddleware, operationController.getModules);
 router.get('/countries', authMiddleware, operationController.getCountries);
 router.get('/links', authMiddleware, operationController.getLinks);
 router.get('/rates', authMiddleware, operationController.getRates);
+router.post('/rates/refresh', authMiddleware, operationController.refreshRates);
 
 // Admin
 router.post('/admin/operation-modules', adminMiddleware, operationController.createModule);

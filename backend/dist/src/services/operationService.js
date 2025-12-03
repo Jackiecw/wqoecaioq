@@ -22,6 +22,16 @@ class OperationService {
             },
         });
     }
+    async getCountries() {
+        return await prismaClient_1.default.managedCountry.findMany({
+            orderBy: { name: 'asc' }
+        });
+    }
+    async getLinks() {
+        return await prismaClient_1.default.commonLink.findMany({
+            orderBy: { displayOrder: 'asc' }
+        });
+    }
     async createModule(data) {
         const { name, ownerId, countryCode } = data;
         const maxOrder = await prismaClient_1.default.operationModule.aggregate({

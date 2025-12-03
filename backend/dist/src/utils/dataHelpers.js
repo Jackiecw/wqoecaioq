@@ -152,7 +152,7 @@ async function getRates(options = {}) {
         };
     }
     try {
-        const apiKey = process.env.EXCHANGE_RATE_API_KEY;
+        const apiKey = process.env.EXCHANGE_RATE_API_KEY || '64b2411accf109407c67b1b7';
         if (!apiKey) {
             logger_1.default.warn('未配置汇率 API 密钥，将使用模拟数据', {
                 fallbackRates: FALLBACK_RATES,

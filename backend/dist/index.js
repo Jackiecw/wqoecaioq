@@ -56,6 +56,8 @@ app.use(errorHandler_1.default);
 if (require.main === module) {
     const server = app.listen(config_1.default.PORT, config_1.default.HOST, () => {
         logger_1.default.info(`🚀 Server running on http://${config_1.default.HOST}:${config_1.default.PORT}`);
+        // Keep process alive
+        setInterval(() => { }, 1000 * 60 * 60);
     });
     // Process Handlers
     process.on('unhandledRejection', (err) => {

@@ -77,6 +77,15 @@ class SalesController {
             next(error);
         }
     }
+    async getStoresList(req, res, next) {
+        try {
+            const result = await salesService_1.default.getStoresList(req.user);
+            res.json(result);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
 }
 exports.default = new SalesController();
 //# sourceMappingURL=salesController.js.map

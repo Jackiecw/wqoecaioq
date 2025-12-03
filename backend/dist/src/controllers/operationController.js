@@ -42,6 +42,48 @@ class OperationController {
             next(error);
         }
     }
+    async getCountries(req, res, next) {
+        try {
+            const countries = await operationService_1.default.getCountries();
+            res.json(countries);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async getLinks(req, res, next) {
+        try {
+            const links = await operationService_1.default.getLinks();
+            res.json(links);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async getRates(req, res, next) {
+        try {
+            const { getRates } = require('../utils/dataHelpers');
+            const data = await getRates();
+            res.json(data);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async refreshRates(req, res, next) {
+        try {
+            const { getRates } = require('../utils/dataHelpers');
+            const data = await getRates({ forceRefresh: true });
+            res.json({
+                rates: data.rates,
+                updatedAt: data.lastFetched ? new Date(data.lastFetched).toISOString() : new Date().toISOString(),
+                remainingRefreshes: null,
+            });
+        }
+        catch (error) {
+            next(error);
+        }
+    }
     async createModule(req, res, next) {
         try {
             const validation = moduleSchema.safeParse(req.body);

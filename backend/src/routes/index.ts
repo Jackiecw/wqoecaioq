@@ -11,25 +11,24 @@ import operationRoutes from './operationRoutes';
 import performanceRoutes from './performanceRoutes';
 import profileRoutes from './profileRoutes';
 import salesImportRoutes from './salesImportRoutes';
-
-// ...
+import dashboardRoutes from './dashboardRoutes';
+import calendarRoutes from './calendarRoutes';
 
 export default function registerRoutes(app: Express) {
-    // 非 Admin 路由
     app.use('/api', authRoutes);
     app.use('/api', salesDataRoutes);
     app.use('/api', profileRoutes);
     app.use('/api', salesImportRoutes);
+    app.use('/api', dashboardRoutes);
+    app.use('/api', calendarRoutes);
 
-    // Migrated Routes
     app.use('/api/admin', productRoutes);
     app.use('/api/admin', storeListingRoutes);
     app.use('/api/admin', adminRoutes);
     app.use('/api/admin', managementRoutes);
 
-    // 其他域模块
     app.use('/api', operationRoutes);
     app.use('/api', financeRoutes);
     app.use('/api', logisticsRoutes);
-    app.use('/api', performanceRoutes); // ⬇️ 【新增】 绩效管理
-};
+    app.use('/api', performanceRoutes);
+}

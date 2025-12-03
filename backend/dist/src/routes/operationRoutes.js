@@ -10,6 +10,10 @@ const adminMiddleware_1 = __importDefault(require("../middlewares/adminMiddlewar
 const router = express_1.default.Router();
 // Public (Authenticated)
 router.get('/operation/data', authMiddleware_1.authMiddleware, operationController_1.default.getModules);
+router.get('/countries', authMiddleware_1.authMiddleware, operationController_1.default.getCountries);
+router.get('/links', authMiddleware_1.authMiddleware, operationController_1.default.getLinks);
+router.get('/rates', authMiddleware_1.authMiddleware, operationController_1.default.getRates);
+router.post('/rates/refresh', authMiddleware_1.authMiddleware, operationController_1.default.refreshRates);
 // Admin
 router.post('/admin/operation-modules', adminMiddleware_1.default, operationController_1.default.createModule);
 router.post('/admin/operation-tasks', adminMiddleware_1.default, operationController_1.default.createTask);

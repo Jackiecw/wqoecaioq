@@ -3,7 +3,7 @@
     <header class="flex flex-col gap-4 border-b border-[#E5E7EB] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#3B82F6]">Weekly Entry</p>
-        <h3 class="mt-1 text-2xl font-semibold text-[#1F2937]">填写报</h3>
+        <h3 class="mt-1 text-2xl font-semibold text-[#1F2937]">填写周报</h3>
         <p class="mt-1 text-sm text-[#6B7280]">用统一的结构记录成果、计划以及阻碍</p>
       </div>
       <div class="rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3 text-[#1D4ED8] shadow-inner">
@@ -24,7 +24,7 @@
             required
             class="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#1F2937] shadow-sm transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]"
           />
-          <p class="text-xs text-[#94A3B8]">系统会默认选取本一，建议保持一致以便统计</p>
+          <p class="text-xs text-[#94A3B8]">系统会默认选取本周一，建议保持一致以便统计</p>
         </div>
         <div class="rounded-2xl border border-dashed border-[#E5E7EB] bg-[#F9FAFB] p-4 text-sm text-[#1F2937]">
           <p class="font-semibold text-[#1F2937]">书写提示</p>
@@ -39,7 +39,7 @@
       <div class="grid gap-6 lg:grid-cols-2">
         <div class="space-y-6">
           <div class="space-y-2">
-            <label for="summaryThisWeek" class="text-sm font-semibold text-[#1F2937]">本总结 *</label>
+            <label for="summaryThisWeek" class="text-sm font-semibold text-[#1F2937]">本周总结 *</label>
             <textarea
               id="summaryThisWeek"
               rows="6"
@@ -47,10 +47,10 @@
               required
               class="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#1F2937] shadow-sm transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]"
             ></textarea>
-            <p class="text-xs text-[#94A3B8]">已输{{ summaryLength }} </p>
+            <p class="text-xs text-[#94A3B8]">已输入{{ summaryLength }}字</p>
           </div>
           <div class="space-y-2">
-            <label for="problemsEncountered" class="text-sm font-semibold text-[#1F2937]">遇到的问</label>
+            <label for="problemsEncountered" class="text-sm font-semibold text-[#1F2937]">遇到的问题</label>
             <textarea
               id="problemsEncountered"
               rows="4"
@@ -61,7 +61,7 @@
         </div>
         <div class="space-y-6">
           <div class="space-y-2">
-            <label for="planNextWeek" class="text-sm font-semibold text-[#1F2937]">下计划 *</label>
+            <label for="planNextWeek" class="text-sm font-semibold text-[#1F2937]">下周计划 *</label>
             <textarea
               id="planNextWeek"
               rows="6"
@@ -69,7 +69,7 @@
               required
               class="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#1F2937] shadow-sm transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]"
             ></textarea>
-            <p class="text-xs text-[#94A3B8]">已输{{ planLength }} </p>
+            <p class="text-xs text-[#94A3B8]">已输入{{ planLength }}字</p>
           </div>
           <div class="space-y-2">
             <label for="other" class="text-sm font-semibold text-[#1F2937]">其他</label>
@@ -84,7 +84,7 @@
       </div>
 
       <div class="flex flex-col gap-4 border-t border-[#E5E7EB] pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-sm text-[#6B7280]">提交后可在“报查看”中回顾与导出记录</p>
+        <p class="text-sm text-[#6B7280]">提交后可在“周报查看”中回顾与导出记录</p>
         <button
           type="submit"
           class="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#3B82F6] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-[#EFF6FF]0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#3B82F6]"
@@ -99,7 +99,7 @@
               fill="none"
             />
           </svg>
-          <span>提交报</span>
+          <span>提交周报</span>
         </button>
       </div>
 

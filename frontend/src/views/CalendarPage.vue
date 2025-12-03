@@ -61,12 +61,14 @@
       </div>
     </section>
 
+                    
+    
     <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
       <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#94A3B8]">Weekly Focus</p>
-          <h4 class="text-xl font-semibold text-[#1F2937]">本聚焦</h4>
-          <p class="text-xs text-[#6B7280]">左侧为管理员同步的团队重点，右侧展示你在报中填写的“下计划”。</p>
+          <h4 class="text-xl font-semibold text-[#1F2937]">本周聚焦</h4>
+          <p class="text-xs text-[#6B7280]">左侧为管理员同步的团队重点，右侧展示你在周报中填写的“下周计划”。</p>
         </div>
         <div class="flex items-center gap-2">
           <p v-if="!isAdmin" class="text-xs text-[#94A3B8]">由管理员统一管理</p>
@@ -93,19 +95,26 @@
             class="w-full rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-sm text-[#374151] shadow-inner"
             :readonly="!isAdmin"
             :class="{'bg-[#F3F4F6] text-[#94A3B8] cursor-not-allowed': !isAdmin}"
-            placeholder="记录本团队最重要的聚焦事项..."
+            placeholder="记录本周团队最重要的聚焦事项..."
           ></textarea>
           <p class="text-xs text-red-500" v-if="weeklyFocusError">{{ weeklyFocusError }}</p>
         </div>
 
         <div class="space-y-2">
-          <label class="text-sm font-semibold text-[#1F2937]">我的报计划</label>
+          <label class="text-sm font-semibold text-[#1F2937]">我的周计划</label>
           <div class="min-h-[140px] rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-sm text-[#374151] shadow-inner whitespace-pre-wrap">
-            {{ userPlanPreview || '暂无内容，请在上报中填写“下计划”。' }}
+            {{ userPlanPreview || "暂无内容，请在周报中填写“下周计划”。" }}
           </div>
         </div>
       </div>
     </section>
+
+
+
+
+
+
+
 
     <section class="calendar-shell rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm flex-1 min-h-0">
       <FullCalendar
@@ -491,10 +500,10 @@ async function fetchWeeklyFocus() {
     teamFocusContent.value = res.data.focus?.content || '';
     userPlanPreview.value = res.data.userPlan || '';
   } catch (error) {
-    console.error('获取每聚焦失败:', error);
+    console.error('获取本周聚焦失败:', error);
     weeklyFocusEntry.value = null;
     teamFocusContent.value = '';
-    weeklyFocusError.value = error.response?.data?.error || '无法获取本聚焦';
+    weeklyFocusError.value = error.response?.data?.error || '无法获取本周聚焦';
   }
 }
 
@@ -503,8 +512,7 @@ async function saveWeeklyFocus() {
   try {
     weeklyFocusError.value = '';
     if (!weeklyFocusEntry.value?.id) {
-      // 修复：将 重¿? 替换为 "重试"
-      weeklyFocusError.value = '尚未生成本聚焦，请刷新后重试';
+      weeklyFocusError.value = '尚未生成本周聚焦，请刷新后重试';
       return;
     }
     isSavingFocus.value = true;
@@ -512,12 +520,14 @@ async function saveWeeklyFocus() {
     weeklyFocusEntry.value = res.data;
     teamFocusContent.value = res.data.content || '';
   } catch (error) {
-    console.error('更新每聚焦失败:', error);
-    weeklyFocusError.value = error.response?.data?.error || '更新失败';
+    console.error('æ´æ°æ¬å¨èç¦å¤±è´¥:', error);
+    weeklyFocusError.value = error.response?.data?.error || 'æ´æ°å¤±è´¥';
   } finally {
     isSavingFocus.value = false;
   }
 }
+
+
 
 </script>
 

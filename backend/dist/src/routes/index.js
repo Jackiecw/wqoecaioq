@@ -16,23 +16,22 @@ const operationRoutes_1 = __importDefault(require("./operationRoutes"));
 const performanceRoutes_1 = __importDefault(require("./performanceRoutes"));
 const profileRoutes_1 = __importDefault(require("./profileRoutes"));
 const salesImportRoutes_1 = __importDefault(require("./salesImportRoutes"));
-// ...
+const dashboardRoutes_1 = __importDefault(require("./dashboardRoutes"));
+const calendarRoutes_1 = __importDefault(require("./calendarRoutes"));
 function registerRoutes(app) {
-    // 非 Admin 路由
     app.use('/api', auth_1.default);
     app.use('/api', salesData_1.default);
     app.use('/api', profileRoutes_1.default);
     app.use('/api', salesImportRoutes_1.default);
-    // Migrated Routes
+    app.use('/api', dashboardRoutes_1.default);
+    app.use('/api', calendarRoutes_1.default);
     app.use('/api/admin', productRoutes_1.default);
     app.use('/api/admin', storeListingRoutes_1.default);
     app.use('/api/admin', adminRoutes_1.default);
     app.use('/api/admin', managementRoutes_1.default);
-    // 其他域模块
     app.use('/api', operationRoutes_1.default);
     app.use('/api', financeRoutes_1.default);
     app.use('/api', logisticsRoutes_1.default);
-    app.use('/api', performanceRoutes_1.default); // ⬇️ 【新增】 绩效管理
+    app.use('/api', performanceRoutes_1.default);
 }
-;
 //# sourceMappingURL=index.js.map

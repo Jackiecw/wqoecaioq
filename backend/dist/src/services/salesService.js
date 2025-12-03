@@ -430,6 +430,19 @@ class SalesService {
             topProducts
         };
     }
+    async getStoresList(user) {
+        const { role, operatedCountries = [] } = user;
+        const where = {};
+        if (role !== 'admin') {
+            const operatedCodes = operatedCountries.map((c) => c.code || c);
+            where.countryCode = { in: operatedCodes };
+        }
+        return await prismaClient_1.default.store.findMany({
+            where,
+            include: { country: true },
+            orderBy: { name: 'asc' }
+        });
+    }
 }
 exports.default = new SalesService();
 //# sourceMappingURL=salesService.js.map
