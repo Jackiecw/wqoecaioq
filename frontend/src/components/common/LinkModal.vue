@@ -204,204 +204,101 @@
 
 
 
-<script setup>
 
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue';
+import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
+import apiClient from '@/services/apiClient';
 
-import {
+interface LinkPayload {
+  title: string;
+  url: string;
+  description?: string | null;
+  displayOrder: number;
+}
 
-  TransitionRoot,
+const props = defineProps<{
+  isOpen: boolean;
+  linkToEdit?: (Partial<LinkPayload> & { id?: string }) | null;
+}>();
 
-  TransitionChild,
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'link-created', value: any): void;
+  (e: 'link-updated', value: any): void;
+}>();
 
-  Dialog,
-
-  DialogPanel,
-
-  DialogTitle,
-
-} from '@headlessui/vue';
-
-import apiClient from '../../api';
-
-
-
-// --- 1. Props Emits ---
-
-const props = defineProps({
-
-  isOpen: {
-
-    type: Boolean,
-
-    default: false,
-
-  },
-
-  linkToEdit: {
-
-    type: Object,
-
-    default: null,
-
-  }
-
-});
-
-const emit = defineEmits(['close', 'link-created', 'link-updated']);
-
-
-
-// --- 2. 内部状---
-
-const defaultFormData = () => ({
-
+const defaultFormData = (): LinkPayload => ({
   title: '',
-
   url: '',
-
   description: '',
-
   displayOrder: 0,
-
 });
 
-
-
-const formData = ref(defaultFormData());
-
+const formData = ref<LinkPayload>(defaultFormData());
 const errorMessage = ref('');
 
+const isEditMode = computed(() => !!props.linkToEdit?.id);
+const dialogTitle = computed(() => (isEditMode.value ? '编辑链接' : '新建链接'));
+const submitButtonText = computed(() => (isEditMode.value ? '保存更改' : '创建'));
 
-
-// --- 3. 计算属---
-
-const isEditMode = computed(() => !!props.linkToEdit);
-
-const dialogTitle = computed(() => isEditMode.value ? '编辑链接' : '新建链接');
-
-const submitButtonText = computed(() => isEditMode.value ? '保存更改' : '创建');
-
-
-
-
-
-// --- 4. 核心逻辑 (API 调用) ---
-
-async function handleSubmit() {
-
-  errorMessage.value = '';
-
-
-
-  const payload = {
-
+const handleSubmit = async () => {
+      errorMessage.value = '操作失败，请检查网络或联系管理员。';
+  const payload: LinkPayload = {
     ...formData.value,
-
     description: formData.value.description || null,
-
-    displayOrder: parseInt(formData.value.displayOrder) || 0,
-
+    displayOrder: parseInt(String(formData.value.displayOrder), 10) || 0,
   };
 
-
-
   try {
-
-    if (isEditMode.value) {
-
-      // (A) 【编辑】模
+    if (isEditMode.value && props.linkToEdit?.id) {
       const response = await apiClient.put(`/admin/links/${props.linkToEdit.id}`, payload);
-
       emit('link-updated', response.data);
-
     } else {
-
-      // (B) 【创建】模
       const response = await apiClient.post('/admin/links', payload);
-
       emit('link-created', response.data);
-
     }
-
     closeModal();
-
-  } catch (error) {
-
+  } catch (error: any) {
     console.error('操作链接失败:', error);
-
-    if (error.response && error.response.data.error) {
-
+    if (error.response?.data?.error) {
       errorMessage.value = error.response.data.error;
-
-    } else if (error.response && error.response.data.details) {
-
-      errorMessage.value = error.response.data.details.map(d => d.message).join('; ');
-
+    } else if (error.response?.data?.details) {
+      errorMessage.value = error.response.data.details.map((d: any) => d.message).join('; ');
     } else {
-
       errorMessage.value = '操作失败，请检查网络或联系管理员。';
-
     }
-
   }
+};
 
-}
-
-
-
-// --- 5. 辅助函数 ---
-
-watch(() => props.isOpen, (newVal) => {
-
-  if (newVal) {
-
-    if (isEditMode.value) {
-
-      // 【编辑】模 预填充表
-      formData.value = {
-
-        title: props.linkToEdit.title,
-
-        url: props.linkToEdit.url,
-
-        description: props.linkToEdit.description || '',
-
-        displayOrder: props.linkToEdit.displayOrder || 0,
-
-      };
-
-    } else {
-
-      // 【创建】模 重置为空表单
-
-      resetForm();
-
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (newVal) {
+      if (isEditMode.value && props.linkToEdit) {
+        formData.value = {
+          title: props.linkToEdit.title || '',
+          url: props.linkToEdit.url || '',
+          description: props.linkToEdit.description || '',
+          displayOrder: props.linkToEdit.displayOrder || 0,
+        };
+      } else {
+        resetForm();
+      }
     }
+  },
+);
 
-  }
-
-});
-
-
-
-function closeModal() {
-
+const closeModal = () => {
   emit('close');
+};
 
-}
-
-
-
-function resetForm() {
-
+const resetForm = () => {
   formData.value = defaultFormData();
-
-  errorMessage.value = '';
-
-}
-
+      errorMessage.value = '操作失败，请检查网络或联系管理员。';
+};
 </script>
+
 
 
 

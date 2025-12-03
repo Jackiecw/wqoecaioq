@@ -249,27 +249,59 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import apiClient from '@/api';
+import apiClient from '@/services/apiClient';
 import StoreListingFormModal from '../components/admin/StoreListingFormModal.vue';
+
+type CurrencyCode = 'IDR' | 'VND' | 'THB' | 'MYR' | 'PHP' | 'SGD' | string;
+
+interface CountryInfo {
+  code?: string;
+  name?: string;
+}
+
+interface StoreInfo {
+  id?: string;
+  name?: string;
+  country?: CountryInfo;
+  countryCode?: string;
+}
+
+interface Listing {
+  id: string;
+  storeTitle?: string;
+  product?: { name?: string; publicName?: string; sku?: string };
+  productCode?: string;
+  store?: StoreInfo;
+  platformUrl?: string;
+  currentPrice?: number;
+  currentPriceRmb?: number;
+  lastWeekSales?: number;
+  thisMonthSales?: number;
+  totalSales?: number;
+  storeImageUrl?: string;
+  currencyCode?: CurrencyCode;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 const authStore = useAuthStore();
 
-const listings = ref([]);
+const listings = ref<Listing[]>([]);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const isModalOpen = ref(false);
-const listingToEditId = ref(null);
-const selectedListingId = ref(null);
-const ratesData = ref({});
+const listingToEditId = ref<string | null>(null);
+const selectedListingId = ref<string | null>(null);
+const ratesData = ref<Record<string, number>>({});
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
 const placeholderImage = 'https://via.placeholder.com/320x320?text=Listing';
 
 const searchKeyword = ref('');
 const selectedCountry = ref('ALL');
-const sortMode = ref('recent');
+const sortMode = ref<'recent' | 'priceDesc' | 'priceAsc'>('recent');
 
 const currentPage = ref(1);
 const pageSize = ref(20);
@@ -278,7 +310,7 @@ const totalItems = ref(0);
 const isAdmin = computed(() => authStore.role === 'admin');
 const totalPages = computed(() => Math.ceil(totalItems.value / pageSize.value) || 1);
 
-const currencyFallbackMap = {
+const currencyFallbackMap: Record<string, CurrencyCode> = {
   ID: 'IDR',
   VN: 'VND',
   TH: 'THB',
@@ -288,7 +320,7 @@ const currencyFallbackMap = {
 };
 
 const countryOptions = computed(() => {
-  const map = new Map();
+  const map = new Map<string, string>();
   listings.value.forEach((item) => {
     const code = item.store?.country?.code;
     const name = item.store?.country?.name;
@@ -313,7 +345,7 @@ const filteredListings = computed(() => {
         item.store?.name,
       ]
         .filter(Boolean)
-        .map((txt) => txt.toLowerCase());
+        .map((txt) => (txt as string).toLowerCase());
       return candidates.some((text) => text.includes(keyword));
     });
   }
@@ -352,7 +384,7 @@ watch(filteredListings, (items) => {
 });
 
 // 支持分参数
-async function fetchListings(focusId = null) {
+async function fetchListings(focusId: string | null = null) {
   isLoading.value = true;
   errorMessage.value = '';
   try {
@@ -366,10 +398,10 @@ async function fetchListings(focusId = null) {
     // 适配后端新的返回结构: { data, total, page, pageSize }
     // 兼容旧结构(如果后端没更新): response.data 可能直接是数组
     if (Array.isArray(response.data)) {
-      listings.value = response.data;
+      listings.value = response.data as Listing[];
       totalItems.value = response.data.length;
     } else {
-      listings.value = response.data.data || [];
+      listings.value = (response.data.data || []) as Listing[];
       totalItems.value = response.data.total || 0;
     }
 
@@ -391,7 +423,7 @@ async function fetchListings(focusId = null) {
 }
 
 // 翻逻辑
-function changePage(page) {
+function changePage(page: number) {
   if (page < 1 || page > totalPages.value) return;
   currentPage.value = page;
   fetchListings();
@@ -416,7 +448,7 @@ function openCreateModal() {
   isModalOpen.value = true;
 }
 
-function openEditModal(listing) {
+function openEditModal(listing: Listing) {
   listingToEditId.value = listing.id;
   isModalOpen.value = true;
 }
@@ -426,23 +458,23 @@ function closeModal() {
   listingToEditId.value = null;
 }
 
-function selectListing(id) {
+function selectListing(id: string) {
   selectedListingId.value = id;
 }
 
-async function handleListingCreated(newListing) {
+async function handleListingCreated(newListing: Listing) {
   // 创建后回到第一查看
   currentPage.value = 1;
   await fetchListings(newListing.id);
   closeModal();
 }
 
-async function handleListingUpdated(updatedListing) {
+async function handleListingUpdated(updatedListing: Listing) {
   await fetchListings(updatedListing.id);
   closeModal();
 }
 
-async function handleDelete(listing) {
+async function handleDelete(listing: Listing) {
   if (!isAdmin.value) {
     errorMessage.value = '仅超级管理员可以删除上架商品';
     return;
@@ -461,22 +493,22 @@ async function handleDelete(listing) {
   }
 }
 
-function getListingImageUrl(imageUrl) {
+function getListingImageUrl(imageUrl?: string) {
   if (!imageUrl) return placeholderImage;
   return `${apiBaseUrl}${imageUrl}`;
 }
 
-function getCurrencyCode(listing) {
+function getCurrencyCode(listing?: Listing | null) {
   if (!listing) return null;
   return listing.currencyCode || currencyFallbackMap[listing.store?.country?.code] || null;
 }
 
-function getRateForCurrency(currencyCode) {
+function getRateForCurrency(currencyCode: CurrencyCode | null) {
   if (!currencyCode) return null;
   return ratesData.value[`CNY_${currencyCode}`] ?? ratesData.value[currencyCode] ?? null;
 }
 
-function formatLocalPrice(value, currencyCode) {
+function formatLocalPrice(value?: number, currencyCode?: CurrencyCode | null) {
   const amount = Number(value) || 0;
   if (!currencyCode) {
     return amount.toFixed(2);
@@ -494,7 +526,7 @@ function formatLocalPrice(value, currencyCode) {
   }
 }
 
-function formatCnyPrice(listing) {
+function formatCnyPrice(listing?: Listing | null) {
   if (!listing) return 0;
   const direct = Number(listing.currentPriceRmb);
   if (!Number.isNaN(direct) && direct > 0) {

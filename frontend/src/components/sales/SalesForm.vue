@@ -120,10 +120,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import useStoreListings from '../../composables/useStoreListings';
-import apiClient from '@/api';
+import apiClient from '@/services/apiClient';
 
 const props = defineProps({
   selectedCountry: String

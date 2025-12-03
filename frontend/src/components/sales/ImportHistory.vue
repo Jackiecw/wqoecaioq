@@ -126,9 +126,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import { useAuthStore } from '../../stores/auth';
 
 const authStore = useAuthStore();

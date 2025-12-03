@@ -1,73 +1,24 @@
-# Refactoring Progress Summary
+# 重构进度摘要
 
-## Overview
-The project is undergoing a major refactoring to modernize the backend architecture, migrate to TypeScript, and restructure the frontend.
+## 总览
+目标：现代化后端架构、提升类型安全、前端体验升级，并为异步队列/CI 奠定基础（财务本位币优化暂缓）。
 
-## Completed Phases
+## 阶段进展
+- **Phase 1 基础设施：已完成**
+  - 后端集中配置 + Zod 校验（`backend/src/config/config.ts`）、结构化日志（`src/utils/logger.ts`）、全局错误处理（`src/middlewares/errorHandler.ts`）、Vitest/Supertest 测试基线（`backend/tests/**`）。
+  - 前端统一 HTTP 入口：删除 `frontend/src/api.js`，所有组件改用 `@/services/apiClient`，基线 `baseURL=/api`；`vite.config.js` 默认代理改为 `http://localhost:3100`。
+- **Phase 2 后端分层：已完成**
+  - 控制器/服务分层覆盖主要模块（Auth、Sales、Product/Store、Finance、Logistics、Admin、Management、Operations、Performance、Sales Import 等），路由已瘦身。
+- **Phase 3 TypeScript 迁移：后端完成，前端推进中**
+  - 后端源码 100% TS，存在 `dist` 产物；`npm start` 已指向编译产物并新增 `prestart`。
+  - 前端周报模块、登录页、日历页、绩效仪表板/模板/详情、销售数据页、在售商品页、财务页/批量/编辑弹窗、运营中心、物流页均已 TS 化并补全类型定义；剩余少量通用/管理类组件待补。
+- **Phase 4 前端现代化：已完成**
+  - Pinia（`stores/**`）及 Shadcn 组件库（`components/ui/**`）落地，路由/入口 TS 化（`main.ts`、`router/index.ts`）；服务层覆盖 auth/sales/report/finance/performance/calendar 等。
+  - 周报、日历、登录、绩效、销售、财务、物流、运营、在售商品、仪表盘等模块已切换服务层并 TS 化，修复中文乱码；所有 `<script setup>` 统一 `lang="ts"`，文案/提示一致。
+- **Phase 5 高级能力：未开始（已规划）**
+  - 规划方向：Redis 配置 + Zod 校验；BullMQ 队列与独立 Worker（导入、邮件等）；幂等/重试/死信队列；Job 进度查询与监控报警；接口改为入队返回 jobId；安全与速率控制。财务本位币入库优化暂缓到后续独立规划。
 
-### Phase 1: Foundation & Infrastructure
--   **Status**: ✅ Completed
--   **Key Achievements**:
-    -   Verified backend configuration, logging, and error handling.
-    -   Set up a robust testing environment with `vitest` and `supertest`.
-    -   Ensured UTF-8 encoding for Chinese characters.
-    -   Established an isolated database environment on port 5433.
-
-### Phase 2: Backend Architecture Overhaul
--   **Status**: ✅ Completed
--   **Completed Modules**:
-    -   **Auth Module**: `authController.ts` + `authService.ts`.
-    -   **Sales Module**: `salesController.ts` + `salesService.ts`.
-    -   **Product/Store**: `productController.ts`, `storeListingController.ts` + Services.
-    -   **Finance**: `financeController.ts` + `financeService.ts`.
-    -   **Logistics**: `logisticsController.ts` + `logisticsService.ts`.
-    -   **Admin/Management**: `adminController.ts`, `managementController.ts` + Services.
-    -   **Operations/Performance**: `operationController.ts`, `performanceController.ts` + Services.
-    -   **Sales Import**: `salesImportController.ts` + `salesImportService.ts`.
--   **Pending Modules**:
-    -   None.
-
-### Phase 3: TypeScript Migration
--   **Status**: ✅ Completed
--   **Completed**:
-    -   Infrastructure (`config`, `logger`, `middlewares`).
-    -   All business modules migrated to TypeScript.
-    -   Legacy `.js` routes deleted (`salesImport.js`, `data.js`).
--   **Pending**:
-    -   None.
-
-## In Progress Phases
-
-### Phase 4: Frontend Modernization
--   **Status**: 🚧 In Progress
--   **Key Achievements**:
-    -   **Directory Structure**: Organized `src/views` and `src/components`.
-    -   **Routing**: Updated `src/router/index.js`.
-    -   **State Management**: Pinia stores set up (`useAuthStore`).
-    -   **API Layer**: Created `src/services/` (`apiClient.ts`, `authService.ts`, `salesService.ts`).
-    -   **TypeScript Conversion**: Converted `auth.js` and `useStoreListings.js` to TypeScript.
-    -   **Build Fixes**: Resolved all syntax and type errors to ensure `npm run build` passes.
-    -   **UI Components**: Started migration to Shadcn-vue (Button, Input, Table, etc.).
--   **Pending**:
-    -   **Full Shadcn-vue Migration**: Continue refactoring components like `SalesDataManagement.vue` to fully utilize Shadcn-vue.
-    -   **Completed**:
-        -   ✅ **Remaining JS Files**: Converted `router/index.js`, `main.js`, `useManagedCountries.js` to TypeScript.
-        -   ✅ **Global Store**: Created `useGlobalStore`.
-        -   ✅ **Backend Structure**: Unified all routes into `backend/src/routes`.
-
-## Pending Phases
-
-### Phase 5: Advanced Features (Scalability)
--   **Status**: ⏳ Not Started
--   **Objectives**:
-    -   Async Queues (BullMQ + Redis) for import jobs.
-    -   Worker processes.
-
-## Next Steps Plan
-1.  **Frontend Refactoring**:
-    -   Complete Shadcn-vue integration in `SalesDataManagement.vue`.
-    -   Refactor other key views (`FinancePage`, `CalendarPage`) to use new services and components.
-2.  **Frontend TypeScript**:
-    -   Convert `main.js` and `router/index.js` to TypeScript.
-    -   Add proper type definitions for all Vue components.
-3.  **Phase 5**: Start implementing Async Queues.
+## 下一步
+1) Phase 3 收尾：如有新增页面或类型缺口，延续 TS 规范与服务层封装。  
+2) Phase 5：按规划的队列/Worker/监控方案设计评审后再落地，财务本位币优化另行评审。  
+3) 联调与验证：建议运行 `npm run build`/`npx tsc --noEmit` 与核心功能冒烟，确认代理端口（3100）一致。

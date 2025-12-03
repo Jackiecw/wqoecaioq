@@ -124,7 +124,7 @@
 
 
 
-<script setup>
+<script setup lang="ts">
 
 import { ref, watch, computed } from 'vue';
 import {
@@ -147,7 +147,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import { useAuthStore } from '../../stores/auth';
 import useStoreListings from '../../composables/useStoreListings';
 

@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-screen bg-gray-50 pb-12 print:bg-white print:pb-0">
-    <!-- Header (Hidden when printing) -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 print:hidden">
       <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
         <div class="flex items-center gap-4">
@@ -19,14 +18,14 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
             打印 / 导出PDF
           </button>
-          <button 
+          <button
             v-if="canReject"
             @click="rejectReview"
             class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
           >
-            驳回 / 退回修改
+            驳回 / 退回修订
           </button>
-          <button 
+          <button
             v-if="canSubmit"
             @click="submitReview"
             class="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
@@ -37,16 +36,12 @@
       </div>
     </div>
 
-    <!-- Main Content -->
     <div v-if="review" class="max-w-5xl mx-auto mt-6 print:mt-0 print:w-full print:max-w-none">
-      
-      <!-- Process Flowchart (Screen only) -->
       <div class="mb-8 print:hidden">
         <div class="flex items-center justify-between relative">
           <div class="absolute left-0 top-1/2 w-full h-1 bg-gray-200 -z-10"></div>
-          
           <div v-for="(step, index) in steps" :key="step.key" class="flex flex-col items-center bg-white px-2">
-            <div 
+            <div
               class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors"
               :class="getStepClass(step.key)"
             >
@@ -56,18 +51,16 @@
           </div>
         </div>
       </div>
-      
-      <!-- Print Header -->
+
       <div class="hidden print:block text-center mb-8 pt-8">
         <h1 class="text-2xl font-bold text-black mb-2">{{ review.template.name }}</h1>
         <div class="flex justify-center gap-8 text-sm text-gray-600">
-          <span>被考核人: {{ review.employee.nickname }}</span>
-          <span>部门: {{ review.employee.department || '无' }}</span> <!-- Assuming department exists or just placeholder -->
+          <span>被考核人 {{ review.employee.nickname }}</span>
+          <span>部门: {{ review.employee.department || '无' }}</span>
           <span>考核月份: {{ formatMonth(review.month) }}</span>
         </div>
       </div>
 
-      <!-- Info Card (Screen only) -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 print:hidden">
         <div class="grid grid-cols-3 gap-6 text-sm">
           <div>
@@ -85,7 +78,6 @@
         </div>
       </div>
 
-      <!-- Review Table -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden print:shadow-none print:border-black">
         <table class="w-full text-sm text-left">
           <thead class="bg-gray-50 text-gray-700 font-semibold print:bg-gray-100 print:text-black border-b border-gray-200 print:border-black">
@@ -96,7 +88,7 @@
               <th class="px-4 py-3 w-16 text-center border-r border-gray-200 print:border-black">权重</th>
               <th class="px-4 py-3 w-24 text-center border-r border-gray-200 print:border-black bg-blue-50 print:bg-transparent">自评</th>
               <th class="px-4 py-3 w-24 text-center border-r border-gray-200 print:border-black bg-yellow-50 print:bg-transparent">主管评</th>
-              <th v-if="review.directorId" class="px-4 py-3 w-24 text-center bg-purple-50 print:bg-transparent">上级评</th>
+              <th v-if="review.directorId" class="px-4 py-3 w-24 text-center bg-purple-50 print:bg-transparent">终评</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 print:divide-black">
@@ -107,21 +99,19 @@
               </td>
               <td class="px-4 py-3 text-gray-600 border-r border-gray-200 print:border-black whitespace-pre-wrap">{{ item.description }}</td>
               <td class="px-4 py-3 text-center border-r border-gray-200 print:border-black">{{ item.weight }}%</td>
-              
-              <!-- Self Score -->
+
               <td class="px-2 py-2 border-r border-gray-200 print:border-black bg-blue-50/30 print:bg-transparent align-top text-center">
                 <div v-if="canEditSelf">
-                  <input v-model.number="item.selfScore" type="number" min="0" max="100" class="w-full border border-blue-200 rounded px-1 py-1 text-center focus:ring-1 focus:ring-blue-500 outline-none" placeholder="分">
+                  <input v-model.number="item.selfScore" type="number" min="0" max="100" class="w-full border border-blue-200 rounded px-1 py-1 text-center focus:ring-1 focus:ring-blue-500 outline-none" placeholder="分数">
                 </div>
                 <div v-else class="font-bold">
                   {{ item.selfScore }}
                 </div>
               </td>
 
-              <!-- Manager Score -->
               <td class="px-2 py-2 border-r border-gray-200 print:border-black bg-yellow-50/30 print:bg-transparent align-top">
                 <div v-if="canEditManager">
-                  <input v-model.number="item.managerScore" type="number" min="0" max="100" class="w-full border border-yellow-200 rounded px-1 py-1 text-center mb-1 focus:ring-1 focus:ring-yellow-500 outline-none" placeholder="分">
+                  <input v-model.number="item.managerScore" type="number" min="0" max="100" class="w-full border border-yellow-200 rounded px-1 py-1 text-center mb-1 focus:ring-1 focus:ring-yellow-500 outline-none" placeholder="分数">
                   <textarea v-model="item.managerComment" rows="2" class="w-full border border-yellow-200 rounded px-1 py-1 text-xs resize-none focus:ring-1 focus:ring-yellow-500 outline-none" placeholder="评语"></textarea>
                 </div>
                 <div v-else class="text-center">
@@ -130,10 +120,9 @@
                 </div>
               </td>
 
-              <!-- Director Score -->
               <td v-if="review.directorId" class="px-2 py-2 bg-purple-50/30 print:bg-transparent align-top">
                 <div v-if="canEditDirector">
-                  <input v-model.number="item.directorScore" type="number" min="0" max="100" class="w-full border border-purple-200 rounded px-1 py-1 text-center mb-1 focus:ring-1 focus:ring-purple-500 outline-none" placeholder="分">
+                  <input v-model.number="item.directorScore" type="number" min="0" max="100" class="w-full border border-purple-200 rounded px-1 py-1 text-center mb-1 focus:ring-1 focus:ring-purple-500 outline-none" placeholder="分数">
                   <textarea v-model="item.directorComment" rows="2" class="w-full border border-purple-200 rounded px-1 py-1 text-xs resize-none focus:ring-1 focus:ring-purple-500 outline-none" placeholder="评语"></textarea>
                 </div>
                 <div v-else class="text-center">
@@ -154,11 +143,10 @@
         </table>
       </div>
 
-      <!-- Summary Fields -->
       <div class="mt-8 space-y-6 print:space-y-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:shadow-none print:border-black print:p-0">
           <h3 class="font-bold text-gray-800 mb-3 print:text-black">本月工作总结（存在的问题、计划改进方法）</h3>
-          <textarea 
+          <textarea
             v-if="canEditSelf"
             v-model="review.summaryThisMonth"
             rows="4"
@@ -170,7 +158,7 @@
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:shadow-none print:border-black print:p-0">
           <h3 class="font-bold text-gray-800 mb-3 print:text-black">下月工作重点计划 (*)</h3>
-          <textarea 
+          <textarea
             v-if="canEditSelf"
             v-model="review.planNextMonth"
             rows="4"
@@ -182,7 +170,7 @@
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:shadow-none print:border-black print:p-0">
           <h3 class="font-bold text-gray-800 mb-3 print:text-black">公司或部门存在的问题和建议</h3>
-          <textarea 
+          <textarea
             v-if="canEditSelf"
             v-model="review.companySuggestions"
             rows="4"
@@ -193,7 +181,6 @@
         </div>
       </div>
 
-      <!-- Signatures (Print Only) -->
       <div class="hidden print:flex mt-12 justify-between px-12">
         <div class="text-center">
           <div class="mb-8">员工签字: __________________</div>
@@ -204,7 +191,7 @@
           <div>日期: __________________</div>
         </div>
         <div v-if="review.directorId" class="text-center">
-          <div class="mb-8">上级签字: __________________</div>
+          <div class="mb-8">终评签字: __________________</div>
           <div>日期: __________________</div>
         </div>
       </div>
@@ -213,18 +200,50 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import axios from '../../api';
+import { useRoute } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
+import performanceService from '@/services/performanceService';
+
+interface ReviewItem {
+  id: string;
+  category: string;
+  kpiName: string;
+  description: string;
+  weight: number;
+  selfScore?: number;
+  managerScore?: number;
+  directorScore?: number;
+  managerComment?: string;
+  directorComment?: string;
+}
+
+interface ReviewDetail {
+  id: string;
+  month: string;
+  status: string;
+  template: { name: string };
+  employee: { nickname: string; username: string; department?: string };
+  manager: { nickname: string };
+  director?: { nickname: string } | null;
+  directorId?: string | null;
+  employeeId: string;
+  managerId: string;
+  items: ReviewItem[];
+  summaryThisMonth?: string;
+  planNextMonth?: string;
+  companySuggestions?: string;
+}
+
+interface CurrentUser {
+  userId: string;
+  [key: string]: any;
+}
 
 const route = useRoute();
-const router = useRouter();
-const review = ref(null);
-const currentUser = ref(null);
-
-// --- Computed Permissions ---
+const review = ref<ReviewDetail | null>(null);
+const currentUser = ref<CurrentUser | null>(null);
 
 const canEditSelf = computed(() => {
   if (!review.value || !currentUser.value) return false;
@@ -252,102 +271,92 @@ const canReject = computed(() => {
   return false;
 });
 
-const getStepClass = (stepKey) => {
+const statusOrder = ['DRAFT', 'SELF_REVIEW', 'MANAGER_REVIEW', 'DIRECTOR_REVIEW', 'COMPLETED'];
+
+const getStepClass = (stepKey: string) => {
   if (!review.value) return 'border-gray-200 text-gray-400';
-  
-  const statusOrder = ['DRAFT', 'SELF_REVIEW', 'MANAGER_REVIEW', 'DIRECTOR_REVIEW', 'COMPLETED'];
   const currentIndex = statusOrder.indexOf(review.value.status);
   const stepIndex = statusOrder.indexOf(stepKey);
 
   if (review.value.status === stepKey) {
-    return 'border-blue-500 bg-blue-500 text-white'; // Current
-  } else if (stepIndex < currentIndex) {
-    return 'border-blue-500 bg-white text-blue-500'; // Completed
-  } else {
-    return 'border-gray-200 bg-white text-gray-400'; // Future
+    return 'border-blue-500 bg-blue-500 text-white';
   }
+  if (stepIndex < currentIndex) {
+    return 'border-blue-500 bg-white text-blue-500';
+  }
+  return 'border-gray-200 bg-white text-gray-400';
 };
-
-// --- Logic ---
 
 const calculatedTotals = computed(() => {
   if (!review.value) return { self: 0, manager: 0, director: 0 };
-  
-  let self = 0, manager = 0, director = 0;
-  
-  review.value.items.forEach(item => {
+  let self = 0; let manager = 0; let director = 0;
+  review.value.items.forEach((item) => {
     const w = item.weight / 100;
     if (item.selfScore) self += item.selfScore * w;
     if (item.managerScore) manager += item.managerScore * w;
     if (item.directorScore) director += item.directorScore * w;
   });
-
   return {
     self: self.toFixed(2),
     manager: manager.toFixed(2),
-    director: director.toFixed(2)
+    director: director.toFixed(2),
   };
 });
 
 const fetchReview = async () => {
   try {
-    const res = await axios.get(`/reviews/${route.params.id}`);
-    review.value = res.data;
+    const res = await performanceService.getReview(String(route.params.id));
+    review.value = res || null;
   } catch (error) {
-    console.error('Failed to fetch review', error);
+    console.error('无法加载考核详情', error);
     alert('无法加载考核详情');
   }
 };
 
-const saveReview = async (newStatus) => {
+const saveReview = async (newStatus?: string) => {
+  if (!review.value) return;
   try {
-    const payload = {
-      items: review.value.items.map(item => ({
+    const payload: any = {
+      items: review.value.items.map((item) => ({
         id: item.id,
         selfScore: item.selfScore,
-        // selfComment: item.selfComment, // Removed
         managerScore: item.managerScore,
         managerComment: item.managerComment,
         directorScore: item.directorScore,
-        directorComment: item.directorComment
+        directorComment: item.directorComment,
       })),
       summaryThisMonth: review.value.summaryThisMonth,
       planNextMonth: review.value.planNextMonth,
-      companySuggestions: review.value.companySuggestions
+      companySuggestions: review.value.companySuggestions,
     };
-    
     if (newStatus) {
       payload.status = newStatus;
     }
-
-    await axios.put(`/reviews/${review.value.id}`, payload);
-    await fetchReview(); // Reload
+    await performanceService.updateReview(review.value.id, payload);
+    await fetchReview();
   } catch (error) {
-    console.error('Failed to save review', error);
+    console.error('保存失败', error);
     alert('保存失败');
   }
 };
 
 const submitReview = async () => {
   if (!confirm('确定要提交吗？提交后将进入下一环节。')) return;
-  
+  if (!review.value) return;
   let nextStatus = '';
   if (review.value.status === 'SELF_REVIEW') nextStatus = 'MANAGER_REVIEW';
   else if (review.value.status === 'MANAGER_REVIEW') {
     nextStatus = review.value.directorId ? 'DIRECTOR_REVIEW' : 'COMPLETED';
-  }
-  else if (review.value.status === 'DIRECTOR_REVIEW') nextStatus = 'COMPLETED';
-
+  } else if (review.value.status === 'DIRECTOR_REVIEW') nextStatus = 'COMPLETED';
   await saveReview(nextStatus);
 };
 
 const rejectReview = async () => {
   if (!confirm('确定要驳回吗？')) return;
-
+  if (!review.value) return;
   let prevStatus = '';
   if (review.value.status === 'MANAGER_REVIEW') prevStatus = 'SELF_REVIEW';
   else if (review.value.status === 'DIRECTOR_REVIEW') prevStatus = 'MANAGER_REVIEW';
-
   await saveReview(prevStatus);
 };
 
@@ -355,18 +364,32 @@ const printReview = () => {
   window.print();
 };
 
-const formatMonth = (dateStr) => {
+const formatMonth = (dateStr: string) => {
   const d = new Date(dateStr);
   return `${d.getFullYear()}年${d.getMonth() + 1}月`;
 };
 
-const getStatusLabel = (status) => {
-  const map = { 'DRAFT': '草稿', 'SELF_REVIEW': '待自评', 'MANAGER_REVIEW': '待主管评', 'DIRECTOR_REVIEW': '待终评', 'COMPLETED': '已完成', 'CANCELED': '已取消' };
+const getStatusLabel = (status: string) => {
+  const map: Record<string, string> = {
+    DRAFT: '草稿',
+    SELF_REVIEW: '待自评',
+    MANAGER_REVIEW: '待主管评',
+    DIRECTOR_REVIEW: '待终评',
+    COMPLETED: '已完成',
+    CANCELED: '已取消',
+  };
   return map[status] || status;
 };
 
-const getStatusBadgeClass = (status) => {
-  const map = { 'DRAFT': 'bg-gray-100 text-gray-600', 'SELF_REVIEW': 'bg-blue-100 text-blue-700', 'MANAGER_REVIEW': 'bg-yellow-100 text-yellow-700', 'DIRECTOR_REVIEW': 'bg-purple-100 text-purple-700', 'COMPLETED': 'bg-green-100 text-green-700', 'CANCELED': 'bg-red-100 text-red-700' };
+const getStatusBadgeClass = (status: string) => {
+  const map: Record<string, string> = {
+    DRAFT: 'bg-gray-100 text-gray-600',
+    SELF_REVIEW: 'bg-blue-100 text-blue-700',
+    MANAGER_REVIEW: 'bg-yellow-100 text-yellow-700',
+    DIRECTOR_REVIEW: 'bg-purple-100 text-purple-700',
+    COMPLETED: 'bg-green-100 text-green-700',
+    CANCELED: 'bg-red-100 text-red-700',
+  };
   return map[status] || 'bg-gray-100 text-gray-600';
 };
 
@@ -375,14 +398,13 @@ const steps = [
   { key: 'SELF_REVIEW', label: '自评' },
   { key: 'MANAGER_REVIEW', label: '主管评' },
   { key: 'DIRECTOR_REVIEW', label: '终评' },
-  { key: 'COMPLETED', label: '完成' }
+  { key: 'COMPLETED', label: '完成' },
 ];
 
 onMounted(() => {
-  // Decode token to get current user info
   const token = localStorage.getItem('token');
   if (token) {
-    currentUser.value = jwtDecode(token);
+    currentUser.value = jwtDecode(token) as CurrentUser;
   }
   fetchReview();
 });

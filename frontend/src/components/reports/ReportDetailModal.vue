@@ -1,7 +1,6 @@
 <template>
   <TransitionRoot appear :show="isOpen" as="template">
     <Dialog as="div" @close="closeModal" class="relative z-10">
-      
       <TransitionChild
         as="template"
         enter="duration-300 ease-out"
@@ -26,21 +25,19 @@
             leave-to="opacity-0 scale-95"
           >
             <DialogPanel class="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-              
               <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900">
-                报详情
+                周报详情
               </DialogTitle>
-              
+
               <div v-if="report" class="mt-4 space-y-4">
-                
-                <div class="flex space-x-8 text-sm">
+                <div class="flex flex-wrap gap-8 text-sm">
                   <div class="flex flex-col">
-                    <span class="font-bold text-gray-500">开始日期</span>
+                    <span class="font-bold text-gray-500">开始日</span>
                     <span>{{ formatDate(report.weekStartDate) }}</span>
                   </div>
                   <div class="flex flex-col">
                     <span class="font-bold text-gray-500">提交人</span>
-                    <span>{{ report.author.nickname }}</span>
+                    <span>{{ report.author?.nickname ?? '--' }}</span>
                   </div>
                   <div class="flex flex-col">
                     <span class="font-bold text-gray-500">提交时间</span>
@@ -49,13 +46,13 @@
                 </div>
 
                 <div class="report-section">
-                  <label>本总结</label>
-                  <p>{{ report.summaryThisWeek }}</p>
+                  <label>本周总结</label>
+                  <p>{{ report.summaryThisWeek || '无' }}</p>
                 </div>
 
                 <div class="report-section">
-                  <label>下计划</label>
-                  <p>{{ report.planNextWeek }}</p>
+                  <label>下周计划</label>
+                  <p>{{ report.planNextWeek || '无' }}</p>
                 </div>
 
                 <div class="report-section">
@@ -67,7 +64,6 @@
                   <label>其他</label>
                   <p>{{ report.other || '无' }}</p>
                 </div>
-
               </div>
 
               <div class="mt-6 flex justify-end">
@@ -87,7 +83,8 @@
   </TransitionRoot>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { computed } from 'vue';
 import {
   TransitionRoot,
   TransitionChild,
@@ -95,38 +92,36 @@ import {
   DialogPanel,
   DialogTitle,
 } from '@headlessui/vue';
+import type { WeeklyReport } from '@/services/reportService';
 
-// (这是一个“哑”组件，它只接收 props)
-defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false,
-  },
-  report: {
-    type: Object,
-    default: null,
-  }
-});
+const props = defineProps<{
+  isOpen: boolean;
+  report: WeeklyReport | null;
+}>();
 
-const emit = defineEmits(['close']);
+const emit = defineEmits<{
+  close: [];
+}>();
 
-function closeModal() {
+const closeModal = () => {
   emit('close');
-}
+};
 
-// (辅助函数)
-function formatDate(dateString) {
+const formatDate = (dateString?: string) => {
   if (!dateString) return 'N/A';
   return new Date(dateString).toISOString().split('T')[0];
-}
-function formatDateTime(dateString) {
+};
+
+const formatDateTime = (dateString?: string) => {
   if (!dateString) return 'N/A';
   return new Date(dateString).toLocaleString('zh-CN', { hour12: false });
-}
+};
+
+const isOpen = computed(() => props.isOpen);
+const report = computed(() => props.report);
 </script>
 
 <style scoped>
-/* (用于显示报内容的样式) */
 .report-section {
   margin-top: 1rem;
 }
@@ -135,7 +130,7 @@ function formatDateTime(dateString) {
   margin-bottom: 0.5rem;
   color: #333;
   font-weight: bold;
-  font-size: 0.875rem; /* 14px */
+  font-size: 0.875rem;
 }
 .report-section p {
   padding: 0.75rem;
@@ -143,8 +138,7 @@ function formatDateTime(dateString) {
   border-radius: 4px;
   background-color: #f8f9fa;
   font-size: 0.9rem;
-  /* (关键) 允许长文本自动换行 */
-  white-space: pre-wrap; 
+  white-space: pre-wrap;
   word-wrap: break-word;
 }
 </style>

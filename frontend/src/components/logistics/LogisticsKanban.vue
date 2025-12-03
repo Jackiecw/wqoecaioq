@@ -42,7 +42,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import LogisticsKanbanCard from './LogisticsKanbanCard.vue';
 

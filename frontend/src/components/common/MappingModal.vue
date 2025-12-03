@@ -132,11 +132,11 @@
   </TransitionRoot>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue';
 import { XMarkIcon, MagnifyingGlassIcon, PhotoIcon, CheckIcon, ArchiveBoxXMarkIcon } from '@heroicons/vue/24/outline';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 
 const props = defineProps({
   modelValue: Boolean,

@@ -87,7 +87,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // (移除onMounted, ref(batches), ref(isLoading), ref(errorMessage))
 // (只保留了 props, emits, 和辅助函
 import { computed } from 'vue';

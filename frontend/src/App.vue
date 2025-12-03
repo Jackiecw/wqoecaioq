@@ -2,13 +2,5 @@
   <router-view />
 </template>
 
-<script setup>
-// ⬇️ 【删除】 ref 和 onMounted
-import Login from './views/Login.vue';
-import Dashboard from './views/Dashboard.vue';
-import { useAuthStore } from './stores/auth'; // ⬅️ 【新增】1. 导入您的“保险箱”
-
-// ⬅️ 【新增】2. 获取 auth store 实例
-const authStore = useAuthStore();
-
+<script setup lang="ts">
 </script>

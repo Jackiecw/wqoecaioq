@@ -230,7 +230,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { 
   Chart as ChartJS, 
@@ -245,7 +245,7 @@ import {
 } from 'chart.js';
 import { Line, Doughnut } from 'vue-chartjs';
 import { CameraIcon, XMarkIcon, CurrencyDollarIcon, ShoppingBagIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/vue/24/outline';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import { useAuthStore } from '../../stores/auth';
 
 ChartJS.register(

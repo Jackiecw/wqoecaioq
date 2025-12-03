@@ -3,13 +3,13 @@
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-gray-800">绩效考核中心</h1>
       <div class="flex gap-3">
-        <router-link 
+        <router-link
           to="/performance/templates"
           class="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
         >
           管理模板
         </router-link>
-        <button 
+        <button
           @click="openAssignModal"
           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
@@ -18,16 +18,15 @@
       </div>
     </div>
 
-    <!-- Tabs -->
     <div class="flex border-b border-gray-200 mb-6">
-      <button 
+      <button
         @click="activeTab = 'my'"
         :class="['px-6 py-3 font-medium text-sm transition-colors relative', activeTab === 'my' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700']"
       >
         我的绩效
         <div v-if="activeTab === 'my'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
       </button>
-      <button 
+      <button
         @click="activeTab = 'pending'"
         :class="['px-6 py-3 font-medium text-sm transition-colors relative', activeTab === 'pending' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700']"
       >
@@ -37,19 +36,17 @@
       </button>
     </div>
 
-    <!-- Content -->
     <div v-if="loading" class="text-center py-12 text-gray-500">
       加载中...
     </div>
 
     <div v-else>
-      <!-- My Reviews List -->
       <div v-if="activeTab === 'my'" class="space-y-4">
         <div v-if="myReviews.length === 0" class="text-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
           暂无考核记录
         </div>
-        <div 
-          v-for="review in myReviews" 
+        <div
+          v-for="review in myReviews"
           :key="review.id"
           class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
           @click="$router.push(`/performance/reviews/${review.id}`)"
@@ -78,13 +75,12 @@
         </div>
       </div>
 
-      <!-- Pending Reviews List -->
       <div v-if="activeTab === 'pending'" class="space-y-4">
         <div v-if="pendingReviews.length === 0" class="text-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
           暂无待办考核
         </div>
-        <div 
-          v-for="review in pendingReviews" 
+        <div
+          v-for="review in pendingReviews"
           :key="review.id"
           class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-yellow-400"
           @click="$router.push(`/performance/reviews/${review.id}`)"
@@ -112,11 +108,10 @@
       </div>
     </div>
 
-    <!-- Assign Modal -->
     <div v-if="showAssignModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
         <h2 class="text-xl font-bold text-gray-800 mb-6">发起绩效考核</h2>
-        
+
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">被考核人</label>
@@ -149,11 +144,11 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              上级主管 (终评) 
-              <span class="text-xs text-gray-400 font-normal ml-1">可选，留空则自动推算或无终评</span>
+              上级主管 (终评)
+              <span class="text-xs text-gray-400 font-normal ml-1">可选，留空则自动推进或无终评</span>
             </label>
             <select v-model="assignForm.directorId" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">(自动推算 / 无)</option>
+              <option value="">(自动推送 / 无)</option>
               <option v-for="user in users" :key="user.id" :value="user.id">{{ user.nickname }}</option>
             </select>
           </div>
@@ -168,38 +163,71 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import axios from '../../api';
+import { useRouter } from 'vue-router';
+import performanceService, { PerformanceReview, PerformanceUser, PerformanceTemplate } from '@/services/performanceService';
 
-const activeTab = ref('my');
+type TabKey = 'my' | 'pending';
+
+const router = useRouter();
+const activeTab = ref<TabKey>('my');
 const loading = ref(true);
-const myReviews = ref([]);
-const pendingReviews = ref([]);
+const myReviews = ref<PerformanceReview[]>([]);
+const pendingReviews = ref<PerformanceReview[]>([]);
 const showAssignModal = ref(false);
 
-const users = ref([]);
-const templates = ref([]);
+const users = ref<PerformanceUser[]>([]);
+const templates = ref<PerformanceTemplate[]>([]);
 
 const assignForm = ref({
   employeeId: '',
   templateId: '',
-  month: new Date().toISOString().slice(0, 7), // YYYY-MM
+  month: new Date().toISOString().slice(0, 7),
   managerId: '',
-  directorId: ''
+  directorId: '',
 });
+
+const formatMonth = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+};
+
+const getStatusLabel = (status: string) => {
+  const map: Record<string, string> = {
+    DRAFT: '草稿',
+    SELF_REVIEW: '待自评',
+    MANAGER_REVIEW: '待主管评',
+    DIRECTOR_REVIEW: '待终评',
+    COMPLETED: '已完成',
+    CANCELED: '已取消',
+  };
+  return map[status] || status;
+};
+
+const getStatusBadgeClass = (status: string) => {
+  const map: Record<string, string> = {
+    DRAFT: 'bg-gray-100 text-gray-600',
+    SELF_REVIEW: 'bg-blue-100 text-blue-700',
+    MANAGER_REVIEW: 'bg-yellow-100 text-yellow-700',
+    DIRECTOR_REVIEW: 'bg-purple-100 text-purple-700',
+    COMPLETED: 'bg-green-100 text-green-700',
+    CANCELED: 'bg-red-100 text-red-700',
+  };
+  return map[status] || 'bg-gray-100 text-gray-600';
+};
 
 const fetchData = async () => {
   loading.value = true;
   try {
     const [myRes, pendingRes] = await Promise.all([
-      axios.get('/reviews/my'),
-      axios.get('/reviews/pending')
+      performanceService.getMyReviews(),
+      performanceService.getPendingReviews(),
     ]);
-    myReviews.value = myRes.data;
-    pendingReviews.value = pendingRes.data;
+    myReviews.value = myRes || [];
+    pendingReviews.value = pendingRes || [];
   } catch (error) {
-    console.error('Failed to fetch reviews', error);
+    console.error('获取考核列表失败', error);
   } finally {
     loading.value = false;
   }
@@ -207,14 +235,14 @@ const fetchData = async () => {
 
 const fetchOptions = async () => {
   try {
-    const [usersRes, templatesRes] = await Promise.all([
-      axios.get('/admin/users'),
-      axios.get('/templates')
+    const [userList, templateList] = await Promise.all([
+      performanceService.getUsers(),
+      performanceService.getTemplates(),
     ]);
-    users.value = usersRes.data;
-    templates.value = templatesRes.data;
+    users.value = userList || [];
+    templates.value = templateList || [];
   } catch (error) {
-    console.error('Failed to fetch options', error);
+    console.error('获取用户或模板失败', error);
   }
 };
 
@@ -224,44 +252,25 @@ const openAssignModal = () => {
 };
 
 const submitAssign = async () => {
+  if (!assignForm.value.employeeId || !assignForm.value.templateId || !assignForm.value.managerId) {
+    alert('请选择被考核人、模板和主管');
+    return;
+  }
   try {
-    await axios.post('/reviews/assign', assignForm.value);
+    await performanceService.assignReview({
+      employeeId: assignForm.value.employeeId,
+      templateId: assignForm.value.templateId,
+      month: assignForm.value.month,
+      managerId: assignForm.value.managerId,
+      directorId: assignForm.value.directorId || undefined,
+    });
     showAssignModal.value = false;
     alert('发起成功');
-    fetchData(); // Refresh list
-  } catch (error) {
-    console.error('Failed to assign review', error);
-    alert(error.response?.data?.error || '发起失败');
+    fetchData();
+  } catch (error: any) {
+    console.error('发起考核失败', error);
+    alert(error?.response?.data?.error || '发起失败');
   }
-};
-
-const formatMonth = (dateStr) => {
-  const d = new Date(dateStr);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月`;
-};
-
-const getStatusLabel = (status) => {
-  const map = {
-    'DRAFT': '草稿',
-    'SELF_REVIEW': '待自评',
-    'MANAGER_REVIEW': '待主管评',
-    'DIRECTOR_REVIEW': '待终评',
-    'COMPLETED': '已完成',
-    'CANCELED': '已取消'
-  };
-  return map[status] || status;
-};
-
-const getStatusBadgeClass = (status) => {
-  const map = {
-    'DRAFT': 'bg-gray-100 text-gray-600',
-    'SELF_REVIEW': 'bg-blue-100 text-blue-700',
-    'MANAGER_REVIEW': 'bg-yellow-100 text-yellow-700',
-    'DIRECTOR_REVIEW': 'bg-purple-100 text-purple-700',
-    'COMPLETED': 'bg-green-100 text-green-700',
-    'CANCELED': 'bg-red-100 text-red-700'
-  };
-  return map[status] || 'bg-gray-100 text-gray-600';
 };
 
 onMounted(() => {

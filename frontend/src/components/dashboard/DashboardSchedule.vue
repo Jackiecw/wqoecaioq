@@ -198,7 +198,7 @@
 
 
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { 
   TransitionRoot,
@@ -212,7 +212,7 @@ import {
   TabPanels,
   TabPanel,
 } from '@headlessui/vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 
 const props = defineProps({
   isOpen: {

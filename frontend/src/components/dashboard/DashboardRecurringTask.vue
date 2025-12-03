@@ -83,9 +83,9 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import { PlusCircleIcon, XCircleIcon } from '@heroicons/vue/20/solid';
 import RecurringTaskModal from '../common/RecurringTaskModal.vue';
 

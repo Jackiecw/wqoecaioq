@@ -351,7 +351,7 @@
 
 
 
-<script setup>
+<script setup lang="ts">
 
 import { ref, computed, onMounted, watch } from 'vue';
 
@@ -359,7 +359,7 @@ import { DocumentArrowUpIcon } from '@heroicons/vue/24/outline';
 
 import MappingModal from './MappingModal.vue';
 
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 
 import { useAuthStore } from '../../stores/auth';
 

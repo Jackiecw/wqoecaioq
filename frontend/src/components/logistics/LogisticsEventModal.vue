@@ -298,13 +298,13 @@
 
 
 
-<script setup>
+<script setup lang="ts">
 
 import { ref, watch, computed, reactive } from 'vue';
 
 import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 
 import { useAuthStore } from '../../stores/auth';
 

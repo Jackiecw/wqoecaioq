@@ -51,7 +51,7 @@
           disabled
           class="rounded-full px-4 py-2 text-sm font-semibold text-[#94A3B8] bg-[#F9FAFB] cursor-not-allowed"
         >
-          SOP 文档 (未来)
+          SOP 文档（规划中）
         </button>
       </nav>
     </section>
@@ -70,53 +70,49 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import apiClient from '@/api';
+import apiClient from '@/services/apiClient';
 import ResponsibilityTable from '../components/common/ResponsibilityTable.vue';
 
-const countries = ref([]);
+interface Country {
+  code: string;
+  name: string;
+}
+
+const countries = ref<Country[]>([]);
 const isLoadingCountries = ref(false);
 const errorMessage = ref('');
-const currentCountryCode = ref(null); // (例如: 'ID')
-const currentSubTab = ref('matrix'); // (默认显示 'matrix')
+const currentCountryCode = ref<string | null>(null);
+const currentSubTab = ref<'matrix' | 'sop'>('matrix');
 
 const authStore = useAuthStore();
 
-async function fetchCountries() {
+const fetchCountries = async () => {
   isLoadingCountries.value = true;
   errorMessage.value = '';
   try {
-    // (我们从 /api/countries 获取列表，这是一个受 authMiddleware 保护的路由)
-    const response = await apiClient.get('/countries');
-    
-    // 3. 根据角色过滤国家列表
+    const response = await apiClient.get<Country[]>('/countries');
     const allCountries = response.data;
-    
+
     if (authStore.role === 'admin') {
-      // (A) 管理员：看到所有国家
       countries.value = allCountries;
     } else {
-      // (B) 运营专员：只看自己“运营”的国家
-      const userOperatedCodes = authStore.operatedCountries; // (例如: ['ID', 'VN'])
-      countries.value = allCountries.filter(country => 
-        userOperatedCodes.includes(country.code)
-      );
+      const userOperatedCodes = authStore.operatedCountries || [];
+      countries.value = allCountries.filter((country) => userOperatedCodes.includes(country.code));
     }
-    
-    // (关键) 默认选中第一个国家
+
     if (countries.value.length > 0) {
       currentCountryCode.value = countries.value[0].code;
     }
-
   } catch (error) {
     console.error('获取国家列表失败:', error);
     errorMessage.value = '无法加载国家列表。';
   } finally {
     isLoadingCountries.value = false;
   }
-}
+};
 
 onMounted(() => {
   fetchCountries();

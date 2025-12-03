@@ -20,9 +20,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import SalesDataManagement from '../components/sales/SalesDataManagement.vue';
 
-const currentTab = ref('management');
+type SalesTab = 'management' | 'entry';
+
+const currentTab = ref<SalesTab>('management');
 </script>

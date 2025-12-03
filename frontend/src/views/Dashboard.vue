@@ -292,9 +292,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router'; // ⬅️ Use Router
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import {
   Dialog,
@@ -320,7 +320,16 @@ const route = useRoute();
 const authStore = useAuthStore();
 const mobileMenuOpen = ref(false);
 
-const menuGroups = [
+type MenuItem = { key: string; name: string; path: string; badge?: string };
+type MenuGroup = {
+  key: string;
+  title: string;
+  description: string;
+  defaultOpen?: boolean;
+  items: MenuItem[];
+};
+
+const menuGroups: MenuGroup[] = [
   {
     key: 'workspace',
     title: '工作台',
@@ -381,8 +390,8 @@ const menuGroups = [
 // Ideally we should update router/index.js to match these paths.
 // For now, I will modify setView to push to router.
 
-const openGroups = ref(
-  Object.fromEntries(menuGroups.map((group) => [group.key, group.defaultOpen !== false]))
+const openGroups = ref<Record<string, boolean>>(
+  Object.fromEntries(menuGroups.map((group) => [group.key, group.defaultOpen !== false])),
 );
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
@@ -393,7 +402,7 @@ const userAvatar = computed(() => {
     : `${apiBaseUrl}${authStore.avatarUrl}`;
 });
 
-const visibleMenuGroups = computed(() => {
+const visibleMenuGroups = computed<MenuGroup[]>(() => {
   const perms = authStore.permissions || [];
   return menuGroups
     .map((group) => {
@@ -406,13 +415,13 @@ const visibleMenuGroups = computed(() => {
         return perms.includes(item.key);
       });
       
-      if (filteredItems.length === 0) return null;
+      if (filteredItems.length === 0) return null as unknown as MenuGroup;
       return {
         ...group,
         items: filteredItems,
       };
     })
-    .filter(Boolean);
+    .filter(Boolean) as MenuGroup[];
 });
 
 const currentViewName = computed(() => {
@@ -426,7 +435,7 @@ const currentViewName = computed(() => {
   return 'Dashboard';
 });
 
-const setView = (key) => {
+const setView = (key: string) => {
   if (key === 'PROFILE_MGMT') {
     router.push('/profile');
     return;

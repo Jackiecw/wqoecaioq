@@ -155,10 +155,10 @@
 
 
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import apiClient from '@/api';
+import apiClient from '@/services/apiClient';
 import LinkModal from './LinkModal.vue';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/20/solid';
 

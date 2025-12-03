@@ -52,9 +52,9 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import CountryFormModal from './CountryFormModal.vue'; // ⬅️ 导入新弹窗
 
 const countries = ref([]);

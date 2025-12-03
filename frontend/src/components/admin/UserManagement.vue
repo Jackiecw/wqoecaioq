@@ -181,9 +181,9 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import UserFormModal from './UserFormModal.vue';
 import RoleFormModal from './RoleFormModal.vue'; 
 import CountryManagement from './CountryManagement.vue';

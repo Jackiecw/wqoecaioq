@@ -1,31 +1,11 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { useAuthStore } from '../stores/auth';
 
-const rawBaseURL = (import.meta.env.VITE_API_BASE_URL || '').trim();
-let resolvedBaseURL = rawBaseURL;
-
-if (!resolvedBaseURL && typeof window !== 'undefined') {
-    resolvedBaseURL = `${window.location.origin}/api`;
-} else if (resolvedBaseURL && typeof window !== 'undefined') {
-    try {
-        const configuredURL = new URL(resolvedBaseURL);
-        const currentHost = window.location.hostname;
-        if (
-            currentHost &&
-            currentHost !== 'localhost' &&
-            currentHost !== '127.0.0.1' &&
-            (configuredURL.hostname === 'localhost' || configuredURL.hostname === '127.0.0.1')
-        ) {
-            configuredURL.hostname = currentHost;
-            resolvedBaseURL = configuredURL.toString();
-        }
-    } catch (error) {
-        // Ignore invalid URL
-    }
-}
+// 统一 HTTP 入口：优先环境变量，否则固定走 /api，由 Vite 代理到后端
+const baseURL = (import.meta.env.VITE_API_BASE_URL || '').trim() || '/api';
 
 const apiClient: AxiosInstance = axios.create({
-    baseURL: resolvedBaseURL || '/api',
+    baseURL,
     timeout: 15000,
 });
 

@@ -242,9 +242,9 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed, watch, defineComponent, h } from 'vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import ProductFormModal from './ProductFormModal.vue';
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid';
 

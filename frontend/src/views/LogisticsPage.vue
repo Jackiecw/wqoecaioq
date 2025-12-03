@@ -218,52 +218,112 @@
   </div>
 </template>
 
-<script setup>
+
+
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import apiClient from '@/api';
+import apiClient from '@/services/apiClient';
 import { useAuthStore } from '@/stores/auth';
 import { ArrowPathIcon, ArrowDownTrayIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import LogisticsBatchFormModal from '../components/logistics/LogisticsBatchFormModal.vue';
 import LogisticsDetailModal from '../components/logistics/LogisticsDetailModal.vue';
 
+type TabKey = 'in-progress' | 'completed' | 'all';
+type StatusKey =
+  | 'IN_PRODUCTION'
+  | 'PRODUCTION_DONE'
+  | 'SHIPPED_OUT'
+  | 'CONTAINER_LOADED'
+  | 'EXPORTED'
+  | 'IN_TRANSIT'
+  | 'IMPORTED'
+  | 'DELIVERING'
+  | 'WAREHOUSED';
+
+type OrderId = string | number;
+
+interface FilterState {
+  view: TabKey;
+  keyword: string;
+  countryCode: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface PaginationState {
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+interface SummaryState {
+  totalQuantity: number;
+  totalPrice: number;
+}
+
+interface CountryOption {
+  code: string;
+  name: string;
+}
+
+interface OrderRecord {
+  id: OrderId;
+  orderCode?: string;
+  batchCode?: string;
+  orderDate?: string;
+  skuName?: string;
+  productName?: string;
+  productColor?: string;
+  productSpec?: string;
+  plugSpec?: string;
+  salesRegion?: string;
+  status?: StatusKey | string;
+  statusDate?: string;
+  quantity?: number;
+  totalPrice?: number;
+  unitPrice?: number;
+  logisticsFee?: number;
+  logisticsProvider?: string;
+  cartonCount?: number;
+  totalCbm?: number;
+}
+
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.role === 'admin');
 
-const tabs = [
+const tabs: Array<{ key: TabKey; label: string }> = [
   { key: 'in-progress', label: '进行中' },
   { key: 'completed', label: '已完成' },
-  { key: 'all', label: '全部' }
+  { key: 'all', label: '全部' },
 ];
 
-const filter = ref({
+const filter = ref<FilterState>({
   view: 'in-progress',
   keyword: '',
   countryCode: '',
   startDate: '',
-  endDate: ''
+  endDate: '',
 });
 
-const pagination = ref({
+const pagination = ref<PaginationState>({
   page: 1,
   pageSize: 20,
-  total: 0
+  total: 0,
 });
 
-const summary = ref({ totalQuantity: 0, totalPrice: 0 });
-const orders = ref([]);
+const summary = ref<SummaryState>({ totalQuantity: 0, totalPrice: 0 });
+const orders = ref<OrderRecord[]>([]);
 const isLoading = ref(false);
-const countryOptions = ref([]);
+const countryOptions = ref<CountryOption[]>([]);
 
 const isCreateModalOpen = ref(false);
-const selectedOrderIds = ref([]);
-const batchActionStatus = ref('');
+const selectedOrderIds = ref<OrderId[]>([]);
+const batchActionStatus = ref<StatusKey | ''>('');
 
-// 详情弹窗控制
 const detailModalOpen = ref(false);
-const selectedDetailId = ref(null);
+const selectedDetailId = ref<OrderId | null>(null);
 
-// 状态定义
-const statusSteps = [
+const statusSteps: Array<{ key: StatusKey; label: string }> = [
   { key: 'IN_PRODUCTION', label: '生产中' },
   { key: 'PRODUCTION_DONE', label: '生产完成' },
   { key: 'SHIPPED_OUT', label: '已出库' },
@@ -275,16 +335,18 @@ const statusSteps = [
   { key: 'WAREHOUSED', label: '已入仓' },
 ];
 
-async function fetchOptions() {
+const fetchOptions = async () => {
   try {
-    const res = await apiClient.get('/admin/countries');
+    const res = await apiClient.get<CountryOption[]>('/admin/countries');
     countryOptions.value = res.data;
-  } catch (e) { console.error(e); }
-}
+  } catch (error) {
+    console.error(error);
+  }
+};
 
-async function fetchData(page = 1) {
+const fetchData = async (page = 1) => {
   isLoading.value = true;
-  selectedOrderIds.value = []; // 翻清空选择
+  selectedOrderIds.value = [];
   try {
     const params = {
       page,
@@ -293,72 +355,73 @@ async function fetchData(page = 1) {
       keyword: filter.value.keyword,
       countryCode: filter.value.countryCode,
       startDate: filter.value.startDate,
-      endDate: filter.value.endDate
+      endDate: filter.value.endDate,
     };
     const res = await apiClient.get('/production/orders', { params });
-    orders.value = res.data.data;
-    pagination.value.page = res.data.page;
-    pagination.value.total = res.data.total;
-    summary.value = res.data.summary;
+    const data = res.data;
+    orders.value = (data.data || []) as OrderRecord[];
+    pagination.value.page = data.page ?? page;
+    pagination.value.total = data.total ?? 0;
+    summary.value = data.summary ?? summary.value;
   } catch (error) {
     console.error('加载失败', error);
   } finally {
     isLoading.value = false;
   }
-}
+};
 
-function changeTab(key) {
+const changeTab = (key: TabKey) => {
   filter.value.view = key;
   fetchData(1);
-}
+};
 
-function changePage(newPage) {
+const changePage = (newPage: number) => {
   fetchData(newPage);
-}
+};
 
-async function handleExport() {
+const handleExport = async () => {
   try {
     const params = {
       view: filter.value.view,
       keyword: filter.value.keyword,
       countryCode: filter.value.countryCode,
       startDate: filter.value.startDate,
-      endDate: filter.value.endDate
+      endDate: filter.value.endDate,
     };
     const response = await apiClient.get('/admin/production/export', {
       params,
-      responseType: 'blob'
+      responseType: 'blob',
     });
     const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Production_Export_${new Date().toISOString().slice(0,10)}.xlsx`;
+    link.download = `Production_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
     link.click();
   } catch (error) {
     alert('导出失败');
   }
-}
+};
 
-async function executeBatchUpdate() {
+const executeBatchUpdate = async () => {
   if (!batchActionStatus.value) return;
   if (!confirm(`确定将选中的 ${selectedOrderIds.value.length} 个订单更新为“${statusLabel(batchActionStatus.value)}”吗？`)) return;
-  
+
   try {
     await apiClient.post('/admin/production/orders/batch-status', {
       orderIds: selectedOrderIds.value,
       status: batchActionStatus.value,
-      occurredAt: new Date().toISOString() // 默认为当前时间
+      occurredAt: new Date().toISOString(),
     });
     alert('批量更新成功');
     selectedOrderIds.value = [];
     batchActionStatus.value = '';
     fetchData(pagination.value.page);
-  } catch (error) {
+  } catch (error: any) {
     alert(error.response?.data?.error || '更新失败');
   }
-}
+};
 
-async function handleDelete(id) {
+const handleDelete = async (id: OrderId) => {
   if (!confirm('确定删除该订单？（软删除）')) return;
   try {
     await apiClient.delete(`/admin/production/orders/${id}`);
@@ -366,45 +429,46 @@ async function handleDelete(id) {
   } catch (error) {
     alert('删除失败');
   }
-}
+};
 
-// 全选逻辑
-const isAllSelected = computed(() => {
-  return orders.value.length > 0 && selectedOrderIds.value.length === orders.value.length;
-});
-function toggleSelectAll(e) {
-  if (e.target.checked) {
-    selectedOrderIds.value = orders.value.map(o => o.id);
+const isAllSelected = computed(() => orders.value.length > 0 && selectedOrderIds.value.length === orders.value.length);
+
+const toggleSelectAll = (e: Event) => {
+  const target = e.target as HTMLInputElement | null;
+  if (target?.checked) {
+    selectedOrderIds.value = orders.value.map((o) => o.id);
   } else {
     selectedOrderIds.value = [];
   }
-}
+};
 
-// 格式化工具
-const formatNumber = (v) => v?.toLocaleString() || '0';
-const formatCurrency = (v) => v ? `¥${v.toLocaleString()}` : '-';
-const formatDate = (d) => d ? new Date(d).toLocaleDateString() : '-';
-const statusLabel = (s) => statusSteps.find(step => step.key === s)?.label || s;
-const getStatusColor = (s) => {
+const formatNumber = (v?: number) => (v ?? 0).toLocaleString();
+const formatCurrency = (v?: number) => (v ? `￥${v.toLocaleString()}` : '-');
+const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '-');
+const statusLabel = (s: StatusKey | string) => statusSteps.find((step) => step.key === s)?.label || s;
+const getStatusColor = (s: StatusKey | string) => {
   if (s === 'WAREHOUSED') return 'bg-green-100 text-green-800';
   if (s === 'IN_PRODUCTION') return 'bg-yellow-100 text-yellow-800';
   return 'bg-blue-100 text-blue-800';
 };
 
-function openDetail(order) {
+const openDetail = (order: OrderRecord) => {
   selectedDetailId.value = order.id;
   detailModalOpen.value = true;
-}
-function closeDetail() {
+};
+
+const closeDetail = () => {
   detailModalOpen.value = false;
   selectedDetailId.value = null;
-}
+};
 
 onMounted(() => {
   fetchOptions();
   fetchData();
 });
 </script>
+
+
 
 <style scoped>
 .input-group {

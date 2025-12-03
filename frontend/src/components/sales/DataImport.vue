@@ -123,7 +123,7 @@
 
 
 
-<script setup>
+<script setup lang="ts">
 
 import { ref, computed, onMounted, watch } from 'vue'
 import useStoreListings from '../../composables/useStoreListings'

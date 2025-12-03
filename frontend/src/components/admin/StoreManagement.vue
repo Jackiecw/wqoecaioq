@@ -66,10 +66,10 @@
   />
 </template>
 
-<script setup>
+<script setup lang="ts">
 // ⬇️ 【已删除】StoreProductModal 导入
 import { computed, ref, onMounted } from 'vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import StoreFormModal from './StoreFormModal.vue';
 import { useAuthStore } from '../../stores/auth';
 

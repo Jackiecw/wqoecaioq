@@ -52,9 +52,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import { PlusIcon, XCircleIcon } from '@heroicons/vue/20/solid';
 
 const todos = ref([]);

@@ -225,11 +225,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // Bug 修复
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useAuthStore } from '../../stores/auth';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import {
   Listbox,
   ListboxButton,

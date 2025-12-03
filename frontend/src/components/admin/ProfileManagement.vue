@@ -82,9 +82,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import { useAuthStore } from '../../stores/auth';
 
 const authStore = useAuthStore();

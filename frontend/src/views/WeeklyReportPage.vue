@@ -73,9 +73,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useAuthStore } from '../stores/auth';
+import { useAuthStore } from '@/stores/auth';
 import WeeklyReportForm from '@/components/reports/WeeklyReportForm.vue';
 import ViewReports from '@/components/reports/ViewReports.vue';
 
@@ -84,7 +84,7 @@ const authStore = useAuthStore();
 const canFillReports = computed(() => authStore.permissions.includes('WEEKLY_REPORT'));
 const canViewReports = computed(() => authStore.permissions.includes('VIEW_REPORTS'));
 
-const getDefaultTab = () => {
+const getDefaultTab = (): 'entry' | 'management' => {
   if (canFillReports.value) {
     return 'entry';
   }
@@ -94,15 +94,15 @@ const getDefaultTab = () => {
   return 'entry';
 };
 
-const currentTab = ref(getDefaultTab());
+const currentTab = ref<'entry' | 'management'>(getDefaultTab());
 
-const formatDisplayDate = (date) =>
+const formatDisplayDate = (date: Date) =>
   date.toLocaleDateString('zh-CN', {
     month: 'numeric',
     day: 'numeric',
   });
 
-const getWeekBoundaries = (baseDate) => {
+const getWeekBoundaries = (baseDate: Date) => {
   const workingDate = new Date(baseDate);
   const day = workingDate.getDay();
   const diff = day === 0 ? -6 : 1 - day;

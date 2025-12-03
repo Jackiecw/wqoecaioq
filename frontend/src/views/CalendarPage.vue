@@ -23,7 +23,7 @@
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
             <div class="inline-flex rounded-full border border-white/30 bg-white/10 p-1 text-sm font-semibold">
               <button
-                v-for="view in ['month', 'week', 'day']"
+                v-for="view in viewOptions"
                 :key="view"
                 @click="setView(view)"
                 :class="[
@@ -31,7 +31,7 @@
                   currentView === view ? 'bg-white text-[#3B82F6]' : 'text-white/80'
                 ]"
               >
-                {{ view === 'month' ? '月' : view === 'week' ? '' : '日' }}
+                {{ view === 'month' ? '月' : view === 'week' ? '周' : '日' }}
               </button>
             </div>
             <div v-if="isAdmin" class="flex flex-1 items-center gap-2">
@@ -61,8 +61,6 @@
       </div>
     </section>
 
-                    
-    
     <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
       <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -109,13 +107,6 @@
       </div>
     </section>
 
-
-
-
-
-
-
-
     <section class="calendar-shell rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm flex-1 min-h-0">
       <FullCalendar
         ref="calendarRef"
@@ -140,45 +131,49 @@
   />
 </template>
 
-<script setup>
-import { nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+<script setup lang="ts">
+import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import zhCnLocale from '@fullcalendar/core/locales/zh-cn';
 import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/20/solid';
-import { useAuthStore } from '../stores/auth';
-import apiClient from '../api';
+import { useAuthStore } from '@/stores/auth';
+import calendarService, { CalendarEventDto } from '@/services/calendarService';
 import EventModal from '@/components/common/EventModal.vue';
 
-const viewNameMap = {
+type CalendarView = 'month' | 'week' | 'day';
+type AdminFilterMode = 'ME' | 'ALL_ASSIGNED' | 'USER';
+
+const viewNameMap: Record<CalendarView, string> = {
   month: 'dayGridMonth',
   week: 'timeGridWeek',
   day: 'timeGridDay',
 };
+const viewOptions: CalendarView[] = ['month', 'week', 'day'];
 
 const authStore = useAuthStore();
+const isAdmin = computed(() => authStore.role === 'admin');
 const apiError = ref('');
 const isLoadingEvents = ref(false);
-const calendarRef = ref(null);
-const events = ref([]);
+const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null);
+const events = ref<any[]>([]);
 const currentMonthDisplay = ref('');
 const isModalOpen = ref(false);
-const selectedEvent = ref(null);
-const selectedDateRange = ref(null);
-const weeklyFocusEntry = ref(null);
+const selectedEvent = ref<any>(null);
+const selectedDateRange = ref<any>(null);
+const weeklyFocusEntry = ref<any>(null);
 const teamFocusContent = ref('');
 const userPlanPreview = ref('');
 const weeklyFocusError = ref('');
 const isSavingFocus = ref(false);
 
-const currentView = ref('month');
-const isAdmin = authStore.role === 'admin';
-const adminFilterMode = ref('ME');
+const currentView = ref<CalendarView>('month');
+const adminFilterMode = ref<AdminFilterMode>('ME');
 const selectedUserId = ref('');
-const userList = ref([]);
-const visibleRange = ref({ start: null, end: null });
+const userList = ref<any[]>([]);
+const visibleRange = ref<{ start: Date | null; end: Date | null }>({ start: null, end: null });
 
 watch(adminFilterMode, (mode) => {
   if (mode !== 'USER') {
@@ -187,12 +182,12 @@ watch(adminFilterMode, (mode) => {
 });
 
 watch([adminFilterMode, selectedUserId], ([mode, userId]) => {
-  if (!isAdmin) return;
+  if (!isAdmin.value) return;
   if (mode === 'USER' && !userId) return;
   fetchEvents();
 });
 
-const calendarOptions = ref({
+const calendarOptions = ref<any>({
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
   locales: [zhCnLocale],
   locale: 'zh-cn',
@@ -232,11 +227,11 @@ watch(events, (newEvents) => {
   }
 }, { immediate: true });
 
-const resizeHandler = ref(null);
+const resizeHandler = ref<(() => void) | null>(null);
 
 onMounted(() => {
   fetchWeeklyFocus();
-  if (isAdmin) fetchUsers();
+  if (isAdmin.value) fetchUsers();
   nextTick(() => {
     const cal = getCalendarApi();
     cal?.updateSize();
@@ -266,7 +261,7 @@ function getCalendarApi() {
   return calendarRef.value?.getApi?.();
 }
 
-function onDatesSet(arg) {
+function onDatesSet(arg: any) {
   visibleRange.value = {
     start: new Date(arg.start),
     end: new Date(arg.end),
@@ -275,10 +270,9 @@ function onDatesSet(arg) {
   fetchEvents();
 }
 
-function updateMonthDisplay(baseDate) {
+function updateMonthDisplay(baseDate?: Date) {
   const target = baseDate ?? getCalendarApi()?.getDate();
   if (!(target instanceof Date)) return;
-  // 修复：将 ¿? 替换为 "年"
   currentMonthDisplay.value = `${target.getFullYear()} 年 ${target.getMonth() + 1} 月`;
 }
 
@@ -290,31 +284,31 @@ async function fetchEvents() {
   apiError.value = '';
   isLoadingEvents.value = true;
   try {
-    let url = '/calendar/events';
-    const params = {
+    const params: Record<string, any> = {
       start: visibleRange.value.start.toISOString(),
       end: visibleRange.value.end.toISOString(),
     };
-    if (isAdmin && (adminFilterMode.value === 'ALL_ASSIGNED' || adminFilterMode.value === 'USER')) {
-      url = '/admin/calendar/events';
+    let data: CalendarEventDto[] = [];
+    if (isAdmin.value && (adminFilterMode.value === 'ALL_ASSIGNED' || adminFilterMode.value === 'USER')) {
       if (adminFilterMode.value === 'USER' && selectedUserId.value) {
         params.userId = selectedUserId.value;
       }
+      data = await calendarService.listAdminEvents(params);
+    } else {
+      data = await calendarService.listEvents(params);
     }
-    const response = await apiClient.get(url, { params });
-    events.value = (response.data || []).map(mapServerEvent);
-  } catch (error) {
+    events.value = (data || []).map(mapServerEvent);
+  } catch (error: any) {
     console.error('获取日程失败:', error);
     const serverMsg = error?.response?.data?.error || error?.message || '未知错误';
     const status = error?.response?.status ? ` (HTTP ${error.response.status})` : '';
-    // 修复：将 ¿? 替换为中文冒号 ：
     apiError.value = `无法加载日程：${serverMsg}${status}`;
   } finally {
     isLoadingEvents.value = false;
   }
 }
 
-function mapServerEvent(event) {
+function mapServerEvent(event: CalendarEventDto) {
   const startAt = event.startAt ? new Date(event.startAt) : new Date();
   const endAt = event.endAt ? new Date(event.endAt) : startAt;
   const isAllDay = Boolean(event.isAllDay);
@@ -334,13 +328,13 @@ function mapServerEvent(event) {
   };
 }
 
-function addDays(date, days) {
+function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
   return next;
 }
 
-function onClickNav(type) {
+function onClickNav(type: 'prev' | 'next' | 'today') {
   const cal = getCalendarApi();
   if (!cal) return;
   if (type === 'prev') cal.prev();
@@ -348,7 +342,7 @@ function onClickNav(type) {
   else cal.today();
 }
 
-function setView(view) {
+function setView(view: CalendarView) {
   if (currentView.value === view) return;
   currentView.value = view;
   nextTick(() => {
@@ -357,7 +351,7 @@ function setView(view) {
   });
 }
 
-function onSelectDateTime(info) {
+function onSelectDateTime(info: any) {
   info.view?.calendar?.unselect();
   const rawEnd = info.end || info.start;
   const end = info.allDay ? addDays(rawEnd, -1) : rawEnd;
@@ -366,13 +360,13 @@ function onSelectDateTime(info) {
   isModalOpen.value = true;
 }
 
-function onClickEvent(info) {
+function onClickEvent(info: any) {
   selectedEvent.value = normalizeSelectedEvent(info.event);
   selectedDateRange.value = null;
   isModalOpen.value = true;
 }
 
-function normalizeSelectedEvent(eventApi) {
+function normalizeSelectedEvent(eventApi: any) {
   const raw = eventApi.extendedProps?.raw || {};
   const fallbackEnd = eventApi.allDay ? addDays(eventApi.end ?? eventApi.start, -1) : (eventApi.end || eventApi.start);
   return {
@@ -385,17 +379,15 @@ function normalizeSelectedEvent(eventApi) {
   };
 }
 
-async function onEventMutate(info) {
+async function onEventMutate(info: any) {
   const eventApi = info.event;
   const raw = eventApi.extendedProps?.raw || {};
   if (raw.createdByAdmin && authStore.role !== 'admin') {
     info.revert();
-    // 修复：将 日¿? 替换为 "日程"
     alert('权限不足：无法修改管理员指派的日程');
     fetchEvents();
     return;
   }
-  const url = authStore.role === 'admin' ? `/admin/calendar/events/${eventApi.id}` : `/calendar/events/${eventApi.id}`;
   const payload = {
     title: eventApi.title,
     startAt: eventApi.start?.toISOString(),
@@ -403,9 +395,9 @@ async function onEventMutate(info) {
     isAllDay: eventApi.allDay,
   };
   try {
-    await apiClient.put(url, payload);
+    await calendarService.updateEvent(eventApi.id, payload, isAdmin.value);
     fetchEvents();
-  } catch (error) {
+  } catch (error: any) {
     console.error('拖拽更新失败:', error);
     apiError.value = `更新失败: ${error.response?.data?.error || error.message || '未知错误'}`;
     info.revert();
@@ -413,7 +405,7 @@ async function onEventMutate(info) {
   }
 }
 
-function getMutationEnd(eventApi) {
+function getMutationEnd(eventApi: any) {
   if (!eventApi.end) {
     return eventApi.start?.toISOString();
   }
@@ -438,34 +430,29 @@ function closeModal() {
   selectedDateRange.value = null;
 }
 
-async function handleEventSave(payload) {
+async function handleEventSave(payload: any) {
   apiError.value = '';
   try {
-    const isAdminRole = authStore.role === 'admin';
     if (payload.id) {
-      const url = isAdminRole ? `/admin/calendar/events/${payload.id}` : `/calendar/events/${payload.id}`;
-      await apiClient.put(url, payload);
+      await calendarService.updateEvent(payload.id, payload, isAdmin.value);
     } else {
-      const url = isAdminRole ? '/admin/calendar/events' : '/calendar/events';
-      await apiClient.post(url, payload);
+      await calendarService.createEvent(payload, isAdmin.value);
     }
     closeModal();
     fetchEvents();
-  } catch (error) {
+  } catch (error: any) {
     console.error('保存日程失败:', error);
     apiError.value = `保存失败: ${error.response?.data?.error || error.message || '未知错误'}`;
   }
 }
 
-async function handleEventDelete(eventId) {
+async function handleEventDelete(eventId: string) {
   apiError.value = '';
   try {
-    const isAdminRole = authStore.role === 'admin';
-    const url = isAdminRole ? `/admin/calendar/events/${eventId}` : `/calendar/events/${eventId}`;
-    await apiClient.delete(url);
+    await calendarService.deleteEvent(eventId, isAdmin.value);
     closeModal();
     fetchEvents();
-  } catch (error) {
+  } catch (error: any) {
     console.error('删除日程失败:', error);
     apiError.value = `删除失败: ${error.response?.data?.error || error.message || '未知错误'}`;
   }
@@ -473,8 +460,8 @@ async function handleEventDelete(eventId) {
 
 async function fetchUsers() {
   try {
-    const res = await apiClient.get('/admin/users');
-    userList.value = res.data || [];
+    const list = await calendarService.listUsers();
+    userList.value = list || [];
   } catch (error) {
     console.error('获取用户列表失败:', error);
   }
@@ -495,11 +482,11 @@ async function fetchWeeklyFocus() {
   try {
     weeklyFocusError.value = '';
     const weekStartDate = getWeekStartString();
-    const res = await apiClient.get('/calendar/weekly-focus', { params: { weekStartDate } });
-    weeklyFocusEntry.value = res.data.focus;
-    teamFocusContent.value = res.data.focus?.content || '';
-    userPlanPreview.value = res.data.userPlan || '';
-  } catch (error) {
+    const res = await calendarService.getWeeklyFocus(weekStartDate);
+    weeklyFocusEntry.value = res.focus;
+    teamFocusContent.value = res.focus?.content || '';
+    userPlanPreview.value = res.userPlan || '';
+  } catch (error: any) {
     console.error('获取本周聚焦失败:', error);
     weeklyFocusEntry.value = null;
     teamFocusContent.value = '';
@@ -508,27 +495,24 @@ async function fetchWeeklyFocus() {
 }
 
 async function saveWeeklyFocus() {
-  if (!isAdmin) return;
+  if (!isAdmin.value) return;
   try {
     weeklyFocusError.value = '';
     if (!weeklyFocusEntry.value?.id) {
-      weeklyFocusError.value = '尚未生成本周聚焦，请刷新后重试';
+      weeklyFocusError.value = '尚未生成本周聚焦，请刷新后重试。';
       return;
     }
     isSavingFocus.value = true;
-    const res = await apiClient.put(`/calendar/weekly-focus/${weeklyFocusEntry.value.id}`, { content: teamFocusContent.value });
-    weeklyFocusEntry.value = res.data;
-    teamFocusContent.value = res.data.content || '';
-  } catch (error) {
-    console.error('æ´æ°æ¬å¨èç¦å¤±è´¥:', error);
-    weeklyFocusError.value = error.response?.data?.error || 'æ´æ°å¤±è´¥';
+    const res = await calendarService.updateWeeklyFocus(weeklyFocusEntry.value.id, teamFocusContent.value);
+    weeklyFocusEntry.value = res;
+    teamFocusContent.value = res.content || '';
+  } catch (error: any) {
+    console.error('更新本周聚焦失败:', error);
+    weeklyFocusError.value = error.response?.data?.error || '更新失败';
   } finally {
     isSavingFocus.value = false;
   }
 }
-
-
-
 </script>
 
 <style>

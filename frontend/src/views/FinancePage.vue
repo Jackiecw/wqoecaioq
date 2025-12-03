@@ -75,7 +75,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import FinanceForm from '../components/finance/FinanceForm.vue';
@@ -89,18 +89,17 @@ const canView = computed(() => authStore.permissions.includes('FINANCE_VIEW'));
 const isAdmin = computed(() => authStore.role === 'admin');
 const canExport = computed(() => authStore.permissions.includes('FINANCE_EXPORT'));
 
-// 2. 决定默认显示哪个标签
-const getDefaultTab = () => {
-  // 优先级：管理员/财务 默认看查询，运营默认看录入
+type FinanceTab = 'entry' | 'management' | 'batch';
+
+const getDefaultTab = (): FinanceTab => {
   if (canView.value && (authStore.role === 'admin' || canExport.value)) {
     return 'management';
   }
   if (canEntry.value) {
     return 'entry';
   }
-  // 备用
-  return canView.value ? 'management' : 'batch'; 
+  return canView.value ? 'management' : 'batch';
 };
 
-const currentTab = ref(getDefaultTab()); 
+const currentTab = ref<FinanceTab>(getDefaultTab());
 </script>

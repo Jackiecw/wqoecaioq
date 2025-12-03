@@ -206,7 +206,7 @@
   </TransitionRoot>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import {
   TransitionRoot,
@@ -215,7 +215,7 @@ import {
   DialogPanel,
   DialogTitle,
 } from '@headlessui/vue';
-import apiClient from '../../api';
+import apiClient from '@/services/apiClient';
 import useManagedCountries from '../../composables/useManagedCountries';
 
 const props = defineProps({

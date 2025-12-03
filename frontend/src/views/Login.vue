@@ -5,7 +5,7 @@
         <div class="max-w-md space-y-8">
           <div class="space-y-3">
             <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">Overseas Ops</p>
-            <h2 class="text-4xl font-semibold">海外电商部 内部系统</h2>
+            <h2 class="text-4xl font-semibold">海外电商 ERP 内部系统</h2>
             <p class="text-sm text-white/80">集中化管理仪表盘、运营中心、财务与销售数据，帮助团队保持节奏一致。</p>
           </div>
           <div class="space-y-4 rounded-3xl bg-white/10 p-6 backdrop-blur">
@@ -38,7 +38,7 @@
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#94A3B8]">Welcome Back</p>
               <h1 class="text-2xl font-semibold text-[#1F2937]">登录账号</h1>
-              <p class="text-sm text-[#6B7280]">使用您的企业账号进入内部系统。</p>
+              <p class="text-sm text-[#6B7280]">使用企业账号进入内部系统。</p>
             </div>
           </div>
 
@@ -55,6 +55,7 @@
                   v-model="username"
                   required
                   class="form-input pl-14"
+                  autocomplete="username"
                 />
               </div>
             </div>
@@ -72,6 +73,7 @@
                   required
                   @keyup.enter="handleLogin"
                   class="form-input pl-14"
+                  autocomplete="current-password"
                 />
               </div>
             </div>
@@ -96,36 +98,33 @@
     </div>
   </div>
 </template>
-<script setup>
-import { ref } from 'vue';
-import { useAuthStore } from '../stores/auth';
-import apiClient from '../api';
-import { UserIcon, LockClosedIcon } from '@heroicons/vue/20/solid';
-import logoUrl from '../assets/logo.png';
 
-import { useRouter } from 'vue-router'; // ⬅️ Import router
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { UserIcon, LockClosedIcon } from '@heroicons/vue/20/solid';
+import { useAuthStore } from '@/stores/auth';
+import { authService } from '@/services/authService';
+import logoUrl from '../assets/logo.png';
 
 const username = ref('');
 const password = ref('');
 const errorMessage = ref('');
 const authStore = useAuthStore();
-const router = useRouter(); // ⬅️ Init router
+const router = useRouter();
 
 const handleLogin = async () => {
   errorMessage.value = '';
   try {
-    const { data } = await apiClient.post('/login', {
+    const data = await authService.login({
       username: username.value,
       password: password.value,
     });
     authStore.login(data.token);
-    router.push('/'); // ⬅️ Redirect to dashboard
-  } catch (error) {
-    if (error.response?.data?.error) {
-      errorMessage.value = error.response.data.error;
-    } else {
-      errorMessage.value = '登录失败，请检查网络或联系管理员';
-    }
+    router.push('/');
+  } catch (error: any) {
+    const serverMsg = error?.response?.data?.error;
+    errorMessage.value = serverMsg || '登录失败，请检查网络或联系管理员。';
   }
 };
 </script>
@@ -178,9 +177,6 @@ const handleLogin = async () => {
 </style>
 
 <style scoped>
-/* 这个组件现在完全依赖 Tailwind CSS。
-  如果你为背景图添加了蒙版，这里的样式可以帮助蒙版生效。
-*/
 .relative {
   position: relative;
 }
