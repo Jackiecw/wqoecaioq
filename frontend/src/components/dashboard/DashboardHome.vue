@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-home p-4 md:p-6 max-w-[1920px] mx-auto">
+  <div class="dashboard-home p-4 md:p-6 xl:px-10 w-full max-w-none min-h-full flex flex-col min-w-0">
     <!-- 顶部区域 (Header Area) -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8">
       <!-- 左侧：问候语 -->
@@ -9,7 +9,7 @@
       </div>
 
       <!-- 右侧：过滤器 -->
-      <div class="flex items-center gap-3">
+    <div class="flex items-center gap-3 flex-wrap justify-end">
         <!-- 国家筛选 -->
         <IconField>
           <InputIcon class="pi pi-globe text-slate-400" />
@@ -48,7 +48,7 @@
     </div>
 
     <!-- KPI 卡片区 (Metrics Row) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8 w-full min-w-0">
       <div 
         v-for="metric in kpiMetrics" 
         :key="metric.label"
@@ -89,52 +89,24 @@
     </div>
 
     <!-- 主要内容区 (Bento Grid Layout) -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 min-w-0">
+    <div class="grid !grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 min-w-0 flex-1 w-full items-start">
       <!-- 左侧 (2/3 宽度)：销售趋势图表 -->
-      <div class="lg:col-span-2 min-w-0">
-        <Card class="shadow-sm rounded-2xl border border-slate-100 h-full">
-          <template #header>
-            <div class="px-6 pt-6 pb-4 flex items-center justify-between">
-              <h2 class="text-xl font-bold text-slate-900 m-0">销售趋势</h2>
-              <!-- 图表类型切换 -->
-              <div class="flex gap-2">
-                <Button
-                  label="销售额"
-                  :severity="chartType === 'revenue' ? 'primary' : 'secondary'"
-                  :outlined="chartType !== 'revenue'"
-                  size="small"
-                  class="rounded-full"
-                  @click="chartType = 'revenue'"
-                />
-                <Button
-                  label="订单量"
-                  :severity="chartType === 'orders' ? 'primary' : 'secondary'"
-                  :outlined="chartType !== 'orders'"
-                  size="small"
-                  class="rounded-full"
-                  @click="chartType = 'orders'"
-                />
-              </div>
-            </div>
-          </template>
-          <template #content>
-            <div class="px-6 pb-6">
-              <SalesTrendChart 
-                :country-code="selectedCountryCode"
-                :store-id="selectedStoreId"
-              />
-            </div>
-          </template>
-        </Card>
+      <div class="min-w-0 lg:col-span-8">
+        <SalesTrendChart 
+          class="h-full w-full"
+          :country-code="selectedCountryCode"
+          :store-id="selectedStoreId"
+        />
       </div>
 
       <!-- 右侧 (1/3 宽度)：工具栏 -->
-      <div class="flex flex-col gap-6 md:gap-8 min-w-0">
+      <div class="flex flex-col gap-6 md:gap-8 min-w-0 h-full lg:col-span-4">
         <!-- 卡片 A: 极简汇率计算器 -->
         <Card class="
-          shadow-sm rounded-2xl border-0
+          shadow-md rounded-2xl border-0
           bg-gradient-to-br from-indigo-500 to-violet-600
           text-white
+          min-h-[520px]
         ">
           <template #content>
             <div class="p-6">
@@ -357,7 +329,6 @@ const DEFAULT_RATES: Record<string, number> = Object.freeze({
 const MANUAL_REFRESH_LIMIT = 3;
 
 // ===== UI 状态 =====
-const chartType = ref<'revenue' | 'orders'>('revenue');
 const exchangeCalcAmount = ref(100);
 const targetCurrency = ref('USD');
 const isExchangeSwapped = ref(false);

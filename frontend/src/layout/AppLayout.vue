@@ -70,12 +70,12 @@
     <AppSidebar />
 
     <!-- 右侧主内容区域 -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
       <!-- 顶部导航栏 -->
       <AppTopbar @toggle-mobile-menu="mobileMenuOpen = true" />
 
       <!-- 主要内容区域 -->
-      <main class="flex-1 overflow-y-auto">
+      <main class="flex-1 overflow-y-auto w-full min-w-0">
         <router-view v-slot="{ Component }">
           <KeepAlive>
             <component :is="Component" />

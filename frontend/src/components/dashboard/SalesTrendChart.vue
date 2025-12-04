@@ -1,5 +1,5 @@
 <template>
-  <Card class="shadow-sm border-round-2xl h-full">
+  <Card class="shadow-sm border-round-2xl h-full w-full">
     <template #title>
       <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3 px-1">
         <div>
@@ -23,7 +23,7 @@
       <div class="pt-2">
         <BaseChart 
           :option="chartOption" 
-          height="360px" 
+          height="380px"
           :loading="isLoading"
         />
         <div v-if="!isLoading" class="flex justify-content-center gap-4 mt-3 text-sm">
