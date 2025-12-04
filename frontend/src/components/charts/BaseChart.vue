@@ -108,9 +108,19 @@ watch(
   }
 );
 
+
+// 防抖优化：避免频繁 resize 造成性能问题
+let resizeTimer: number | null = null;
 const handleResize = () => {
-  chartInstance?.resize();
+  if (resizeTimer) {
+    clearTimeout(resizeTimer);
+  }
+  resizeTimer = window.setTimeout(() => {
+    chartInstance?.resize();
+    resizeTimer = null;
+  }, 300);
 };
+
 
 // 暴露实例方法供父组件调用
 defineExpose({

@@ -1,7 +1,7 @@
 <template>
-  <div class="dashboard-home p-6 max-w-[1920px] mx-auto">
+  <div class="dashboard-home p-4 md:p-6 max-w-[1920px] mx-auto">
     <!-- 顶部区域 (Header Area) -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8">
       <!-- 左侧：问候语 -->
       <div>
         <h1 class="text-3xl font-bold text-slate-900 m-0">{{ greeting }}，{{ authStore.nickname }}</h1>
@@ -48,19 +48,19 @@
     </div>
 
     <!-- KPI 卡片区 (Metrics Row) -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
       <div 
         v-for="metric in kpiMetrics" 
         :key="metric.label"
         class="
-          bg-white rounded-xl p-5
+          bg-white rounded-xl p-4 md:p-6
           shadow-sm hover:shadow-md
           transition-all duration-200
           border border-slate-100
         "
       >
         <!-- 图标 -->
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-4">
           <span class="text-xs font-semibold text-slate-500 uppercase">{{ metric.label }}</span>
           <div 
             class="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -71,7 +71,7 @@
         </div>
 
         <!-- 数值 -->
-        <div class="text-2xl font-bold text-slate-900 mb-2">{{ metric.value }}</div>
+        <div class="text-2xl font-bold text-slate-900 mb-2 tabular-nums">{{ metric.value }}</div>
 
         <!-- 副标题和趋势 -->
         <div class="flex items-center gap-2">
@@ -89,12 +89,12 @@
     </div>
 
     <!-- 主要内容区 (Bento Grid Layout) -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 min-w-0">
       <!-- 左侧 (2/3 宽度)：销售趋势图表 -->
-      <div class="xl:col-span-2">
+      <div class="lg:col-span-2 min-w-0">
         <Card class="shadow-sm rounded-2xl border border-slate-100 h-full">
           <template #header>
-            <div class="px-6 pt-6 pb-0 flex items-center justify-between">
+            <div class="px-6 pt-6 pb-4 flex items-center justify-between">
               <h2 class="text-xl font-bold text-slate-900 m-0">销售趋势</h2>
               <!-- 图表类型切换 -->
               <div class="flex gap-2">
@@ -118,30 +118,43 @@
             </div>
           </template>
           <template #content>
-            <SalesTrendChart 
-              :country-code="selectedCountryCode"
-              :store-id="selectedStoreId"
-            />
+            <div class="px-6 pb-6">
+              <SalesTrendChart 
+                :country-code="selectedCountryCode"
+                :store-id="selectedStoreId"
+              />
+            </div>
           </template>
         </Card>
       </div>
 
       <!-- 右侧 (1/3 宽度)：工具栏 -->
-      <div class="flex flex-col gap-6">
+      <div class="flex flex-col gap-6 md:gap-8 min-w-0">
         <!-- 卡片 A: 极简汇率计算器 -->
         <Card class="
           shadow-sm rounded-2xl border-0
           bg-gradient-to-br from-indigo-500 to-violet-600
           text-white
         ">
-          <template #header>
-            <div class="px-6 pt-6 pb-2">
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="text-lg font-bold m-0">汇率计算器</h3>
+          <template #content>
+            <div class="p-6">
+              <!-- 标题 -->
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h3 class="text-lg font-bold m-0 mb-1">汇率计算器</h3>
+                  <div class="text-xs opacity-80 flex items-center gap-2">
+                    <span v-if="isUsingFallbackRates" class="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded">
+                      <i class="pi pi-info-circle text-xs"></i>
+                      离线汇率
+                    </span>
+                    <span v-else-if="formattedRatesUpdatedAt">更新于 {{ formattedRatesUpdatedAt }}</span>
+                    <span v-else>加载中...</span>
+                  </div>
+                </div>
                 <Button
                   icon="pi pi-refresh"
                   :loading="manualRefreshStatus.isRefreshing"
-                  :disabled="!canTriggerManualRefresh"
+                  :disabled="!canTriggerManualRefresh || isUsingFallbackRates"
                   severity="secondary"
                   text
                   rounded
@@ -150,112 +163,127 @@
                   @click="handleManualRatesRefresh"
                 />
               </div>
-              <div class="text-xs opacity-80">
-                {{ formattedRatesUpdatedAt ? `更新于 ${formattedRatesUpdatedAt}` : '加载中...' }}
-                <span class="mx-2">·</span>
-                {{ manualRefreshQuotaText }}
-              </div>
-            </div>
-          </template>
-          <template #content>
-            <div v-if="isLoading.rates" class="text-center py-8">
-              <i class="pi pi-spin pi-spinner text-2xl opacity-50"></i>
-            </div>
-            <div v-else class="space-y-3">
-              <!-- CNY 输入 -->
-              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <div class="text-xs opacity-80 mb-2">人民币 (CNY)</div>
-                <InputNumber
-                  v-model="exchangeCalcAmount"
-                  :min="0"
-                  :maxFractionDigits="2"
-                  class="
-                    w-full
-                    bg-transparent border-0
-                    text-white
-                    [&_.p-inputnumber-input]:bg-transparent
-                    [&_.p-inputnumber-input]:border-0
-                    [&_.p-inputnumber-input]:text-white
-                    [&_.p-inputnumber-input]:text-2xl
-                    [&_.p-inputnumber-input]:font-bold
-                    [&_.p-inputnumber-input]:p-0
-                  "
-                  placeholder="0.00"
-                />
-              </div>
 
-              <!-- 交换按钮 -->
-              <div class="flex justify-center -my-1">
-                <Button
-                  icon="pi pi-arrow-down-up"
-                  rounded
-                  text
-                  severity="secondary"
-                  class="w-10 h-10 bg-white/20 hover:bg-white/30 text-white"
-                  @click="swapExchangeCurrencies"
-                />
+              <!-- 汇率计算区 -->
+              <div v-if="isLoading.rates" class="text-center py-12">
+                <i class="pi pi-spin pi-spinner text-3xl opacity-50"></i>
               </div>
-
-              <!-- 目标货币选择和结果 -->
-              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4">
-                <div class="flex items-center justify-between mb-2">
-                  <div class="text-xs opacity-80">目标货币</div>
-                  <Select
-                    v-model="targetCurrency"
-                    :options="supportedRateCodes"
-                    placeholder="选择货币"
+              <div v-else class="space-y-4">
+                <!-- CNY 输入 -->
+                <div class="bg-white/15 backdrop-blur-sm rounded-xl p-5">
+                  <div class="text-xs opacity-80 mb-3 font-semibold">人民币 (CNY)</div>
+                  <input
+                    v-model.number="exchangeCalcAmount"
+                    type="number"
+                    :min="0"
                     class="
-                      bg-white/20 border-0 rounded-lg text-white min-w-[100px]
-                      [&_.p-select-label]:text-white
+                      w-full bg-transparent border-0
+                      text-white text-4xl font-bold
+                      outline-none focus:outline-none
+                      placeholder-white/40
+                      tabular-nums
                     "
+                    placeholder="100.00"
                   />
                 </div>
-                <div class="text-2xl font-bold">
-                  {{ formatNumber(convertedAmount) }}
-                </div>
-              </div>
 
-              <!-- 汇率显示 -->
-              <div class="text-xs opacity-80 text-center">
-                1 CNY = {{ formatNumber(currentRate) }} {{ targetCurrency }}
+                <!-- 交换按钮 -->
+                <div class="flex justify-center -my-2">
+                  <button
+                    class="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center text-white"
+                    @click="swapExchangeCurrencies"
+                  >
+                    <i class="pi pi-arrow-down-up text-lg"></i>
+                  </button>
+                </div>
+
+                <!-- 目标货币和结果 -->
+                <div class="bg-white/15 backdrop-blur-sm rounded-xl p-5">
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="text-xs opacity-80 font-semibold">目标货币</div>
+                    <Select
+                      v-model="targetCurrency"
+                      :options="supportedRateCodes"
+                      placeholder="选择货币"
+                      class="
+                        bg-white/20 border-0 rounded-lg text-white min-w-[100px]
+                        [&_.p-select-label]:text-white
+                        [&_.p-select-label]:font-semibold
+                      "
+                    />
+                  </div>
+                  <div class="text-4xl font-bold tabular-nums">
+                    {{ formatNumber(convertedAmount) }}
+                  </div>
+                </div>
+
+                <!-- 汇率比例 -->
+                <div class="text-xs opacity-80 text-center bg-white/10 py-2 rounded-lg">
+                  1 CNY = {{ formatNumber(currentRate) }} {{ targetCurrency }}
+                </div>
               </div>
             </div>
           </template>
         </Card>
 
-        <!-- 卡片 B: 待办与日程 (Tabs) -->
+        <!-- 卡片 B: 待办与日程 (自定义 Segmented Control) -->
         <Card class="shadow-sm rounded-2xl border border-slate-100 flex-1">
           <template #content>
-            <TabView class="dashboard-tabs">
-              <TabPanel value="0">
-                <template #header>
-                  <span>待办事项</span>
-                </template>
+            <div class="p-6">
+              <!-- 自定义 Segmented Control -->
+              <div class="bg-slate-100 rounded-lg p-1 mb-6 grid grid-cols-2 gap-1">
+                <button
+                  class="
+                    py-2 px-4 rounded-md text-sm font-medium
+                    transition-all duration-200
+                  "
+                  :class="[
+                    activeTab === 'todo'
+                      ? 'bg-white shadow-sm text-slate-900'
+                      : 'text-slate-600 hover:text-slate-900'
+                  ]"
+                  @click="activeTab = 'todo'"
+                >
+                  待办事项
+                </button>
+                <button
+                  class="
+                    py-2 px-4 rounded-md text-sm font-medium
+                    transition-all duration-200
+                  "
+                  :class="[
+                    activeTab === 'schedule'
+                      ? 'bg-white shadow-sm text-slate-900'
+                      : 'text-slate-600 hover:text-slate-900'
+                  ]"
+                  @click="activeTab = 'schedule'"
+                >
+                  日程总览
+                </button>
+              </div>
+
+              <!-- 内容区 -->
+              <div v-if="activeTab === 'todo'">
                 <DashboardTodo :compact="true" :max-items="5" />
-              </TabPanel>
-              <TabPanel value="1">
-                <template #header>
-                  <span>日程总览</span>
-                </template>
-                <div class="cursor-pointer" @click="isScheduleOpen = true">
-                  <div class="mb-3">
-                    <span class="text-sm font-semibold text-slate-700 block mb-2">本周重点</span>
-                    <p class="text-sm text-slate-600 line-height-3 m-0">
-                      {{ summaryData.schedule.planNextWeek || '暂无计划，点击填写' }}
-                    </p>
-                  </div>
-                  <Button
-                    label="查看详情"
-                    icon="pi pi-arrow-right"
-                    iconPos="right"
-                    severity="secondary"
-                    outlined
-                    size="small"
-                    class="w-full rounded-full"
-                  />
+              </div>
+              <div v-else class="cursor-pointer" @click="isScheduleOpen = true">
+                <div class="mb-4">
+                  <span class="text-sm font-semibold text-slate-700 block mb-2">本周重点</span>
+                  <p class="text-sm text-slate-600 leading-relaxed m-0">
+                    {{ summaryData.schedule.planNextWeek || '暂无计划，点击填写' }}
+                  </p>
                 </div>
-              </TabPanel>
-            </TabView>
+                <Button
+                  label="查看详情"
+                  icon="pi pi-arrow-right"
+                  iconPos="right"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  class="w-full rounded-full"
+                />
+              </div>
+            </div>
           </template>
         </Card>
       </div>
@@ -276,9 +304,6 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
-import TabView from 'primevue/tabview';
-import TabPanel from 'primevue/tabpanel';
-import InputNumber from 'primevue/inputnumber';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import { useAuthStore } from '../../stores/auth';
@@ -318,6 +343,8 @@ type CountryOption = { code: string; name: string };
 type StoreOption = { id: string; name: string; countryCode: string };
 
 const authStore = useAuthStore();
+
+// 默认参考汇率（容错机制）
 const DEFAULT_RATES: Record<string, number> = Object.freeze({
   CNY_USD: 0.14,
   CNY_IDR: 2300,
@@ -329,11 +356,13 @@ const DEFAULT_RATES: Record<string, number> = Object.freeze({
 });
 const MANUAL_REFRESH_LIMIT = 3;
 
-// ===== 新增的 UI 状态 =====
-const chartType = ref<'revenue' | 'orders'>('revenue'); // 图表类型切换
-const exchangeCalcAmount = ref(100); // 汇率计算器输入金额
-const targetCurrency = ref('USD'); // 目标货币
-const isExchangeSwapped = ref(false); // 是否交换了货币方向
+// ===== UI 状态 =====
+const chartType = ref<'revenue' | 'orders'>('revenue');
+const exchangeCalcAmount = ref(100);
+const targetCurrency = ref('USD');
+const isExchangeSwapped = ref(false);
+const activeTab = ref<'todo' | 'schedule'>('todo'); // 新增：自定义 tab 状态
+const isUsingFallbackRates = ref(false); // 新增：标记是否使用离线汇率
 
 const greeting = computed(() => {
   const hour = new Date().getHours();
@@ -450,15 +479,15 @@ const kpiMetrics = computed(() => {
       value: formatCurrency(gmv.today, gmv.currency),
       sub: `≈${formatCurrency(cny.today, 'CNY')}`,
       icon: 'pi pi-dollar',
-      color: '#8b5cf6', // 紫色
-      trend: { type: 'up', value: '+5%' }, // TODO: 需后端API提供
+      color: '#8b5cf6',
+      trend: { type: 'up', value: '+5%' },
     },
     {
       label: '今日订单',
       value: '待开发',
       sub: '需后端API支持',
       icon: 'pi pi-shopping-cart',
-      color: '#ec4899', // 粉色
+      color: '#ec4899',
       trend: null,
     },
     {
@@ -466,7 +495,7 @@ const kpiMetrics = computed(() => {
       value: '待开发',
       sub: '需后端API支持',
       icon: 'pi pi-box',
-      color: '#3b82f6', // 蓝色
+      color: '#3b82f6',
       trend: null,
     },
     {
@@ -474,7 +503,7 @@ const kpiMetrics = computed(() => {
       value: '待开发',
       sub: '低于安全库存的SKU数',
       icon: 'pi pi-exclamation-triangle',
-      color: '#10b981', // 绿色
+      color: '#10b981',
       trend: null,
     },
   ];
@@ -497,7 +526,7 @@ const supportedRateCodes = computed(() => {
   return Array.from(new Set(codes.filter(Boolean)));
 });
 
-// 汇率计算器相关计算属性
+// 汇率计算器相关
 const currentRate = computed(() => {
   const rawRate = ratesData.value[`CNY_${targetCurrency.value}`];
   if (typeof rawRate === 'number' && rawRate > 0) {
@@ -520,7 +549,6 @@ watch(
     });
     rateStates.value = nextState;
     
-    // 设置默认目标货币
     if (!targetCurrency.value || !codes.includes(targetCurrency.value)) {
       targetCurrency.value = codes[0] || 'USD';
     }
@@ -597,8 +625,11 @@ function applyRatesPayload(payload: any = {}) {
   const incomingRates = payload.rates;
   if (incomingRates && Object.keys(incomingRates).length) {
     ratesData.value = incomingRates;
-  } else if (!Object.keys(ratesData.value || {}).length) {
+    isUsingFallbackRates.value = false;
+  } else {
+    // 容错：使用默认汇率
     ratesData.value = { ...DEFAULT_RATES };
+    isUsingFallbackRates.value = true;
   }
   ratesUpdatedAt.value = payload.updatedAt || ratesUpdatedAt.value;
 }
@@ -631,7 +662,9 @@ async function fetchRates() {
     const response = await apiClient.get('/exchange-rates');
     applyRatesPayload(response.data);
   } catch (error) {
-    console.error('获取汇率失败', error);
+    console.error('获取汇率失败，使用默认汇率', error);
+    // 容错：使用默认汇率
+    applyRatesPayload({});
   } finally {
     isLoading.value.rates = false;
   }
@@ -647,7 +680,6 @@ async function fetchFilters() {
     allCountries.value = countriesRes.data || [];
     allStores.value = storesRes.data || [];
 
-    // 默认选第一项
     selectedCountryCode.value = countryFilterOptions.value[0]?.code || null;
     selectedStoreId.value = storeFilterOptions.value[0]?.id || null;
   } catch (error) {
@@ -677,6 +709,7 @@ async function handleManualRatesRefresh() {
     await fetchManualRefreshQuota();
   } catch (error: any) {
     manualRefreshStatus.value.error = error.response?.data?.error || '刷新失败，请稍后重试';
+    // 容错：保持使用当前汇率
   } finally {
     manualRefreshStatus.value.isRefreshing = false;
   }
@@ -724,14 +757,13 @@ function updateRateAmount(code: string, input: string) {
 
 function swapExchangeCurrencies() {
   isExchangeSwapped.value = !isExchangeSwapped.value;
-  // 交换后重新计算
   if (convertedAmount.value > 0) {
     exchangeCalcAmount.value = convertedAmount.value;
   }
 }
 
 function applyStoreFilter() {
-  // Placeholder for store-based filtering. Currently no-op.
+  // Placeholder
 }
 
 function applyCountryFilter() {
@@ -748,29 +780,3 @@ onMounted(async () => {
   await Promise.all([fetchSummary(), fetchRates(), fetchFilters(), fetchHitokoto(), fetchManualRefreshQuota()]);
 });
 </script>
-
-<style scoped>
-/* 自定义 TabView 样式 */
-.dashboard-tabs :deep(.p-tabview-nav) {
-  background: transparent;
-  border: 0;
-}
-
-.dashboard-tabs :deep(.p-tabview-nav-link) {
-  color: rgb(71 85 105);
-  font-weight: 500;
-}
-
-.dashboard-tabs :deep(.p-tabview-nav-link:focus) {
-  box-shadow: none;
-}
-
-.dashboard-tabs :deep(.p-tabview-selected .p-tabview-nav-link) {
-  color: rgb(79 70 229);
-  border-color: rgb(79 70 229);
-}
-
-.dashboard-tabs :deep(.p-tabview-panels) {
-  padding: 1rem 0 0 0;
-}
-</style>
