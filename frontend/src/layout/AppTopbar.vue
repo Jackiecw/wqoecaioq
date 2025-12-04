@@ -92,13 +92,7 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
-
-type NavItem = { key: string; name: string; path: string; badge?: string };
-type NavGroup = {
-  key: string;
-  title: string;
-  items: NavItem[];
-};
+import { getCurrentPageTitle } from './menuConfig';
 
 const emit = defineEmits<{
   'toggle-mobile-menu': [];
@@ -127,81 +121,9 @@ const userAvatar = computed(() => {
 });
 
 /**
- * 菜单配置 (用于计算当前视图名称)
- */
-const menuGroups: NavGroup[] = [
-  {
-    key: 'workspace',
-    title: '工作区',
-    items: [
-      { key: 'DASHBOARD', name: '仪表盘', path: '/' },
-      { key: 'CALENDAR', name: '工作日历', path: '/calendar' },
-      { key: 'REPORTS', name: '周报中心', path: '/reports' },
-    ],
-  },
-  {
-    key: 'sales',
-    title: '销售数据',
-    items: [
-      { key: 'SALES_VISUALIZATION', name: '数据看板', path: '/sales/dashboard' },
-      { key: 'SALES_DATA', name: '销售明细', path: '/sales/data' },
-      { key: 'SALES_IMPORT', name: '数据导入', path: '/sales/import' },
-      { key: 'SALES_IMPORT_HISTORY', name: '导入记录', path: '/sales/history' },
-    ],
-  },
-  {
-    key: 'operations',
-    title: '业务运营',
-    items: [
-      { key: 'ON_SALE_PRODUCTS', name: '店铺在售', path: '/products/on-sale' },
-      { key: 'PRODUCT_CATALOG', name: '产品目录', path: '/products/catalog' },
-      { key: 'OPERATION_CENTER', name: '运营中心', path: '/operations' },
-      { key: 'FINANCE_ADMIN', name: '财务管理', path: '/finance' },
-      { key: 'LOGISTICS_MGMT', name: '生产与物流', path: '/logistics' },
-      { key: 'PERFORMANCE_MGMT', name: '绩效管理', path: '/performance' },
-    ],
-  },
-  {
-    key: 'resources',
-    title: '协作资源',
-    items: [{ key: 'LINKS', name: '常用链接', path: '/links' }],
-  },
-  {
-    key: 'management',
-    title: '组织配置',
-    items: [
-      { key: 'ADMIN_STORES', name: '店铺管理', path: '/admin/stores' },
-      { key: 'ADMIN_USERS', name: '员工配置与管理', path: '/admin/users' },
-    ],
-  },
-  {
-    key: 'admin',
-    title: '系统管理',
-    items: [
-      { key: 'ADMIN_COUNTRIES', name: '国家管理', path: '/admin/countries' },
-    ],
-  }
-];
-
-/**
- * 判断菜单项是否激活
- */
-const isActive = (item: NavItem): boolean => {
-  return route.path.startsWith(item.path) && (item.path !== '/' || route.path === '/');
-};
-
-/**
  * 计算当前视图名称
  */
-const currentViewName = computed(() => {
-  const path = route.path;
-  for (const group of menuGroups) {
-    const item = group.items.find(i => isActive(i));
-    if (item) return item.name;
-  }
-  if (path === '/profile') return '个人中心';
-  return 'Dashboard';
-});
+const currentViewName = computed(() => getCurrentPageTitle(route));
 
 /**
  * 用户菜单项
