@@ -2,7 +2,7 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 // Lazy load components
-const Dashboard = () => import('../views/Dashboard.vue');
+const AppLayout = () => import('../layout/AppLayout.vue');
 const Login = () => import('../views/Login.vue');
 
 // Existing Components
@@ -36,7 +36,7 @@ const routes: RouteRecordRaw[] = [
     },
     {
         path: '/',
-        component: Dashboard,
+        component: AppLayout,
         meta: { requiresAuth: true },
         children: [
             { path: '', component: DashboardHome },
