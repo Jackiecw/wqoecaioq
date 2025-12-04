@@ -1,116 +1,112 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <h2 class="text-3xl font-bold text-stone-900">国家管理</h2>
-      <button 
-        @click="openModal" 
-        class="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-700 transition"
-      >
-        + 新建国家
-      </button>
-    </div>
+  <div class="space-y-4">
+    <Card class="shadow-1 border-round-2xl">
+      <template #title>国家管理</template>
+      <template #content>
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <span class="text-sm text-color-secondary">维护国家列表，供店铺/权限分配引用。</span>
+          <Button label="新建国家" icon="pi pi-plus" @click="openModal" />
+        </div>
+      </template>
+    </Card>
 
-    <p v-if="isLoading" class="text-stone-500">正在加载国家列表...</p>
-    <p v-if="errorMessage" class="text-red-600 mb-4">{{ errorMessage }}</p>
+    <Message v-if="errorMessage" severity="error" :closable="false">
+      {{ errorMessage }}
+    </Message>
 
-    <div v-if="!isLoading && countries.length > 0" class="bg-white rounded-lg shadow overflow-hidden">
-      <table class="min-w-full divide-y divide-stone-200">
-        <thead class="bg-stone-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">国家名称</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">国家代码 (Code)</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">设立日期</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">操作</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-stone-200">
-          <tr v-for="country in countries" :key="country.id">
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">{{ country.name }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">{{ country.code }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">{{ formatDate(country.establishedAt) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button @click="handleEdit(country)" class="text-indigo-600 hover:text-indigo-900">
-                编辑
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      :value="countries"
+      data-key="id"
+      :loading="isLoading"
+      class="shadow-1 border-round-2xl"
+    >
+      <Column field="name" header="国家名称" style="min-width: 10rem" />
+      <Column field="code" header="国家代码" style="min-width: 8rem" />
+      <Column header="设立日期" style="min-width: 8rem">
+        <template #body="{ data }">
+          {{ formatDate(data.establishedAt) }}
+        </template>
+      </Column>
+      <Column header="操作" style="min-width: 8rem">
+        <template #body="{ data }">
+          <Button label="编辑" size="small" text @click="handleEdit(data)" />
+        </template>
+      </Column>
+    </DataTable>
 
-    <div v-if="!isLoading && countries.length === 0 && !errorMessage" class="p-6 bg-white rounded-lg shadow text-center text-stone-500">
-      <p>您还没有创建任何国家。点击右上角按钮开始创建。</p>
-    </div>
+    <CountryFormModal
+      :is-open="isModalOpen"
+      :country-to-edit-id="currentCountryToEditId"
+      @close="closeModal"
+      @country-created="handleCountryCreated"
+      @country-updated="handleCountryUpdated"
+    />
   </div>
-
-  <CountryFormModal
-    :is-open="isModalOpen"
-    :country-to-edit-id="currentCountryToEditId"
-    @close="closeModal"
-    @country-created="handleCountryCreated"
-    @country-updated="handleCountryUpdated"
-  />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import Button from 'primevue/button';
+import Card from 'primevue/card';
+import Column from 'primevue/column';
+import DataTable from 'primevue/datatable';
+import Message from 'primevue/message';
 import apiClient from '@/services/apiClient';
-import CountryFormModal from './CountryFormModal.vue'; // ⬅️ 导入新弹窗
+import CountryFormModal from './CountryFormModal.vue';
 
-const countries = ref([]);
-const isLoading = ref(true);
+type Country = {
+  id: string;
+  name: string;
+  code: string;
+  establishedAt?: string;
+};
+
+const countries = ref<Country[]>([]);
+const isLoading = ref(false);
 const errorMessage = ref('');
 const isModalOpen = ref(false);
-const currentCountryToEditId = ref(null);
+const currentCountryToEditId = ref<string | null>(null);
 
-// (获取国家列表)
-async function fetchCountries() {
+const formatDate = (val?: string) => {
+  if (!val) return '-';
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toISOString().split('T')[0];
+};
+
+const fetchCountries = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
     const response = await apiClient.get('/admin/countries');
-    countries.value = response.data;
-  } catch (error) {
+    countries.value = response.data || [];
+  } catch (error: any) {
     console.error('获取国家列表失败:', error);
-    errorMessage.value = '获取国家列表失败，请稍后重试。';
+    errorMessage.value = '获取国家列表失败';
   } finally {
     isLoading.value = false;
   }
-}
+};
+
+const openModal = () => {
+  currentCountryToEditId.value = null;
+  isModalOpen.value = true;
+};
+
+const closeModal = () => {
+  isModalOpen.value = false;
+  currentCountryToEditId.value = null;
+};
+
+const handleEdit = (country: Country) => {
+  currentCountryToEditId.value = country.id;
+  isModalOpen.value = true;
+};
+
+const handleCountryCreated = () => fetchCountries();
+const handleCountryUpdated = () => fetchCountries();
 
 onMounted(() => {
   fetchCountries();
 });
-
-// (弹窗控制)
-function openModal() { isModalOpen.value = true; }
-function closeModal() { 
-  isModalOpen.value = false; 
-  currentCountryToEditId.value = null;
-}
-
-// (创建)
-function handleCountryCreated(newCountry) {
-  countries.value.unshift(newCountry);
-}
-
-// (编辑)
-function handleEdit(country) {
-  currentCountryToEditId.value = country.id;
-  openModal();
-}
-
-// (更新)
-function handleCountryUpdated(updatedCountry) {
-  const index = countries.value.findIndex(c => c.id === updatedCountry.id);
-  if (index !== -1) {
-    countries.value[index] = updatedCountry;
-  }
-}
-
-// (辅助函数)
-function formatDate(dateString) {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toISOString().split('T')[0];
-}
 </script>

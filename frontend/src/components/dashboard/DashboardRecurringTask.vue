@@ -1,165 +1,167 @@
 <template>
-  <div class="dashboard-widget">
-    <div class="flex justify-between items-center mb-2">
-      <h4 class="dashboard-widget-title">期任务</h4>
-      <button @click="isModalOpen = true" class="text-indigo-600 hover:text-indigo-800">
-        <PlusCircleIcon class="h-5 w-5" />
-      </button>
-    </div>
+  <div class="w-full" v-bind="$attrs">
+    <section class="surface-card border-round-lg shadow-1 p-4 h-full flex flex-column gap-3">
+      <header class="flex align-items-center justify-content-between">
+        <div>
+          <h4 class="m-0">周期任务</h4>
+          <p class="text-sm text-color-secondary m-0">按日/周/月复用的常规任务</p>
+        </div>
+        <Button icon="pi pi-plus" rounded text @click="isModalOpen = true" aria-label="新增任务" />
+      </header>
 
-    <div v-if="isLoading" class="text-stone-500 text-sm">加载..</div>
-    <p v-if="!isLoading && tasks.length === 0" class="text-stone-400 text-sm">
-      暂无期任务
-    </p>
+      <Message v-if="errorMessage" severity="error" :closable="false">
+        {{ errorMessage }}
+      </Message>
 
-    <div class="space-y-3 mt-4 max-h-48 overflow-y-auto pr-2">
-      <div v-if="dailyTasks.length > 0">
-        <label class="text-xs font-bold text-stone-500">每日</label>
-        <div v-for="task in dailyTasks" :key="task.id" class="flex items-center group">
-          <input 
-            type="checkbox"
-            :id="'task-' + task.id"
-            :checked="isTaskCompleted(task)"
-            @change="() => handleToggleTask(task, isTaskCompleted(task))"
-            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-          />
-          <label 
-            :for="'task-' + task.id" 
-            :class="[
-              'ml-3 text-sm text-stone-700 w-full', 
-              isTaskCompleted(task) ? 'line-through text-stone-400' : ''
-            ]"
-          >
-            {{ task.content }}
-          </label>
-          <button @click="() => handleDeleteTask(task)" class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-            <XCircleIcon class="h-4 w-4" />
-          </button>
-        </div>
+      <div v-if="isLoading" class="text-sm text-color-secondary">加载中...</div>
+      <p v-else-if="tasks.length === 0" class="text-sm text-color-secondary">暂无周期任务</p>
+
+      <div v-else class="flex flex-column gap-3 overflow-auto pr-2" style="max-height: 18rem;">
+        <TaskGroup label="每日" :tasks="dailyTasks" @toggle="onToggle" @delete="onDelete" />
+        <TaskGroup label="每周" :tasks="weeklyTasks" @toggle="onToggle" @delete="onDelete" />
+        <TaskGroup label="每月" :tasks="monthlyTasks" @toggle="onToggle" @delete="onDelete" />
       </div>
-      <div v-if="weeklyTasks.length > 0">
-        <label class="text-xs font-bold text-stone-500">每</label>
-         <div v-for="task in weeklyTasks" :key="task.id" class="flex items-center group">
-          <input 
-            type="checkbox"
-            :id="'task-' + task.id"
-            :checked="isTaskCompleted(task)"
-            @change="() => handleToggleTask(task, isTaskCompleted(task))"
-            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-          />
-          <label :for="'task-' + task.id" :class="['ml-3 text-sm text-stone-700 w-full', isTaskCompleted(task) ? 'line-through text-stone-400' : '']">
-            {{ task.content }}
-          </label>
-          <button @click="() => handleDeleteTask(task)" class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-            <XCircleIcon class="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-      <div v-if="monthlyTasks.length > 0">
-        <label class="text-xs font-bold text-stone-500">每月</label>
-         <div v-for="task in monthlyTasks" :key="task.id" class="flex items-center group">
-          <input 
-            type="checkbox"
-            :id="'task-' + task.id"
-            :checked="isTaskCompleted(task)"
-            @change="() => handleToggleTask(task, isTaskCompleted(task))"
-            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-          />
-          <label :for="'task-' + task.id" :class="['ml-3 text-sm text-stone-700 w-full', isTaskCompleted(task) ? 'line-through text-stone-400' : '']">
-            {{ task.content }}
-          </label>
-           <button @click="() => handleDeleteTask(task)" class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-            <XCircleIcon class="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </div>
+    </section>
+
+    <RecurringTaskModal
+      :is-open="isModalOpen"
+      @close="isModalOpen = false"
+      @task-created="handleTaskCreated"
+    />
   </div>
-
-  <RecurringTaskModal 
-    :is-open="isModalOpen"
-    @close="isModalOpen = false"
-    @task-created="handleTaskCreated"
-  />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { computed, defineComponent, h, onMounted, ref } from 'vue';
+import Button from 'primevue/button';
+import Checkbox from 'primevue/checkbox';
+import Message from 'primevue/message';
 import apiClient from '@/services/apiClient';
-import { PlusCircleIcon, XCircleIcon } from '@heroicons/vue/20/solid';
 import RecurringTaskModal from '../common/RecurringTaskModal.vue';
 
-const tasks = ref([]);
+type RecurringTask = {
+  id: string | number;
+  content: string;
+  period: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  lastCompletedAt?: string | null;
+};
+
+const tasks = ref<RecurringTask[]>([]);
 const isLoading = ref(true);
 const isModalOpen = ref(false);
+const errorMessage = ref('');
 
-// --- 1. 数据获取 ---
-async function fetchTasks() {
+const dailyTasks = computed(() => tasks.value.filter((t) => t.period === 'DAILY'));
+const weeklyTasks = computed(() => tasks.value.filter((t) => t.period === 'WEEKLY'));
+const monthlyTasks = computed(() => tasks.value.filter((t) => t.period === 'MONTHLY'));
+
+const fetchTasks = async () => {
   isLoading.value = true;
+  errorMessage.value = '';
   try {
-    const response = await apiClient.get('/recurring-tasks');
-    tasks.value = response.data;
-  } catch (error) {
-    console.error("加载期任务失败:", error);
+    const response = await apiClient.get<RecurringTask[]>('/recurring-tasks');
+    tasks.value = Array.isArray(response.data) ? response.data : [];
+  } catch (error: any) {
+    console.error('加载周期任务失败:', error);
+    errorMessage.value = error.response?.data?.error || '无法加载周期任务列表';
   } finally {
     isLoading.value = false;
   }
-}
-onMounted(fetchTasks);
-
-// --- 2. 筛(Computed) ---
-const dailyTasks = computed(() => tasks.value.filter(t => t.period === 'DAILY'));
-const weeklyTasks = computed(() => tasks.value.filter(t => t.period === 'WEEKLY'));
-const monthlyTasks = computed(() => tasks.value.filter(t => t.period === 'MONTHLY'));
-
-// --- 3. 核心：检查状(前端重置逻辑) ---
-// (这部分已由后端在 GET /api/recurring-tasks 中处
-const isTaskCompleted = (task) => {
-  return !!task.lastCompletedAt;
 };
 
-// --- 4. CRUD ---
-async function handleToggleTask(task, isCurrentlyCompleted) {
-  try {
-    const updatedTask = await apiClient.put(`/recurring-tasks/${task.id}/toggle`, { 
-      isCompleted: !isCurrentlyCompleted 
-    });
-    // 更新本地数据
-    const index = tasks.value.findIndex(t => t.id === task.id);
-    if (index !== -1) {
-      tasks.value[index].lastCompletedAt = updatedTask.lastCompletedAt;
-    }
-  } catch (error) {
-    console.error("更新任务失败:", error);
-  }
-}
+onMounted(fetchTasks);
 
-async function handleDeleteTask(task) {
-  if (!confirm(`确定删除期任务 "${task.content}" 吗？`)) return;
+const isTaskCompleted = (task: RecurringTask) => !!task.lastCompletedAt;
+
+const onToggle = async (task: RecurringTask) => {
+  const index = tasks.value.findIndex((t) => t.id === task.id);
+  if (index === -1) return;
+
+  const previous = tasks.value[index];
+  tasks.value[index] = { ...previous, lastCompletedAt: previous.lastCompletedAt ? null : new Date().toISOString() };
+
+  try {
+    const { data } = await apiClient.put<RecurringTask>(`/recurring-tasks/${task.id}/toggle`, {
+      isCompleted: !isTaskCompleted(previous),
+    });
+    tasks.value[index] = data;
+  } catch (error: any) {
+    tasks.value[index] = previous;
+    console.error('更新任务失败:', error);
+    errorMessage.value = error.response?.data?.error || '更新任务失败，请稍后重试';
+  }
+};
+
+const onDelete = async (task: RecurringTask) => {
+  if (!confirm(`确定删除周期任务"${task.content}" 吗？`)) return;
+  const prev = [...tasks.value];
+  tasks.value = prev.filter((item) => item.id !== task.id);
   try {
     await apiClient.delete(`/recurring-tasks/${task.id}`);
-    tasks.value = tasks.value.filter(t => t.id !== task.id);
-  } catch (error) {
-    console.error("删除任务失败:", error);
+  } catch (error: any) {
+    tasks.value = prev;
+    console.error('删除任务失败:', error);
+    errorMessage.value = error.response?.data?.error || '删除任务失败，请稍后重试';
   }
-}
+};
 
-function handleTaskCreated(newTask) {
+const handleTaskCreated = (newTask: RecurringTask) => {
   tasks.value.push(newTask);
   isModalOpen.value = false;
-}
+};
 
+const TaskGroup = defineComponent({
+  name: 'TaskGroup',
+  props: {
+    label: { type: String, required: true },
+    tasks: { type: Array, required: true },
+  },
+  emits: ['toggle', 'delete'],
+  setup(props, { emit }) {
+    const onToggleTask = (task: RecurringTask) => emit('toggle', task);
+    const onDeleteTask = (task: RecurringTask) => emit('delete', task);
+
+    return () => {
+      const typedTasks = props.tasks as RecurringTask[];
+      if (!typedTasks.length) return null;
+
+      return h('div', null, [
+        h('p', { class: 'text-xs font-bold text-color-secondary mb-2' }, props.label),
+        ...typedTasks.map((task) =>
+          h(
+            'div',
+            { class: 'flex align-items-center gap-2 mb-1' },
+            [
+              h(Checkbox, {
+                inputId: `task-${task.id}`,
+                binary: true,
+                modelValue: !!task.lastCompletedAt,
+                'onUpdate:modelValue': () => onToggleTask(task),
+              }),
+              h(
+                'label',
+                {
+                  for: `task-${task.id}`,
+                  class: [
+                    'flex-1 text-sm cursor-pointer',
+                    task.lastCompletedAt ? 'line-through text-color-secondary' : 'text-color',
+                  ],
+                },
+                task.content,
+              ),
+              h(Button, {
+                icon: 'pi pi-trash',
+                severity: 'danger',
+                text: true,
+                rounded: true,
+                'aria-label': '删除任务',
+                onClick: () => onDeleteTask(task),
+              }),
+            ],
+          ),
+        ),
+      ]);
+    };
+  },
+});
 </script>
-
-<style lang="postcss" scoped>
-/* ⬇️ 【修复重新添加此行 */
-@import "tailwindcss" reference;
-
-/* (复用样式) */
-.dashboard-widget {
-  @apply bg-white p-6 rounded-lg shadow-lg h-full flex flex-col;
-}
-.dashboard-widget-title {
-  @apply font-bold text-stone-900;
-}
-</style>

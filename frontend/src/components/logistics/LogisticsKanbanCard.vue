@@ -34,7 +34,35 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const STATUS_LABELS = {
+type LogisticsStatus =
+  | 'FACTORY'
+  | 'WAREHOUSE_READY'
+  | 'CONTAINER_LOADED'
+  | 'EXPORT_CUSTOMS'
+  | 'SHIPPING'
+  | 'IMPORT_CUSTOMS'
+  | 'LOCAL_DELIVERY'
+  | 'COMPLETED';
+
+type Batch = {
+  id: string | number;
+  batchNumber: string;
+  product: {
+    sku: string;
+    name: string;
+  };
+  productSpec?: string | null;
+  quantity: number;
+  totalPrice?: number | string | null;
+  estimatedWarehouseDate?: string | null;
+  currentStatus: LogisticsStatus;
+  country: {
+    code: string;
+    name?: string | null;
+  };
+};
+
+const STATUS_LABELS: Record<LogisticsStatus, string> = {
   FACTORY: '生产中',
   WAREHOUSE_READY: '待出库',
   CONTAINER_LOADED: '已装柜',
@@ -45,54 +73,58 @@ const STATUS_LABELS = {
   COMPLETED: '已入仓',
 };
 
-const props = defineProps({
-  batch: {
-    type: Object,
-    required: true,
-  },
-  isAdmin: {
-    type: Boolean,
-    default: false,
-  },
-});
+const props = defineProps<{
+  batch: Batch;
+  isAdmin?: boolean;
+}>();
 
-const emit = defineEmits(['click', 'dragstart']);
+const emit = defineEmits<{
+  (e: 'click', batch: Batch): void;
+  (e: 'dragstart', batch: Batch): void;
+}>();
 
 const statusLabel = computed(() => STATUS_LABELS[props.batch.currentStatus] || '未知状态');
 
 const formattedPrice = computed(() => {
-  if (!props.batch.totalPrice) return null;
-  return Number(props.batch.totalPrice).toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+  if (props.batch.totalPrice === undefined || props.batch.totalPrice === null) return null;
+  const value = Number(props.batch.totalPrice);
+  if (Number.isNaN(value)) return null;
+  return value.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
 });
 
 const etaInfo = computed(() => {
   if (!props.batch.estimatedWarehouseDate) {
-    return { label: '无 ETA', state: 'eta-none' };
+    return { label: '无 ETA', state: 'eta-none' as const };
   }
   const eta = new Date(props.batch.estimatedWarehouseDate);
+  if (Number.isNaN(eta.getTime())) {
+    return { label: '无效日期', state: 'eta-none' as const };
+  }
   const now = new Date();
-  const diffDays = Math.round((eta - now) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round((eta.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   const formatted = eta.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
 
   if (diffDays < 0) {
-    return { label: `延误 ${Math.abs(diffDays)} 天`, state: 'eta-delay' };
+    return { label: `延误 ${Math.abs(diffDays)} 天`, state: 'eta-delay' as const };
   }
   if (diffDays <= 7) {
-    return { label: `${formatted} · 即将入仓`, state: 'eta-soon' };
+    return { label: `${formatted} · 即将入仓`, state: 'eta-soon' as const };
   }
-  return { label: `${formatted} ETA`, state: 'eta-normal' };
+  return { label: `${formatted} ETA`, state: 'eta-normal' as const };
 });
 
-function onDragStart(event) {
+const onDragStart = (event: DragEvent) => {
   if (!props.isAdmin) return;
-  event.dataTransfer.setData('text/plain', props.batch.id);
-  event.dataTransfer.dropEffect = 'move';
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('text/plain', String(props.batch.id));
+    event.dataTransfer.dropEffect = 'move';
+  }
   emit('dragstart', props.batch);
-}
+};
 
-function onClick() {
+const onClick = () => {
   emit('click', props.batch);
-}
+};
 </script>
 
 <style scoped>
@@ -159,30 +191,32 @@ function onClick() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
 }
 .card-price {
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: #0f172a;
 }
 .card-eta {
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
   font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
   font-weight: 600;
-  background-color: #e2e8f0;
-  color: #0f172a;
 }
-.card-eta.eta-delay {
+.eta-none {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+.eta-delay {
   background-color: #fee2e2;
   color: #b91c1c;
 }
-.card-eta.eta-soon {
+.eta-soon {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+.eta-normal {
   background-color: #dbeafe;
   color: #1d4ed8;
-}
-.card-eta.eta-none {
-  background-color: #f8fafc;
-  color: #94a3b8;
 }
 </style>

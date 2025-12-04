@@ -1,213 +1,47 @@
 <template>
-
-  <TransitionRoot appear :show="isOpen" as="template">
-
-    <Dialog as="div" @close="closeModal" class="relative z-10">
-
-      
-
-      <TransitionChild
-
-        as="template"
-
-        enter="duration-300 ease-out"
-
-        enter-from="opacity-0"
-
-        enter-to="opacity-100"
-
-        leave="duration-200 ease-in"
-
-        leave-from="opacity-100"
-
-        leave-to="opacity-0"
-
-      >
-
-        <div class="fixed inset-0 bg-black/25" />
-
-      </TransitionChild>
-
-
-
-      <div class="fixed inset-0 overflow-y-auto">
-
-        <div class="flex min-h-full items-center justify-center p-4 text-center">
-
-          <TransitionChild
-
-            as="template"
-
-            enter="duration-300 ease-out"
-
-            enter-from="opacity-0 scale-95"
-
-            enter-to="opacity-100 scale-100"
-
-            leave="duration-200 ease-in"
-
-            leave-from="opacity-100 scale-100"
-
-            leave-to="opacity-0 scale-95"
-
-          >
-
-            <DialogPanel class="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-
-              
-
-              <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900">
-
-                {{ dialogTitle }}
-
-              </DialogTitle>
-
-              
-
-              <div class="mt-4 grid grid-cols-1 gap-4">
-
-                
-
-                <div class="input-group">
-
-                  <label for="linkTitle">标题 *</label>
-
-                  <input 
-
-                    type="text" 
-
-                    id="linkTitle" 
-
-                    v-model="formData.title"
-
-                    placeholder="例如: Shopee 印尼卖家中心"
-
-                  />
-
-                </div>
-
-
-
-                <div class="input-group">
-
-                  <label for="linkUrl">URL (链接地址) *</label>
-
-                  <input 
-
-                    type="text" 
-
-                    id="linkUrl" 
-
-                    v-model="formData.url"
-
-                    placeholder="例如: https://seller.shopee.co.id/"
-
-                  />
-
-                </div>
-
-
-
-                <div class="input-group">
-
-                  <label for="linkDesc">备注 (说明)</label>
-
-                  <input 
-
-                    type="text" 
-
-                    id="linkDesc" 
-
-                    v-model="formData.description"
-
-                    placeholder="例如: 财务后台 (可"
-
-                  />
-
-                </div>
-
-
-
-                <div class="input-group">
-
-                  <label for="linkOrder">显示顺序 (数字越小越靠</label>
-
-                  <input 
-
-                    type="number" 
-
-                    id="linkOrder" 
-
-                    v-model="formData.displayOrder"
-
-                  />
-
-                </div>
-
-                
-
-                <p v-if="errorMessage" class="text-red-600 text-sm col-span-2">
-
-                  {{ errorMessage }}
-
-                </p>
-
-              </div>
-
-
-
-              <div class="mt-6 flex justify-end space-x-4">
-
-                <button
-
-                  type="button"
-
-                  @click="closeModal"
-
-                  class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-
-                >
-
-                  取消
-
-                </button>
-
-                <button
-
-                  type="button"
-
-                  @click="handleSubmit"
-
-                  class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none"
-
-                >
-
-                  {{ submitButtonText }}
-
-                </button>
-
-              </div>
-
-            </DialogPanel>
-
-          </TransitionChild>
-
-        </div>
-
+  <Dialog v-model:visible="isVisible" modal header="新建/编辑链接" :style="{ width: '32rem' }" @update:visible="handleDialogClose">
+    <template #header>
+      <span class="text-lg font-bold text-900">{{ dialogTitle }}</span>
+    </template>
+
+    <div class="flex flex-column gap-4">
+      <div class="flex flex-column gap-2">
+        <label for="linkTitle" class="font-medium text-900">标题 *</label>
+        <InputText id="linkTitle" v-model="formData.title" placeholder="例如: Shopee 印尼卖家中心" />
       </div>
 
-    </Dialog>
+      <div class="flex flex-column gap-2">
+        <label for="linkUrl" class="font-medium text-900">URL (链接地址) *</label>
+        <InputText id="linkUrl" v-model="formData.url" placeholder="例如: https://seller.shopee.co.id/" />
+      </div>
 
-  </TransitionRoot>
+      <div class="flex flex-column gap-2">
+        <label for="linkDesc" class="font-medium text-900">备注 (说明)</label>
+        <InputText id="linkDesc" v-model="formData.description" placeholder="例如: 财务后台" />
+      </div>
 
+      <div class="flex flex-column gap-2">
+        <label for="linkOrder" class="font-medium text-900">显示顺序 (数字越小越靠前)</label>
+        <InputNumber id="linkOrder" v-model="formData.displayOrder" :use-grouping="false" />
+      </div>
+
+      <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
+    </div>
+
+    <template #footer>
+      <Button label="取消" severity="secondary" outlined @click="closeModal" />
+      <Button :label="submitButtonText" @click="handleSubmit" />
+    </template>
+  </Dialog>
 </template>
-
-
-
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
+import Dialog from 'primevue/dialog';
+import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import Button from 'primevue/button';
+import Message from 'primevue/message';
 import apiClient from '@/services/apiClient';
 
 interface LinkPayload {
@@ -237,13 +71,14 @@ const defaultFormData = (): LinkPayload => ({
 
 const formData = ref<LinkPayload>(defaultFormData());
 const errorMessage = ref('');
+const isVisible = ref(false);
 
 const isEditMode = computed(() => !!props.linkToEdit?.id);
 const dialogTitle = computed(() => (isEditMode.value ? '编辑链接' : '新建链接'));
 const submitButtonText = computed(() => (isEditMode.value ? '保存更改' : '创建'));
 
 const handleSubmit = async () => {
-      errorMessage.value = '操作失败，请检查网络或联系管理员。';
+  errorMessage.value = '';
   const payload: LinkPayload = {
     ...formData.value,
     description: formData.value.description || null,
@@ -274,7 +109,9 @@ const handleSubmit = async () => {
 watch(
   () => props.isOpen,
   (newVal) => {
+    isVisible.value = newVal;
     if (newVal) {
+      errorMessage.value = '';
       if (isEditMode.value && props.linkToEdit) {
         formData.value = {
           title: props.linkToEdit.title || '',
@@ -289,63 +126,19 @@ watch(
   },
 );
 
+const handleDialogClose = (val: boolean) => {
+  if (!val) {
+    closeModal();
+  }
+};
+
 const closeModal = () => {
+  isVisible.value = false;
   emit('close');
 };
 
 const resetForm = () => {
   formData.value = defaultFormData();
-      errorMessage.value = '操作失败，请检查网络或联系管理员。';
+  errorMessage.value = '';
 };
 </script>
-
-
-
-
-<style scoped>
-
-/* (复用样式) */
-
-.input-group {
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-.input-group label {
-
-  margin-bottom: 0.5rem;
-
-  color: #333;
-
-  font-weight: bold;
-
-  font-size: 0.875rem; /* 14px */
-
-}
-
-.input-group input {
-
-  padding: 0.75rem;
-
-  border: 1px solid #ddd;
-
-  border-radius: 4px;
-
-  font-size: 1rem;
-
-}
-
-.input-group input:disabled {
-
-  background-color: #f3f4f6;
-
-  color: #6b7280;
-
-  cursor: not-allowed;
-
-}
-
-</style>

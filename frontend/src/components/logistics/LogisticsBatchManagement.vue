@@ -1,156 +1,188 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <h2 class="text-3xl font-bold text-stone-900">批次管理</h2>
-      <button
+  <section class="flex flex-column gap-3">
+    <header class="flex align-items-center justify-content-between">
+      <div>
+        <h2 class="m-0 text-2xl font-bold text-color">批次管理</h2>
+        <p class="text-sm text-color-secondary m-0">查看物流链路并更新状态</p>
+      </div>
+      <Button
         v-if="isAdmin"
+        label="新增批次"
+        icon="pi pi-plus"
         @click="emit('create-batch-request')"
-        class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700"
-      >
-        + 新建批次
-      </button>
-    </div>
+      />
+    </header>
 
-    <p v-if="isLoading" class="text-stone-500">正在加载批次数据...</p>
-    <p v-if="errorMessage" class="text-red-600 mb-4">{{ errorMessage }}</p>
+    <Message v-if="errorMessage" severity="error" :closable="false">
+      {{ errorMessage }}
+    </Message>
 
-    <div
-      v-if="!isLoading && batches.length > 0"
-      class="rounded-lg bg-white shadow overflow-x-auto"
+    <DataTable
+      :value="batches"
+      data-key="id"
+      :loading="isLoading"
+      class="shadow-1 border-round-lg"
+      size="small"
+      :pt="{ root: { style: 'overflow: hidden' } }"
     >
-      <table class="min-w-full divide-y divide-stone-200">
-        <thead class="bg-stone-50">
-          <tr>
-            <th class="table-th w-1/12">批次</th>
-            <th class="table-th w-1/l2">订单日期</th>
-            <th class="table-th w-2/12">产品 (SKU)</th>
-            <th class="table-th w-1/12">销售地</th>
-            <th class="table-th w-1/12">数量</th>
-            <th class="table-th w-4/12">物流状(可视</th>
-            <th class="table-th w-2/12">预计入仓</th>
-            <th v-if="isAdmin" class="table-th w-1/12">操作</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-stone-200">
-          <tr v-for="batch in batches" :key="batch.id" class="hover:bg-gray-50">
-            <td class="table-td font-medium text-stone-900">
-              {{ batch.batchNumber }}
-            </td>
-            <td class="table-td">{{ formatDate(batch.orderDate) }}</td>
-            <td class="table-td">
-              <div class="font-medium">{{ batch.product.sku }}</div>
-              <div class="text-xs text-stone-500">{{ batch.product.name }}</div>
-            </td>
-            <td class="table-td">{{ batch.country.code }}</td>
-            <td class="table-td">{{ batch.quantity }}</td>
+      <template #empty>
+        <div class="text-center text-color-secondary py-3">
+          暂无物流数据。{{ isAdmin ? '点击右上角“新增批次”创建一条记录' : '' }}
+        </div>
+      </template>
 
-            <td class="table-td min-w-[400px]">
-              <LogisticsStepper
-                :current-status="batch.currentStatus"
-                :events="batch.events"
-                :is-admin="isAdmin"
-                @step-click="(status) => onUpdateStatus(batch, status)"
-              />
-            </td>
+      <Column field="batchNumber" header="批次" style="width: 8rem">
+        <template #body="{ data }">
+          <span class="font-semibold text-color">{{ data.batchNumber }}</span>
+        </template>
+      </Column>
 
-            <td class="table-td">
-              {{ formatDate(batch.estimatedWarehouseDate) }}
-            </td>
+      <Column header="订单日期" style="width: 9rem">
+        <template #body="{ data }">
+          {{ formatDate(data.orderDate) }}
+        </template>
+      </Column>
 
-            <td v-if="isAdmin" class="table-td">
-              <button
-                @click="onUpdateStatus(batch, null)"
-                class="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                title="更新状
-              >
-                更新
-              </button>
-              <button
-                @click="onDelete(batch)"
-                class="ml-2 text-red-500 hover:text-red-700"
-                title="删除批次"
-              >
-                <TrashIcon class="h-5 w-5" />
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <Column header="产品 (SKU)" style="min-width: 12rem">
+        <template #body="{ data }">
+          <div class="flex flex-column gap-1">
+            <span class="font-medium text-color">{{ data.product.sku }}</span>
+            <small class="text-color-secondary">{{ data.product.name }}</small>
+          </div>
+        </template>
+      </Column>
 
-    <div
-      v-if="!isLoading && batches.length === 0 && !errorMessage"
-      class="p-6 bg-white rounded-lg shadow text-center text-stone-500"
-    >
-      <p>暂无物流数据。{{ isAdmin ? '点击右上角“新建批次”开始 : '' }}</p>
-    </div>
-  </div>
+      <Column header="销售地" style="width: 6rem">
+        <template #body="{ data }">
+          {{ data.country.code }}
+        </template>
+      </Column>
+
+      <Column header="数量" style="width: 6rem">
+        <template #body="{ data }">
+          {{ data.quantity }}
+        </template>
+      </Column>
+
+      <Column header="物流状态" style="min-width: 20rem">
+        <template #body="{ data }">
+          <LogisticsStepper
+            :current-status="data.currentStatus"
+            :events="data.events"
+            :is-admin="isAdmin"
+            @step-click="(status) => onUpdateStatus(data, status)"
+          />
+        </template>
+      </Column>
+
+      <Column header="预计入仓" style="width: 9rem">
+        <template #body="{ data }">
+          {{ formatDate(data.estimatedWarehouseDate) }}
+        </template>
+      </Column>
+
+      <Column v-if="isAdmin" header="操作" style="width: 8rem">
+        <template #body="{ data }">
+          <div class="flex gap-2">
+            <Button
+              label="更新"
+              size="small"
+              text
+              @click="onUpdateStatus(data, null)"
+              aria-label="更新物流状态"
+            />
+            <Button
+              icon="pi pi-trash"
+              severity="danger"
+              size="small"
+              text
+              aria-label="删除批次"
+              @click="onDelete(data)"
+            />
+          </div>
+        </template>
+      </Column>
+    </DataTable>
+  </section>
 </template>
 
 <script setup lang="ts">
-// (移除onMounted, ref(batches), ref(isLoading), ref(errorMessage))
-// (只保留了 props, emits, 和辅助函
 import { computed } from 'vue';
-import { useAuthStore } from '../../stores/auth';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Button from 'primevue/button';
+import Message from 'primevue/message';
+import { useAuthStore } from '@/stores/auth';
 import LogisticsStepper from './LogisticsStepper.vue';
-import { TrashIcon } from '@heroicons/vue/20/solid';
 
-const props = defineProps({
-  batches: {
-    type: Array,
-    required: true,
-  },
-  isLoading: {
-    type: Boolean,
-    default: false,
-  },
-  errorMessage: {
-    type: String,
-    default: '',
-  }
-});
+type LogisticsStatus =
+  | 'FACTORY'
+  | 'WAREHOUSE_READY'
+  | 'CONTAINER_LOADED'
+  | 'EXPORT_CUSTOMS'
+  | 'SHIPPING'
+  | 'IMPORT_CUSTOMS'
+  | 'LOCAL_DELIVERY'
+  | 'COMPLETED';
 
-const emit = defineEmits(['create-batch-request', 'update-status-request', 'delete-batch']);
+type BatchEvent = {
+  status: LogisticsStatus;
+  eventDate: string;
+  notes?: string | null;
+};
+
+type Batch = {
+  id: string | number;
+  batchNumber: string;
+  orderDate: string | null;
+  product: {
+    sku: string;
+    name: string;
+  };
+  country: {
+    code: string;
+    name?: string;
+  };
+  quantity: number;
+  currentStatus: LogisticsStatus;
+  events: BatchEvent[];
+  estimatedWarehouseDate?: string | null;
+};
+
+const props = withDefaults(
+  defineProps<{
+    batches: Batch[];
+    isLoading?: boolean;
+    errorMessage?: string;
+  }>(),
+  {
+    batches: () => [],
+    isLoading: false,
+    errorMessage: '',
+  },
+);
+
+const emit = defineEmits<{
+  (e: 'create-batch-request'): void;
+  (e: 'update-status-request', payload: { batch: Batch; targetStatus: LogisticsStatus | null }): void;
+  (e: 'delete-batch', batch: Batch): void;
+}>();
 
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.role === 'admin');
 
-// --- 事件冒泡 (Emit) ---
-function onUpdateStatus(batch, targetStatus) {
+const onUpdateStatus = (batch: Batch, targetStatus: LogisticsStatus | null) => {
   emit('update-status-request', { batch, targetStatus });
-}
+};
 
-function onDelete(batch) {
+const onDelete = (batch: Batch) => {
   emit('delete-batch', batch);
-}
+};
 
-// --- 辅助函数 ---
-function formatDate(dateString) {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toISOString().split('T')[0];
-}
+const formatDate = (value?: string | null) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toISOString().split('T')[0];
+};
 </script>
-
-<style scoped>
-/* (样式不变) */
-.table-th {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background-color: #f9fafb;
-}
-.table-td {
-  padding: 1rem 1rem;
-  white-space: nowrap;
-  font-size: 0.875rem;
-  color: #374151;
-  vertical-align: middle;
-}
-.table-td:nth-child(3) {
-   white-space: nowrap;
-}
-</style>

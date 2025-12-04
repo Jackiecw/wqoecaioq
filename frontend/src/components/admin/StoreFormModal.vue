@@ -1,322 +1,238 @@
 <template>
-  <TransitionRoot appear :show="isOpen" as="template">
-    <Dialog as="div" @close="closeModal" class="relative z-10">
-      
-      <TransitionChild
-        as="template"
-        enter="duration-300 ease-out"
-        enter-from="opacity-0"
-        enter-to="opacity-100"
-        leave="duration-200 ease-in"
-        leave-from="opacity-100"
-        leave-to="opacity-0"
-      >
-        <div class="fixed inset-0 bg-black/25" />
-      </TransitionChild>
+  <Dialog
+    v-model:visible="visible"
+    modal
+    :style="{ width: '600px' }"
+    :header="dialogTitle"
+    class="store-form-modal"
+    @hide="closeModal"
+  >
+    <div class="flex flex-column gap-3">
+      <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
 
-      <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center">
-          <TransitionChild
-            as="template"
-            enter="duration-300 ease-out"
-            enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95"
-          >
-            <DialogPanel class="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-              
-              <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900">
-                {{ dialogTitle }}
-              </DialogTitle>
-              
-              <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                <div v-if="isLoadingOptions" class="col-span-2 text-stone-500">
-                  正在加载表单选项...
-                </div>
+      <div class="grid formgrid p-fluid">
+        <div class="field col-12">
+          <label class="font-semibold text-sm mb-2 block">店铺名称 (易读) *</label>
+          <InputText v-model="formData.name" class="w-full" placeholder="例如：Shopee 印尼 Mall 店" />
+        </div>
 
-                <template v-if="!isLoadingOptions">
-                  <div class="input-group col-span-2">
-                    <label for="name">店铺名称 (易读) *</label>
-                    <input 
-                      type="text" 
-                      id="name" 
-                      v-model="formData.name"
-                      placeholder="例如: Shopee 印尼 Mall 店"
-                    />
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">平台 *</label>
+          <Dropdown
+            v-model="formData.platform"
+            :options="options.platforms"
+            placeholder="请选择平台"
+            class="w-full"
+          />
+        </div>
 
-                  <div class="input-group">
-                    <label for="platform">平台 *</label>
-                    <select id="platform" v-model="formData.platform">
-                      <option disabled value="">请选择...</option>
-                      <option v-for="opt in options.platforms" :key="opt" :value="opt">
-                        {{ opt }}
-                      </option>
-                    </select>
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">国家 *</label>
+          <Dropdown
+            v-model="formData.countryCode"
+            :options="countryOptions"
+            option-label="name"
+            option-value="code"
+            placeholder="请选择国家"
+            filter
+            class="w-full"
+          />
+        </div>
 
-                  <div class="input-group">
-                    <label for="country">国家 *</label>
-                    <select id="country" v-model="formData.countryCode">
-                      <option disabled value="">请选择...</option>
-                      <option v-for="opt in countriesList" :key="opt.code" :value="opt.code">
-                        {{ opt.name }} ({{ opt.code }})
-                      </option>
-                    </select>
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">店铺状态 *</label>
+          <Dropdown
+            v-model="formData.status"
+            :options="statusOptions"
+            placeholder="请选择状态"
+            class="w-full"
+          />
+        </div>
 
-                  <div class="input-group">
-                    <label for="status">状态*</label>
-                    <select id="status" v-model="formData.status">
-                      <option disabled value="">请选择...</option>
-                      <option v-for="opt in options.storeStatuses" :key="opt" :value="opt">
-                        {{ opt }}
-                      </option>
-                    </select>
-                  </div>
-                  
-                  <div class="input-group">
-                    <label for="registeredAt">注册日期</label>
-                    <input 
-                      type="date" 
-                      id="registeredAt" 
-                      v-model="formData.registeredAt"
-                    />
-                  </div>
-
-                  <div class="input-group col-span-2">
-                    <label for="platformStoreId">平台店铺 ID (可选)</label>
-                    <input 
-                      type="text" 
-                      id="platformStoreId" 
-                      v-model="formData.platformStoreId"
-                      placeholder="例如: 123456789"
-                    />
-                  </div>
-                </template>
-                
-                <p v-if="errorMessage" class="text-red-600 text-sm col-span-2">
-                  {{ errorMessage }}
-                </p>
-              </div>
-
-              <div class="mt-6 flex justify-end space-x-4">
-                <button
-                  type="button"
-                  @click="closeModal"
-                  class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  @click="handleSubmit"
-                  :disabled="isLoadingOptions"
-                  class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none disabled:bg-indigo-300"
-                >
-                  {{ submitButtonText }}
-                </button>
-              </div>
-            </DialogPanel>
-          </TransitionChild>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">注册日期</label>
+          <Calendar v-model="formData.registeredAt" show-icon date-format="yy-mm-dd" class="w-full" />
         </div>
       </div>
-    </Dialog>
-  </TransitionRoot>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <Button label="取消" severity="secondary" text @click="closeModal" />
+        <Button label="保存" icon="pi pi-check" :loading="isSubmitting" @click="handleSubmit" />
+      </div>
+    </div>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import {
-  TransitionRoot,
-  TransitionChild,
-  Dialog,
-  DialogPanel,
-  DialogTitle,
-} from '@headlessui/vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import Button from 'primevue/button';
+import Calendar from 'primevue/calendar';
+import Dialog from 'primevue/dialog';
+import Dropdown from 'primevue/dropdown';
+import InputText from 'primevue/inputtext';
+import Message from 'primevue/message';
 import apiClient from '@/services/apiClient';
 
-// --- 1. Props & Emits ---
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false,
-  },
-  storeToEditId: {
-    type: String,
-    default: null,
-  }
-});
-const emit = defineEmits(['close', 'store-created', 'store-updated']);
+type CountryOption = { code: string; name: string };
 
-// --- 2. Internal State ---
-const defaultFormData = () => ({
+type StorePayload = {
+  name: string;
+  platform: string;
+  countryCode: string;
+  status: string;
+  registeredAt?: string;
+};
+
+type StoreResponse = StorePayload & { id: string; country?: CountryOption };
+
+type StoreFormState = {
+  name: string;
+  platform: string;
+  countryCode: string;
+  status: string;
+  registeredAt: Date | null;
+};
+
+const props = defineProps<{
+  isOpen: boolean;
+  storeToEdit: StoreResponse | null;
+}>();
+
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'store-created', payload: StoreResponse): void;
+  (e: 'store-updated', payload: StoreResponse): void;
+}>();
+
+const visible = computed({
+  get: () => props.isOpen,
+  set: (val) => {
+    if (!val) emit('close');
+  },
+});
+
+const dialogTitle = computed(() => (props.storeToEdit ? '编辑店铺' : '新建店铺'));
+const isSubmitting = ref(false);
+const errorMessage = ref('');
+
+const formData = ref<StoreFormState>({
   name: '',
   platform: '',
   countryCode: '',
   status: 'ACTIVE',
-  platformStoreId: '',
   registeredAt: null,
 });
 
-const formData = ref(defaultFormData());
-const errorMessage = ref('');
-const isLoadingOptions = ref(false);
+const options = ref<{ platforms: string[] }>({ platforms: [] });
+const countryOptions = ref<CountryOption[]>([]);
+const statusOptions = ['ACTIVE', 'INACTIVE', 'SUSPENDED'];
 
-// Options
-const options = ref({
-  platforms: [],
-  storeStatuses: [],
-});
-const countriesList = ref([]);
+const parseDate = (date?: string | Date | null) => {
+  if (!date) return null;
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
-// --- 3. Computed Properties ---
-const isEditMode = computed(() => !!props.storeToEditId);
-const dialogTitle = computed(() => isEditMode.value ? '编辑店铺' : '新建店铺');
-const submitButtonText = computed(() => isEditMode.value ? '保存' : '创建');
+const formatDateForApi = (date?: Date | null) => {
+  if (!date) return undefined;
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+};
 
-// --- 4. Methods ---
-
-// Fetch dropdown options (Platforms, Statuses)
-async function fetchOptions() {
-  try {
-    const response = await apiClient.get('/admin/management-options');
-    options.value = response.data;
-  } catch (error) {
-    console.error('Failed to fetch options:', error);
-    errorMessage.value = '加载选项失败，请刷新重试';
-  }
-}
-
-// Fetch available countries
-async function fetchCountries() {
-  try {
-    const response = await apiClient.get('/admin/countries');
-    countriesList.value = response.data;
-  } catch (error) {
-    console.error('Failed to fetch countries:', error);
-    errorMessage.value = '加载国家列表失败';
-  }
-}
-
-// Fetch store details for editing
-async function fetchStoreDetails(id) {
-  isLoadingOptions.value = true;
-  try {
-    const response = await apiClient.get(`/admin/stores/${id}`);
-    const store = response.data;
-    
-    // Populate form
-    formData.value = {
-      name: store.name,
-      platform: store.platform,
-      countryCode: store.countryCode,
-      status: store.status,
-      platformStoreId: store.platformStoreId || '',
-      registeredAt: store.registeredAt ? store.registeredAt.split('T')[0] : null,
-    };
-  } catch (error) {
-    console.error('Failed to fetch store details:', error);
-    errorMessage.value = '加载店铺详情失败';
-  } finally {
-    isLoadingOptions.value = false;
-  }
-}
-
-// Handle Form Submission
-async function handleSubmit() {
-  errorMessage.value = '';
-  
-  // Basic Validation
-  if (!formData.value.name || !formData.value.platform || !formData.value.countryCode) {
-    errorMessage.value = '请填写所有必填项 (*)。';
+const hydrateForm = () => {
+  if (!props.storeToEdit) {
+    resetForm();
     return;
   }
+  const store = props.storeToEdit;
+  formData.value = {
+    name: store.name,
+    platform: store.platform,
+    countryCode: store.countryCode,
+    status: store.status || 'ACTIVE',
+    registeredAt: parseDate(store.registeredAt),
+  };
+};
 
-  // Prepare payload
-  const payload = { ...formData.value };
-  
-  // Format registeredAt to ISO string if present
-  if (payload.registeredAt) {
-    payload.registeredAt = new Date(payload.registeredAt).toISOString();
-  } else {
-    payload.registeredAt = null;
-  }
+const resetForm = () => {
+  formData.value = {
+    name: '',
+    platform: '',
+    countryCode: '',
+    status: 'ACTIVE',
+    registeredAt: null,
+  };
+  errorMessage.value = '';
+};
 
-  // Handle empty platformStoreId
-  if (!payload.platformStoreId) {
-    payload.platformStoreId = null;
+const fetchOptions = async () => {
+  try {
+    const [platformRes, countryRes] = await Promise.all([
+      apiClient.get('/admin/store-platforms'),
+      apiClient.get('/admin/countries'),
+    ]);
+    options.value.platforms = platformRes.data || [];
+    countryOptions.value = countryRes.data || [];
+  } catch (error: any) {
+    console.error('加载店铺选项失败:', error);
+    errorMessage.value = error?.response?.data?.error || '加载店铺选项失败';
   }
+};
+
+const handleSubmit = async () => {
+  errorMessage.value = '';
+  isSubmitting.value = true;
+  const payload: StorePayload = {
+    name: formData.value.name.trim(),
+    platform: formData.value.platform,
+    countryCode: formData.value.countryCode,
+    status: formData.value.status,
+    registeredAt: formatDateForApi(formData.value.registeredAt),
+  };
 
   try {
-    if (isEditMode.value) {
-      await apiClient.put(`/admin/stores/${props.storeToEditId}`, payload);
-      emit('store-updated');
+    if (props.storeToEdit) {
+      const response = await apiClient.put<StoreResponse>(`/admin/stores/${props.storeToEdit.id}`, payload);
+      emit('store-updated', response.data);
     } else {
-      await apiClient.post('/admin/stores', payload);
-      emit('store-created');
+      const response = await apiClient.post<StoreResponse>('/admin/stores', payload);
+      emit('store-created', response.data);
     }
     closeModal();
-  } catch (error) {
-    console.error('Operation failed:', error);
-    errorMessage.value = error.response?.data?.error || '操作失败，请重试。';
+  } catch (error: any) {
+    console.error('保存失败:', error);
+    errorMessage.value = error?.response?.data?.error || '保存失败，请稍后再试。';
+  } finally {
+    isSubmitting.value = false;
   }
-}
+};
 
-function closeModal() {
+const closeModal = () => {
+  resetForm();
   emit('close');
-  // Reset form after a short delay to allow transition to finish
-  setTimeout(() => {
-    formData.value = defaultFormData();
-    errorMessage.value = '';
-  }, 300);
-}
+};
 
-// --- 5. Watchers ---
-
-// Initialize when modal opens
-watch(() => props.isOpen, async (newVal) => {
-  if (newVal) {
-    isLoadingOptions.value = true;
-    errorMessage.value = '';
-    
-    // Load options if not already loaded
-    if (options.value.platforms.length === 0) {
-      await Promise.all([fetchOptions(), fetchCountries()]);
+watch(
+  () => props.isOpen,
+  (val) => {
+    if (val) {
+      fetchOptions();
+      hydrateForm();
     }
+  },
+);
 
-    // If edit mode, fetch details
-    if (props.storeToEditId) {
-      await fetchStoreDetails(props.storeToEditId);
+watch(
+  () => props.storeToEdit,
+  (val) => {
+    if (val) {
+      hydrateForm();
     } else {
-      // Reset for new store
-      formData.value = defaultFormData();
+      resetForm();
     }
-    
-    isLoadingOptions.value = false;
-  }
-});
+  },
+);
 </script>
-
-<style scoped>
-.input-group {
-  display: flex;
-  flex-direction: column;
-}
-.input-group label {
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
-  font-size: 0.875rem; /* 14px */
-}
-.input-group input,
-.input-group select {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-</style>

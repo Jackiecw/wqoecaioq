@@ -1,161 +1,160 @@
 <template>
-  <TransitionRoot appear :show="isOpen" as="template">
-    <Dialog as="div" @close="closeModal" class="relative z-10">
-      <TransitionChild
-        as="template"
-        enter="duration-300 ease-out"
-        enter-from="opacity-0"
-        enter-to="opacity-100"
-        leave="duration-200 ease-in"
-        leave-from="opacity-100"
-        leave-to="opacity-0"
-      >
-        <div class="fixed inset-0 bg-black/25" />
-      </TransitionChild>
+  <Dialog
+    v-model:visible="visible"
+    modal
+    header="修改支出数据"
+    :style="{ width: '720px' }"
+    class="finance-edit-modal"
+    @hide="closeModal"
+  >
+    <div v-if="loadingState.initial" class="p-5 text-center text-color-secondary">正在加载表单选项...</div>
 
-      <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center">
-          <TransitionChild
-            as="template"
-            enter="duration-300 ease-out"
-            enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95"
-          >
-            <DialogPanel class="w-full max-w-3xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-              <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900">
-                修改支出数据
-              </DialogTitle>
+    <div v-else class="flex flex-column gap-3">
+      <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
+      <Message v-if="successMessage" severity="success" :closable="false">{{ successMessage }}</Message>
 
-              <div v-if="loadingState.initial" class="mt-4 p-6 text-center text-stone-500">
-                正在加载表单选项...
-              </div>
+      <div class="grid formgrid p-fluid">
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">支出日期 *</label>
+          <Calendar v-model="formData.expenseDate" show-icon date-format="yy-mm-dd" class="w-full" />
+        </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">项目描述 *</label>
+          <InputText v-model="formData.itemDescription" class="w-full" />
+        </div>
 
-              <form v-else @submit.prevent="handleSubmit" class="mt-4 space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div class="space-y-2">
-                    <label for="edit_expenseDate" class="form-label">支出日期 *</label>
-                    <input type="date" id="edit_expenseDate" v-model="formData.expenseDate" required class="form-input" />
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">金额 (CNY) *</label>
+          <InputNumber
+            v-model="formData.amount"
+            mode="decimal"
+            :min="0"
+            :max-fraction-digits="2"
+            class="w-full"
+            input-class="w-full"
+          />
+        </div>
 
-                  <div class="space-y-2">
-                    <label for="edit_itemDescription" class="form-label">项目描述 *</label>
-                    <input type="text" id="edit_itemDescription" v-model="formData.itemDescription" required class="form-input" />
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">付款方式 *</label>
+          <Dropdown
+            v-model="formData.paymentMethod"
+            :options="paymentMethodOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="请选择"
+            class="w-full"
+          />
+        </div>
 
-                  <div class="space-y-2">
-                    <label for="edit_amount" class="form-label">金额 (CNY) *</label>
-                    <input type="number" step="0.01" id="edit_amount" v-model="formData.amount" required class="form-input" />
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">付款人 *</label>
+          <InputText v-model="formData.payer" class="w-full" />
+        </div>
 
-                  <div class="space-y-2">
-                    <label for="edit_payer" class="form-label">付款方</label>
-                    <input type="text" id="edit_payer" v-model="formData.payer" required class="form-input" />
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">收款人 *</label>
+          <InputText v-model="formData.payee" class="w-full" />
+        </div>
 
-                  <div class="space-y-2">
-                    <label for="edit_payee" class="form-label">收款方</label>
-                    <input type="text" id="edit_payee" v-model="formData.payee" required class="form-input" />
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">票据状态 *</label>
+          <Dropdown
+            v-model="formData.invoiceStatus"
+            :options="invoiceStatusOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="请选择"
+            class="w-full"
+          />
+        </div>
 
-                  <div class="space-y-2">
-                    <label for="edit_paymentMethod" class="form-label">付款方式 *</label>
-                    <select id="edit_paymentMethod" v-model="formData.paymentMethod" required class="form-input">
-                      <option v-for="opt in financeOptions.paymentMethods" :key="opt" :value="opt">
-                        {{ paymentMethodMap[opt] || opt }}
-                      </option>
-                    </select>
-                  </div>
+        <div class="field col-12 md:col-6 flex align-items-center gap-2 mt-4">
+          <Checkbox v-model="formData.isAdvancePayment" binary input-id="advancePayment" />
+          <label for="advancePayment" class="font-semibold text-sm text-color">是否垫付（个人报销）</label>
+        </div>
 
-                  <div class="space-y-2">
-                    <label for="edit_country" class="form-label">归属国家（可选）</label>
-                    <select id="edit_country" v-model="selectedCountry" class="form-input">
-                      <option value="">-- 公司支出（无归属国家） --</option>
-                      <option v-for="country in countryOptions" :key="country.code" :value="country.code">
-                        {{ country.name }} ({{ country.code }})
-                      </option>
-                    </select>
-                  </div>
+        <div v-if="formData.isAdvancePayment" class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">预计报销日期</label>
+          <Calendar v-model="formData.reimbursementDate" show-icon date-format="yy-mm-dd" class="w-full" />
+        </div>
 
-                  <div class="space-y-2">
-                    <label for="edit_store" class="form-label">归属店铺（可选）</label>
-                    <select
-                      id="edit_store"
-                      v-model="formData.storeId"
-                      :disabled="!selectedCountry || storeOptions.length === 0"
-                      class="form-input disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">-- 国家级支出（无归属店铺） --</option>
-                      <option v-for="store in storeOptions" :key="store.id" :value="store.id">
-                        {{ store.name }}
-                      </option>
-                    </select>
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">归属国家（可选）</label>
+          <Dropdown
+            v-model="selectedCountry"
+            :options="countryOptions"
+            option-label="name"
+            option-value="code"
+            placeholder="公司支出（无归属国家）"
+            show-clear
+            filter
+            class="w-full"
+          />
+        </div>
 
-                  <div class="space-y-2">
-                    <label for="edit_invoiceStatus" class="form-label">票据状态 *</label>
-                    <select id="edit_invoiceStatus" v-model="formData.invoiceStatus" required class="form-input">
-                      <option v-for="opt in financeOptions.invoiceStatuses" :key="opt" :value="opt">
-                        {{ invoiceStatusMap[opt] || opt }}
-                      </option>
-                    </select>
-                  </div>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">归属店铺（可选）</label>
+          <Dropdown
+            v-model="formData.storeId"
+            :options="storeOptions"
+            option-label="name"
+            option-value="id"
+            placeholder="国家级支出（无归属店铺）"
+            show-clear
+            filter
+            :disabled="storeOptions.length === 0"
+            class="w-full"
+          />
+        </div>
 
-                  <div class="space-y-2 flex items-center pt-6">
-                    <input
-                      type="checkbox"
-                      id="edit_isAdvancePayment"
-                      v-model="formData.isAdvancePayment"
-                      class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <label for="edit_isAdvancePayment" class="ml-2 font-medium text-stone-700">是否垫付（个人报销）</label>
-                  </div>
-
-                  <div v-if="formData.isAdvancePayment" class="space-y-2">
-                    <label for="edit_reimbursementDate" class="form-label">预计报销日期</label>
-                    <input type="date" id="edit_reimbursementDate" v-model="formData.reimbursementDate" class="form-input" />
-                  </div>
-
-                  <div class="space-y-2 md:col-span-2">
-                    <label for="edit_notes" class="form-label">备注（可选）</label>
-                    <textarea id="edit_notes" rows="3" v-model="formData.notes" class="form-input"></textarea>
-                  </div>
-                </div>
-
-                <div class="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    @click="closeModal"
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="submit"
-                    :disabled="loadingState.submit"
-                    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:bg-indigo-300"
-                  >
-                    {{ loadingState.submit ? '保存中...' : '保存' }}
-                  </button>
-                </div>
-
-                <p v-if="successMessage" class="text-green-600 text-sm">{{ successMessage }}</p>
-                <p v-if="errorMessage" class="text-red-600 text-sm">{{ errorMessage }}</p>
-              </form>
-            </DialogPanel>
-          </TransitionChild>
+        <div class="field col-12">
+          <label class="font-semibold text-sm mb-2 block">备注（可选）</label>
+          <Textarea v-model="formData.notes" rows="3" auto-resize class="w-full" />
         </div>
       </div>
-    </Dialog>
-  </TransitionRoot>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <Button label="取消" severity="secondary" text @click="closeModal" />
+        <Button label="保存" icon="pi pi-check" :loading="loadingState.submit" @click="handleSubmit" />
+      </div>
+    </div>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue';
-import financeService, { ExpensePayload, ExpenseRecord, FinanceOptions, StoreOption } from '@/services/financeService';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import Calendar from 'primevue/calendar';
+import Dropdown from 'primevue/dropdown';
+import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Checkbox from 'primevue/checkbox';
+import Message from 'primevue/message';
+import financeService, { type ExpensePayload, type ExpenseRecord, type StoreOption } from '@/services/financeService';
+
+type FinanceOptionItem = { label: string; value: string };
+
+type FinanceOptions = {
+  paymentMethods: string[];
+  invoiceStatuses: string[];
+};
+
+type FormState = {
+  expenseDate: Date | null;
+  itemDescription: string;
+  amount: number;
+  paymentMethod: string;
+  payer: string;
+  payee: string;
+  invoiceStatus: string;
+  isAdvancePayment: boolean;
+  reimbursementDate: Date | null;
+  storeId: string | null;
+  notes: string;
+};
 
 const props = defineProps<{
   isOpen: boolean;
@@ -164,8 +163,68 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void;
-  (e: 'expense-updated', value: ExpenseRecord): void;
+  (e: 'expense-updated', payload: ExpenseRecord): void;
 }>();
+
+const visible = computed({
+  get: () => props.isOpen,
+  set: (val) => {
+    if (!val) emit('close');
+  },
+});
+
+const loadingState = ref({ initial: false, submit: false });
+const errorMessage = ref('');
+const successMessage = ref('');
+const financeOptions = ref<FinanceOptions>({ paymentMethods: [], invoiceStatuses: [] });
+const allStores = ref<StoreOption[]>([]);
+const selectedCountry = ref<string | null>(null);
+
+const formData = ref<FormState>({
+  expenseDate: null,
+  itemDescription: '',
+  amount: 0,
+  paymentMethod: '',
+  payer: '',
+  payee: '',
+  invoiceStatus: '',
+  isAdvancePayment: false,
+  reimbursementDate: null,
+  storeId: null,
+  notes: '',
+});
+
+const countryOptions = computed(() => {
+  const unique = new Map<string, { code: string; name: string }>();
+  allStores.value.forEach((store) => {
+    if (store.country) {
+      unique.set(store.country.code, store.country);
+    }
+  });
+  return Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const storeOptions = computed(() => {
+  let list = allStores.value;
+  if (selectedCountry.value) {
+    list = list.filter((store) => store.countryCode === selectedCountry.value);
+  }
+  return list.sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const paymentMethodOptions = computed<FinanceOptionItem[]>(() =>
+  financeOptions.value.paymentMethods?.map((value) => ({
+    value,
+    label: paymentMethodMap[value] || value,
+  })) ?? [],
+);
+
+const invoiceStatusOptions = computed<FinanceOptionItem[]>(() =>
+  financeOptions.value.invoiceStatuses?.map((value) => ({
+    value,
+    label: invoiceStatusMap[value] || value,
+  })) ?? [],
+);
 
 const paymentMethodMap: Record<string, string> = {
   ALIPAY: '支付宝',
@@ -182,51 +241,24 @@ const invoiceStatusMap: Record<string, string> = {
   SPECIAL: '专票',
 };
 
-const financeOptions = ref<FinanceOptions>({ paymentMethods: [], invoiceStatuses: [] });
-const allStores = ref<StoreOption[]>([]);
-const selectedCountry = ref<string>('');
-const formData = ref<ExpensePayload>({
-  expenseDate: '',
-  itemDescription: '',
-  amount: 0,
-  paymentMethod: 'OTHER',
-  payer: '',
-  payee: '',
-  invoiceStatus: 'NONE',
-  isAdvancePayment: false,
-  reimbursementDate: null,
-  storeId: '',
-  notes: '',
-});
-
-const loadingState = ref({ initial: true, submit: false });
-const successMessage = ref('');
-const errorMessage = ref('');
-
-const countryOptions = computed(() => {
-  const map = new Map<string, StoreOption['country']>();
-  allStores.value.forEach((store) => {
-    if (store.country) map.set(store.country.code, store.country);
-  });
-  return Array.from(map.values()).filter(Boolean) as { code: string; name: string }[];
-});
-
-const storeOptions = computed(() =>
-  allStores.value
-    .filter((store) => (selectedCountry.value ? store.countryCode === selectedCountry.value : true))
-    .sort((a, b) => a.name.localeCompare(b.name)),
-);
-
-const normalizeDate = (value?: string | null) => {
+const normalizeDate = (value?: string | Date | null) => {
   if (!value) return null;
-  return new Date(value).toISOString().split('T')[0];
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : new Date(d.setHours(0, 0, 0, 0));
+};
+
+const formatDate = (value: Date | null) => {
+  if (!value) return null;
+  const d = new Date(value);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
 };
 
 const hydrateForm = () => {
   if (!props.expenseToEdit) return;
   const expense = props.expenseToEdit;
   formData.value = {
-    expenseDate: normalizeDate(expense.expenseDate) || '',
+    expenseDate: normalizeDate(expense.expenseDate),
     itemDescription: expense.itemDescription,
     amount: Number(expense.amount) || 0,
     paymentMethod: expense.paymentMethod,
@@ -235,18 +267,22 @@ const hydrateForm = () => {
     invoiceStatus: expense.invoiceStatus,
     isAdvancePayment: !!expense.isAdvancePayment,
     reimbursementDate: normalizeDate((expense as any).reimbursementDate),
-    storeId: (expense as any).storeId || expense.store?.id || '',
+    storeId: (expense as any).storeId || expense.store?.id || null,
     notes: (expense as any).notes || '',
   };
-  selectedCountry.value = expense.store?.countryCode || expense.store?.country?.code || '';
+  selectedCountry.value = expense.store?.countryCode || expense.store?.country?.code || null;
 };
 
 const fetchOptions = async () => {
   loadingState.value.initial = true;
+  errorMessage.value = '';
   try {
     const [stores, options] = await Promise.all([financeService.getStores(), financeService.getOptions()]);
-    allStores.value = stores;
-    financeOptions.value = options;
+    allStores.value = stores || [];
+    financeOptions.value = {
+      paymentMethods: options.paymentMethods || [],
+      invoiceStatuses: options.invoiceStatuses || [],
+    };
   } catch (error) {
     console.error('加载编辑选项失败:', error);
     errorMessage.value = '无法加载表单选项，请稍后重试。';
@@ -255,31 +291,6 @@ const fetchOptions = async () => {
   }
 };
 
-onMounted(() => {
-  fetchOptions();
-});
-
-watch(
-  () => props.expenseToEdit,
-  () => {
-    hydrateForm();
-  },
-  { immediate: true },
-);
-
-watch(
-  () => formData.value.isAdvancePayment,
-  (isAdvance) => {
-    if (!isAdvance) {
-      formData.value.reimbursementDate = null;
-    }
-  },
-);
-
-watch(selectedCountry, () => {
-  formData.value.storeId = '';
-});
-
 const handleSubmit = async () => {
   if (!props.expenseToEdit) return;
   loadingState.value.submit = true;
@@ -287,12 +298,17 @@ const handleSubmit = async () => {
   errorMessage.value = '';
 
   const payload: ExpensePayload = {
-    ...formData.value,
+    expenseDate: formatDate(formData.value.expenseDate) || '',
+    itemDescription: formData.value.itemDescription.trim(),
     amount: Number(formData.value.amount) || 0,
-    expenseDate: normalizeDate(formData.value.expenseDate) || '',
-    reimbursementDate: normalizeDate(formData.value.reimbursementDate),
+    paymentMethod: formData.value.paymentMethod,
+    payer: formData.value.payer.trim(),
+    payee: formData.value.payee.trim(),
+    invoiceStatus: formData.value.invoiceStatus,
+    isAdvancePayment: formData.value.isAdvancePayment,
+    reimbursementDate: formatDate(formData.value.reimbursementDate),
     storeId: formData.value.storeId || null,
-    notes: formData.value.notes || null,
+    notes: formData.value.notes.trim() || null,
   };
 
   try {
@@ -311,28 +327,34 @@ const handleSubmit = async () => {
 const closeModal = () => {
   emit('close');
 };
-</script>
 
-<style scoped>
-.form-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
-  font-size: 0.875rem;
-}
-.form-input {
-  display: block;
-  width: 100%;
-  border-radius: 0.375rem;
-  border: 1px solid #d4d4d4;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  padding: 0.75rem;
-  font-size: 1rem;
-}
-.form-input:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
-  outline: none;
-}
-</style>
+watch(
+  () => props.expenseToEdit,
+  () => {
+    hydrateForm();
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.isOpen,
+  (val) => {
+    if (val) {
+      fetchOptions();
+    }
+  },
+);
+
+watch(
+  () => formData.value.isAdvancePayment,
+  (isAdvance) => {
+    if (!isAdvance) {
+      formData.value.reimbursementDate = null;
+    }
+  },
+);
+
+watch(selectedCountry, () => {
+  formData.value.storeId = null;
+});
+</script>

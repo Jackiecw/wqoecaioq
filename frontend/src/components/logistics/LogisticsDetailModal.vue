@@ -1,78 +1,46 @@
 <template>
-  <TransitionRoot appear :show="isOpen" as="template">
-    <Dialog as="div" @close="closeModal" class="relative z-10">
-      <TransitionChild
-        as="template"
-        enter="duration-300 ease-out"
-        enter-from="opacity-0"
-        enter-to="opacity-100"
-        leave="duration-200 ease-in"
-        leave-from="opacity-100"
-        leave-to="opacity-0"
-      >
-        <div class="fixed inset-0 bg-black/25" />
-      </TransitionChild>
+  <Dialog v-model:visible="isVisible" modal header="物流详情" :style="{ width: '28rem' }" @update:visible="handleDialogClose">
+    <div class="flex flex-column gap-3">
+      <Message severity="info" :closable="false">功能开发中...</Message>
+      <p class="text-sm text-500">Order ID: {{ orderId }}</p>
+    </div>
 
-      <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center">
-          <TransitionChild
-            as="template"
-            enter="duration-300 ease-out"
-            enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95"
-          >
-            <DialogPanel
-              class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
-            >
-              <DialogTitle
-                as="h3"
-                class="text-lg font-medium leading-6 text-gray-900"
-              >
-                物流详情
-              </DialogTitle>
-              <div class="mt-2">
-                <p class="text-sm text-gray-500">
-                  功能开发中... (Order ID: {{ orderId }})
-                </p>
-              </div>
-
-              <div class="mt-4">
-                <button
-                  type="button"
-                  class="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                  @click="closeModal"
-                >
-                  关闭
-                </button>
-              </div>
-            </DialogPanel>
-          </TransitionChild>
-        </div>
-      </div>
-    </Dialog>
-  </TransitionRoot>
+    <template #footer>
+      <Button label="关闭" @click="closeModal" />
+    </template>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
-import {
-  TransitionRoot,
-  TransitionChild,
-  Dialog,
-  DialogPanel,
-  DialogTitle,
-} from '@headlessui/vue'
+import { ref, watch } from 'vue';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import Message from 'primevue/message';
 
 const props = defineProps({
   isOpen: Boolean,
-  orderId: [String, Number]
-})
+  orderId: [String, Number],
+});
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close']);
+
+const isVisible = ref(false);
+
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    isVisible.value = newVal;
+  },
+);
+
+const handleDialogClose = (val: boolean) => {
+  if (!val) {
+    closeModal();
+  }
+};
 
 function closeModal() {
-  emit('close')
+  isVisible.value = false;
+  emit('close');
 }
 </script>

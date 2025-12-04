@@ -40,49 +40,46 @@
 <script setup lang="ts">
 import { ref, watch, computed, nextTick } from 'vue';
 
-const props = defineProps({
-  value: { // (String for text, Object for user-select)
-    type: [String, Object],
-    default: null
+const props = withDefaults(
+  defineProps<{
+    value: string | number | { id?: string; nickname?: string } | null;
+    type?: 'text' | 'user-select';
+    options?: { id: string; nickname: string }[];
+    isAdmin?: boolean;
+    placeholder?: string;
+  }>(),
+  {
+    type: 'text',
+    options: () => [],
+    isAdmin: false,
+    placeholder: '-',
   },
-  type: {
-    type: String,
-    default: 'text' // 'text' or 'user-select'
-  },
-  options: { // (User list for user-select)
-    type: Array,
-    default: () => []
-  },
-  isAdmin: {
-    type: Boolean,
-    default: false
-  },
-  placeholder: {
-    type: String,
-    default: '-'
-  }
-});
+);
 
-const emit = defineEmits(['save']);
+const emit = defineEmits<{
+  (e: 'save', value: string | number | null): void;
+}>();
 
 const isEditing = ref(false);
-const currentValue = ref(null);
-const inputRef = ref(null);
+const currentValue = ref<string | number | null>(null);
+const inputRef = ref<HTMLInputElement | HTMLSelectElement | null>(null);
 
 // (核心) 根据类型计算显示文本
 const displayText = computed(() => {
   if (props.type === 'user-select') {
-    return props.value?.nickname; // (显示 owner.nickname)
+    const user = props.value as { id?: string; nickname?: string } | null;
+    return user?.nickname || '';
   }
-  return props.value; // (显示 name 或 notes)
+  return props.value as string | number | null; // (显示 name 或 notes)
 });
 
 // (核心) 当组件加载或 props 变化时，设置内部值
 function setInternalValue() {
   if (props.type === 'user-select') {
-    currentValue.value = props.value?.id || null; // (v-model 绑定的是 owner.id)
+    const user = props.value as { id?: string } | null;
+    currentValue.value = user?.id || null; // (v-model 绑定的是 owner.id)
   } else {
-    currentValue.value = props.value;
+    currentValue.value = (props.value as string | number | null) ?? null;
   }
 }
 
@@ -102,7 +99,10 @@ const saveEdit = () => {
   isEditing.value = false;
   
   // (检查值是否真的改变了)
-  const originalValue = (props.type === 'user-select') ? (props.value?.id || null) : props.value;
+  const originalValue =
+    props.type === 'user-select'
+      ? ((props.value as { id?: string } | null)?.id || null)
+      : (props.value as string | number | null);
   if (currentValue.value === originalValue) {
     return;
   }

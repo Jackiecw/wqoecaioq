@@ -1,122 +1,200 @@
 <template>
-  <div class="space-y-6">
-    <section class="rounded-3xl bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] p-6 text-white shadow-xl shadow-blue-900/20">
-      <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/70">Operation Rhythm</p>
-          <h2 class="mt-2 text-3xl font-semibold">工作日历</h2>
-          <p class="text-sm text-white/80">集中安排会议、项目节点与团队计划。</p>
-          <p class="mt-4 text-lg font-semibold text-white">{{ currentMonthDisplay }}</p>
+  <div class="flex flex-column gap-4">
+    <!-- Page Header -->
+    <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3">
+      <div>
+        <h1 class="text-3xl font-bold text-900 m-0">工作日历</h1>
+        <p class="text-500 mt-1 mb-0">集中安排会议、项目节点与团队计划</p>
+      </div>
+      <div class="flex flex-wrap gap-2 align-items-center">
+        <div class="flex align-items-center gap-2 bg-white border-1 border-300 border-round-3xl px-2 py-1">
+           <Button icon="pi pi-chevron-left" text rounded size="small" @click="onClickNav('prev')" />
+           <span class="font-bold text-900 min-w-8rem text-center">{{ currentMonthDisplay }}</span>
+           <Button icon="pi pi-chevron-right" text rounded size="small" @click="onClickNav('next')" />
         </div>
-        <div class="flex w-full flex-col gap-3 lg:w-auto">
-          <div class="flex flex-wrap items-center justify-end gap-2">
-            <button @click="onClickNav('prev')" class="rounded-full border border-white/20 bg-white/10 p-2 transition hover:bg-white/20">
-              <ChevronLeftIcon class="h-5 w-5 text-white" />
-            </button>
-            <button @click="onClickNav('next')" class="rounded-full border border-white/20 bg-white/10 p-2 transition hover:bg-white/20">
-              <ChevronRightIcon class="h-5 w-5 text-white" />
-            </button>
-            <button @click="onClickNav('today')" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#3B82F6] shadow-sm hover:bg-[#E0F2FE]">
-              回到今日
-            </button>
-          </div>
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <div class="inline-flex rounded-full border border-white/30 bg-white/10 p-1 text-sm font-semibold">
-              <button
-                v-for="view in viewOptions"
-                :key="view"
-                @click="setView(view)"
-                :class="[
-                  'px-3 py-1 rounded-full transition',
-                  currentView === view ? 'bg-white text-[#3B82F6]' : 'text-white/80'
-                ]"
-              >
-                {{ view === 'month' ? '月' : view === 'week' ? '周' : '日' }}
-              </button>
-            </div>
-            <div v-if="isAdmin" class="flex flex-1 items-center gap-2">
-              <select v-model="adminFilterMode" class="flex-1 rounded-2xl border border-white/40 bg-white/90 px-3 py-2 text-sm text-[#1F2937] placeholder:text-[#6B7280] focus:border-white focus:outline-none appearance-none">
-                <option value="ME">仅自己</option>
-                <option value="ALL_ASSIGNED">全部指派</option>
-                <option value="USER">指定成员</option>
-              </select>
-              <select
-                v-if="adminFilterMode === 'USER'"
-                v-model="selectedUserId"
-                class="flex-1 rounded-2xl border border-white/40 bg-white/90 px-3 py-2 text-sm text-[#1F2937] placeholder:text-[#6B7280] focus:border-white focus:outline-none appearance-none"
-              >
-                <option value="" disabled>选择成员</option>
-                <option v-for="u in userList" :key="u.id" :value="u.id">{{ u.nickname }}</option>
-              </select>
-            </div>
-            <button
-              @click="handleNewEventClick"
-              class="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#3B82F6] shadow-lg shadow-blue-500/30 transition hover:bg-[#E0F2FE]"
-            >
-              <PlusIcon class="mr-1 h-5 w-5" />
-              新建日程
-            </button>
+        <Button label="回到今日" outlined size="small" @click="onClickNav('today')" />
+        <SelectButton
+          v-model="currentView"
+          :options="viewOptions"
+          option-label="label"
+          option-value="value"
+          @change="(e) => setView(e.value)"
+        />
+        <Button label="新建日程" icon="pi pi-plus" @click="handleNewEventClick" />
+      </div>
+    </div>
+
+    <!-- Admin Filters -->
+    <Card v-if="isAdmin" class="shadow-sm border-round-xl">
+      <template #content>
+        <div class="flex align-items-center gap-3">
+          <i class="pi pi-filter text-primary text-xl"></i>
+          <div class="flex align-items-center gap-2 flex-1">
+            <span class="text-sm font-semibold text-700">筛选视图：</span>
+            <Dropdown
+              v-model="adminFilterMode"
+              :options="adminFilterOptions"
+              option-label="label"
+              option-value="value"
+              class="w-10rem"
+            />
+            <Dropdown
+              v-if="adminFilterMode === 'USER'"
+              v-model="selectedUserId"
+              :options="userList"
+              option-label="nickname"
+              option-value="id"
+              placeholder="选择成员"
+              class="w-12rem"
+              filter
+            />
           </div>
         </div>
+      </template>
+    </Card>
+
+    <div class="grid">
+      <!-- Left Column: Main Content -->
+      <div class="col-12 lg:col-9">
+        <div class="flex flex-column gap-4">
+          <!-- Weekly Focus -->
+          <Card class="shadow-sm border-round-2xl" style="border-left: 4px solid #8b5cf6">
+            <template #title>
+              <div class="flex align-items-center justify-content-between">
+                <span class="text-lg font-bold text-900">本周聚焦</span>
+                <Button
+                  v-if="isAdmin"
+                  :label="isSavingFocus ? '保存中...' : '同步所有人'"
+                  :loading="isSavingFocus"
+                  size="small"
+                  outlined
+                  @click="saveWeeklyFocus"
+                />
+              </div>
+            </template>
+            <template #content>
+              <div class="grid">
+                <div class="col-12 md:col-6">
+                  <label class="block text-sm font-semibold text-700 mb-2">团队重点 <span v-if="!weeklyFocusEntry" class="font-normal text-500 ml-2">(尚未发布)</span></label>
+                  <Textarea
+                    v-model="teamFocusContent"
+                    rows="4"
+                    class="w-full"
+                    :readonly="!isAdmin"
+                    :class="{'opacity-60': !isAdmin}"
+                    placeholder="记录本周团队最重要的聚焦事项..."
+                  />
+                  <small class="text-red-500" v-if="weeklyFocusError">{{ weeklyFocusError }}</small>
+                </div>
+                <div class="col-12 md:col-6">
+                  <label class="block text-sm font-semibold text-700 mb-2">我的周计划</label>
+                  <div class="surface-ground p-3 border-round-xl text-sm text-700 h-8rem overflow-auto white-space-pre-wrap border-1 border-200">
+                    {{ userPlanPreview || "暂无内容，请在周报中填写\"下周计划\"。" }}
+                  </div>
+                </div>
+              </div>
+            </template>
+          </Card>
+
+          <!-- Calendar -->
+          <Card class="shadow-sm border-round-2xl flex-1 min-h-0">
+            <template #content>
+              <div class="h-full" style="min-height: 600px">
+                <FullCalendar
+                  ref="calendarRef"
+                  class="h-full"
+                  :options="calendarOptions"
+                />
+              </div>
+            </template>
+          </Card>
+        </div>
       </div>
-    </section>
 
-    <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#94A3B8]">Weekly Focus</p>
-          <h4 class="text-xl font-semibold text-[#1F2937]">本周聚焦</h4>
-          <p class="text-xs text-[#6B7280]">左侧为管理员同步的团队重点，右侧展示你在周报中填写的“下周计划”。</p>
-        </div>
-        <div class="flex items-center gap-2">
-          <p v-if="!isAdmin" class="text-xs text-[#94A3B8]">由管理员统一管理</p>
-          <button
-            v-if="isAdmin"
-            class="rounded-full border border-[#E5E7EB] px-4 py-1.5 text-sm font-medium text-[#1F2937] transition hover:bg-[#F3F4F6] disabled:opacity-60"
-            :disabled="isSavingFocus"
-            @click="saveWeeklyFocus"
-          >
-            {{ isSavingFocus ? '保存中...' : '同步所有人' }}
-          </button>
+      <!-- Right Column: Quick Panel -->
+      <div class="col-12 lg:col-3">
+        <div class="flex flex-column gap-4 sticky" style="top: 1rem">
+          <!-- This Week Stats -->
+          <Card class="shadow-sm border-round-xl" style="border-left: 4px solid #3b82f6">
+            <template #title>
+              <span class="text-base font-bold text-900">本周日程</span>
+            </template>
+            <template #content>
+              <div class="flex flex-column gap-3">
+                <div class="flex align-items-center justify-content-between">
+                  <span class="text-sm text-600">总计</span>
+                  <span class="text-xl font-bold text-900">{{ weekStats.total }}</span>
+                </div>
+                <div class="flex align-items-center justify-content-between">
+                  <span class="text-sm text-600">进行中</span>
+                  <span class="text-lg font-semibold" style="color: #3b82f6">{{ weekStats.ongoing }}</span>
+                </div>
+                <div class="flex align-items-center justify-content-between">
+                  <span class="text-sm text-600">已完成</span>
+                  <span class="text-lg font-semibold" style="color: #10b981">{{ weekStats.completed }}</span>
+                </div>
+              </div>
+            </template>
+          </Card>
+
+          <!-- Upcoming Events -->
+          <Card class="shadow-sm border-round-xl" style="border-left: 4px solid #f59e0b">
+            <template #title>
+              <span class="text-base font-bold text-900">即将到期</span>
+            </template>
+            <template #content>
+              <div v-if="upcomingEvents.length === 0" class="text-sm text-500 text-center py-3">
+                暂无即将到期的日程
+              </div>
+              <div v-else class="flex flex-column gap-2">
+                <div 
+                  v-for="event in upcomingEvents.slice(0, 5)" 
+                  :key="event.id"
+                  class="p-2 border-round bg-orange-50 cursor-pointer hover:bg-orange-100 transition-colors transition-duration-200"
+                  @click="onClickEventById(event.id)"
+                >
+                  <div class="text-sm font-semibold text-900 mb-1">{{ event.title }}</div>
+                  <div class="text-xs text-600">
+                    <i class="pi pi-clock mr-1"></i>
+                    {{ formatEventTime(event.start) }}
+                  </div>
+                </div>
+              </div>
+            </template>
+          </Card>
+
+          <!-- Quick Actions -->
+          <Card class="shadow-sm border-round-xl" style="border-left: 4px solid #10b981">
+            <template #title>
+              <span class="text-base font-bold text-900">快捷操作</span>
+            </template>
+            <template #content>
+              <div class="flex flex-column gap-2">
+                <Button 
+                  label="跳转至今天" 
+                  icon="pi pi-calendar" 
+                  outlined 
+                  size="small"
+                  class="w-full"
+                  @click="onClickNav('today')"
+                />
+                <Button 
+                  label="新建日程" 
+                  icon="pi pi-plus" 
+                  severity="success"
+                  size="small"
+                  class="w-full"
+                  @click="handleNewEventClick"
+                />
+              </div>
+            </template>
+          </Card>
         </div>
       </div>
+    </div>
 
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        <div class="space-y-2">
-          <label class="flex items-center justify-between text-sm font-semibold text-[#1F2937]">
-            <span>团队重点</span>
-            <span v-if="!weeklyFocusEntry" class="text-xs text-[#94A3B8]">尚未发布</span>
-          </label>
-          <textarea
-            v-model="teamFocusContent"
-            rows="4"
-            class="w-full rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-sm text-[#374151] shadow-inner"
-            :readonly="!isAdmin"
-            :class="{'bg-[#F3F4F6] text-[#94A3B8] cursor-not-allowed': !isAdmin}"
-            placeholder="记录本周团队最重要的聚焦事项..."
-          ></textarea>
-          <p class="text-xs text-red-500" v-if="weeklyFocusError">{{ weeklyFocusError }}</p>
-        </div>
-
-        <div class="space-y-2">
-          <label class="text-sm font-semibold text-[#1F2937]">我的周计划</label>
-          <div class="min-h-[140px] rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-sm text-[#374151] shadow-inner whitespace-pre-wrap">
-            {{ userPlanPreview || "暂无内容，请在周报中填写“下周计划”。" }}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="calendar-shell rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm flex-1 min-h-0">
-      <FullCalendar
-        ref="calendarRef"
-        class="h-full"
-        :options="calendarOptions"
-      />
-    </section>
-
-    <div class="text-sm">
-      <p v-if="isLoadingEvents" class="text-[#6B7280]">正在拉取日程...</p>
+    <div class="text-sm text-500">
+      <p v-if="isLoadingEvents">正在拉取日程...</p>
       <p v-if="apiError" class="text-red-600">{{ apiError }}</p>
     </div>
   </div>
@@ -142,6 +220,11 @@ import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/20/s
 import { useAuthStore } from '@/stores/auth';
 import calendarService, { CalendarEventDto } from '@/services/calendarService';
 import EventModal from '@/components/common/EventModal.vue';
+import Button from 'primevue/button';
+import SelectButton from 'primevue/selectbutton';
+import Dropdown from 'primevue/dropdown';
+import Card from 'primevue/card';
+import Textarea from 'primevue/textarea';
 
 type CalendarView = 'month' | 'week' | 'day';
 type AdminFilterMode = 'ME' | 'ALL_ASSIGNED' | 'USER';
@@ -151,7 +234,18 @@ const viewNameMap: Record<CalendarView, string> = {
   week: 'timeGridWeek',
   day: 'timeGridDay',
 };
-const viewOptions: CalendarView[] = ['month', 'week', 'day'];
+
+const viewOptions = [
+  { label: '月视图', value: 'month' },
+  { label: '周视图', value: 'week' },
+  { label: '日视图', value: 'day' }
+];
+
+const adminFilterOptions = [
+  { label: '仅自己', value: 'ME' },
+  { label: '全部指派', value: 'ALL_ASSIGNED' },
+  { label: '指定成员', value: 'USER' }
+];
 
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.role === 'admin');
@@ -174,6 +268,42 @@ const adminFilterMode = ref<AdminFilterMode>('ME');
 const selectedUserId = ref('');
 const userList = ref<any[]>([]);
 const visibleRange = ref<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+
+// 本周日程统计
+const weekStats = computed(() => {
+  const now = new Date();
+  const weekStart = getWeekStartDate(now);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+  
+  const weekEvents = events.value.filter((event: any) => {
+    const eventStart = new Date(event.start);
+    return eventStart >= weekStart && eventStart < weekEnd;
+  });
+  
+  const total = weekEvents.length;
+  const completed = weekEvents.filter((e: any) => e.extendedProps?.raw?.isCompleted).length;
+  const ongoing = total - completed;
+  
+  return { total, ongoing, completed };
+});
+
+// 即将到期的日程（48小时内）
+const upcomingEvents = computed(() => {
+  const now = new Date();
+  const threshold = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48小时后
+  
+  return events.value
+    .filter((event: any) => {
+      const eventStart = new Date(event.start);
+      return eventStart > now && eventStart <= threshold;
+    })
+    .sort((a: any, b: any) => {
+      const aStart = new Date(a.start).getTime();
+      const bStart = new Date(b.start).getTime();
+      return aStart - bStart;
+    });
+});
 
 watch(adminFilterMode, (mode) => {
   if (mode !== 'USER') {
@@ -511,6 +641,47 @@ async function saveWeeklyFocus() {
     weeklyFocusError.value = error.response?.data?.error || '更新失败';
   } finally {
     isSavingFocus.value = false;
+  }
+}
+
+// 获取本周开始日期（周一）
+function getWeekStartDate(date: Date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// 格式化事件时间
+function formatEventTime(dateInput: any) {
+  const date = new Date(dateInput);
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  
+  const isToday = date.toDateString() === now.toDateString();
+  const isTomorrow = date.toDateString() === tomorrow.toDateString();
+  
+  const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  
+  if (isToday) return `今天 ${timeStr}`;
+  if (isTomorrow) return `明天 ${timeStr}`;
+  
+  return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }) + ` ${timeStr}`;
+}
+
+// 通过ID点击事件
+function onClickEventById(eventId: string) {
+  const cal = getCalendarApi();
+  if (!cal) return;
+  
+  const event = cal.getEventById(eventId);
+  if (event) {
+    selectedEvent.value = normalizeSelectedEvent(event);
+    selectedDateRange.value = null;
+    isModalOpen.value = true;
   }
 }
 </script>

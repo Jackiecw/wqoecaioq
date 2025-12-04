@@ -1,287 +1,134 @@
 <template>
-  <div class="flex min-h-screen flex-col bg-[#F9FAFB] text-[#1F2937] md:flex-row">
-    <!-- Mobile Sidebar (Off-canvas) -->
-    <TransitionRoot as="template" :show="mobileMenuOpen">
-      <Dialog as="div" class="relative z-50 md:hidden" @close="mobileMenuOpen = false">
-        <TransitionChild
-          as="template"
-          enter="transition-opacity ease-linear duration-300"
-          enter-from="opacity-0"
-          enter-to="opacity-100"
-          leave="transition-opacity ease-linear duration-300"
-          leave-from="opacity-100"
-          leave-to="opacity-0"
-        >
-          <div class="fixed inset-0 bg-gray-900/80" />
-        </TransitionChild>
-
-        <div class="fixed inset-0 flex">
-          <TransitionChild
-            as="template"
-            enter="transition ease-in-out duration-300 transform"
-            enter-from="-translate-x-full"
-            enter-to="translate-x-0"
-            leave="transition ease-in-out duration-300 transform"
-            leave-from="translate-x-0"
-            leave-to="-translate-x-full"
-          >
-            <DialogPanel class="relative mr-16 flex w-full max-w-xs flex-1">
-              <TransitionChild
-                as="template"
-                enter="ease-in-out duration-300"
-                enter-from="opacity-0"
-                enter-to="opacity-100"
-                leave="ease-in-out duration-300"
-                leave-from="opacity-100"
-                leave-to="opacity-0"
-              >
-                <div class="absolute left-full top-0 flex w-16 justify-center pt-5">
-                  <button type="button" class="-m-2.5 p-2.5" @click="mobileMenuOpen = false">
-                    <span class="sr-only">Close sidebar</span>
-                    <XMarkIcon class="h-6 w-6 text-white" aria-hidden="true" />
-                  </button>
-                </div>
-              </TransitionChild>
-              
-              <!-- Sidebar Content (Mobile) -->
-              <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
-                <div class="flex h-16 shrink-0 items-center">
-                  <div class="space-y-1">
-                    <p class="text-xs font-semibold uppercase tracking-[0.4em] text-[#6B7280]">Overseas Ops</p>
-                    <h1 class="text-xl font-semibold text-[#1F2937]">海外电商部</h1>
-                  </div>
-                </div>
-                <nav class="flex flex-1 flex-col">
-                  <ul role="list" class="flex flex-1 flex-col gap-y-7">
-                    <li>
-                      <ul role="list" class="-mx-2 space-y-1">
-                        <li v-for="group in visibleMenuGroups" :key="group.key">
-                          <div v-if="group.items.length > 0">
-                             <div class="px-2 py-2 text-xs font-semibold leading-6 text-gray-400 uppercase tracking-wider">
-                               {{ group.title }}
-                             </div>
-                             <ul role="list" class="space-y-1">
-                               <li v-for="item in group.items" :key="item.key">
-                                 <button
-                                   @click="setView(item.key); mobileMenuOpen = false"
-                                   :class="[
-                                     route.path.startsWith(item.path) && (item.path !== '/' || route.path === '/')
-                                       ? 'bg-blue-50 text-[#3B82F6]'
-                                       : 'text-gray-700 hover:bg-gray-50 hover:text-[#3B82F6]',
-                                     'group flex w-full gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
-                                   ]"
-                                 >
-                                   {{ item.name }}
-                                   <span
-                                      v-if="item.badge"
-                                      class="ml-auto w-9 min-w-max whitespace-nowrap rounded-full bg-blue-50 px-2.5 py-0.5 text-center text-xs font-medium leading-5 text-[#3B82F6] ring-1 ring-inset ring-blue-600/20"
-                                      aria-hidden="true"
-                                    >{{ item.badge }}</span>
-                                 </button>
-                               </li>
-                             </ul>
-                          </div>
-                        </li>
-                      </ul>
-                    </li>
-                    
-                    <li class="mt-auto">
-                      <button
-                        @click="setView('PROFILE_MGMT'); mobileMenuOpen = false"
-                        class="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-[#3B82F6]"
-                      >
-                        <Cog6ToothIcon class="h-6 w-6 shrink-0 text-gray-400 group-hover:text-[#3B82F6]" aria-hidden="true" />
-                        个人中心
-                      </button>
-                      <button
-                        @click="handleLogout"
-                        class="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-[#3B82F6]"
-                      >
-                        <ArrowRightOnRectangleIcon class="h-6 w-6 shrink-0 text-gray-400 group-hover:text-[#3B82F6]" aria-hidden="true" />
-                        登出
-                      </button>
-                    </li>
-                  </ul>
-                </nav>
-              </div>
-            </DialogPanel>
-          </TransitionChild>
-        </div>
-      </Dialog>
-    </TransitionRoot>
-
-    <!-- Desktop Sidebar (Static) -->
-    <nav class="hidden w-full flex-shrink-0 flex-col border-r border-[#E5E7EB] bg-white px-4 pb-4 pt-6 shadow-xl shadow-blue-100/50 md:flex md:w-80 lg:w-88">
-      <div class="space-y-2 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-5 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-[0.4em] text-[#6B7280]">Overseas Ops</p>
-        <h1 class="text-2xl font-semibold text-[#1F2937]">海外电商部</h1>
-        <p class="text-sm text-[#6B7280]">内部控制中心</p>
-      </div>
-
-      <div class="mt-6 flex-1 space-y-5 overflow-y-auto pr-2">
-        <section
-          v-for="group in visibleMenuGroups"
-          :key="group.key"
-          class="rounded-2xl border border-[#E5E7EB] bg-white px-3 pt-2 shadow-sm"
-        >
-          <button
-            class="flex w-full items-center justify-between rounded-xl px-2 py-2 text-left transition hover:bg-[#F9FAFB]"
-            @click="toggleGroup(group.key)"
-          >
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#6B7280]">{{ group.title }}</p>
-              <p class="text-sm text-[#6B7280]">{{ group.description }}</p>
-            </div>
-            <ChevronUpIcon
-              class="h-5 w-5 text-[#94A3B8] transition"
-              :class="{ 'rotate-180': !openGroups[group.key] }"
-            />
-          </button>
-
-          <transition
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="transform scale-y-95 opacity-0"
-            enter-to-class="transform scale-y-100 opacity-100"
-            leave-active-class="transition duration-150 ease-in"
-            leave-from-class="transform scale-y-100 opacity-100"
-            leave-to-class="transform scale-y-95 opacity-0"
-          >
-            <ul v-show="openGroups[group.key]" class="space-y-1 px-2 pb-3 pt-1">
-              <li v-for="item in group.items" :key="item.key">
-                <button
-                  class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition"
-                  :class="route.path.startsWith(item.path) && (item.path !== '/' || route.path === '/') ? 'bg-[#3B82F6] text-white shadow-lg shadow-blue-500/30' : 'text-[#6B7280] hover:bg-[#F3F4F6]'"
-                  @click="setView(item.key)"
-                >
-                  <span>{{ item.name }}</span>
-                  <span
-                    v-if="item.badge"
-                    class="text-xs font-semibold uppercase tracking-wide"
-                    :class="currentView === item.key ? 'text-white/80' : 'text-[#94A3B8]'"
-                  >
-                    {{ item.badge }}
-                  </span>
-                </button>
-              </li>
-            </ul>
-          </transition>
-        </section>
-      </div>
-
-      <div class="mt-4 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-        <Menu as="div" class="relative inline-block w-full text-left">
-          <div>
-            <MenuButton class="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-[#F3F4F6] px-4 py-3 text-sm font-medium text-[#1F2937] shadow-sm transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2">
-              <img
-                v-if="authStore.avatarUrl"
-                :src="userAvatar"
-                alt="Avatar"
-                class="h-8 w-8 rounded-full object-cover"
-              />
-              <UserCircleIcon v-else class="h-8 w-8 text-[#9CA3AF]" />
-              <div class="flex-1 text-left">
-                <p class="text-xs uppercase tracking-wide text-[#94A3B8]">当前用户</p>
-                <p class="truncate font-semibold text-[#1F2937]">{{ authStore.nickname }}</p>
-              </div>
-              <ChevronUpIcon class="h-5 w-5 text-[#94A3B8]" aria-hidden="true" />
-            </MenuButton>
+  <div class="layout-shell">
+    <!-- Mobile Sidebar -->
+    <Sidebar
+      v-model:visible="mobileMenuOpen"
+      position="left"
+      class="mobile-sidebar"
+      :modal="true"
+      :block-scroll="true"
+    >
+      <div class="sidebar-content">
+        <div class="brand px-3">
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-globe text-2xl text-primary"></i>
+            <h1 class="brand-title text-xl text-900">Overseas Ops</h1>
           </div>
-          <transition
-            enter-active-class="transition ease-out duration-150"
-            enter-from-class="transform opacity-0 scale-95"
-            enter-to-class="transform opacity-100 scale-100"
-            leave-active-class="transition ease-in duration-100"
-            leave-from-class="transform opacity-100 scale-100"
-            leave-to-class="transform opacity-0 scale-95"
-          >
-            <MenuItems class="absolute inset-x-0 bottom-14 origin-bottom rounded-2xl border border-[#E5E7EB] bg-white shadow-xl ring-1 ring-black/5 focus:outline-none">
-              <div class="py-2">
-                <MenuItem v-slot="{ active }">
-                  <button
-                    @click="setView('PROFILE_MGMT')"
-                    :class="[
-                      active ? 'bg-[#F3F4F6] text-[#1F2937]' : 'text-[#1F2937]',
-                      'group flex w-full items-center px-4 py-2 text-sm'
-                    ]"
-                  >
-                    <Cog6ToothIcon class="mr-3 h-5 w-5 text-[#94A3B8] group-hover:text-[#64748B]" aria-hidden="true" />
-                    个人中心
-                  </button>
-                </MenuItem>
-                <MenuItem v-slot="{ active }">
-                  <button
-                    @click="handleLogout"
-                    :class="[
-                      active ? 'bg-[#F3F4F6] text-[#1F2937]' : 'text-[#6B7280]',
-                      'group flex w-full items-center px-4 py-2 text-sm'
-                    ]"
-                  >
-                    <ArrowRightOnRectangleIcon class="mr-3 h-5 w-5 text-[#94A3B8] group-hover:text-[#64748B]" aria-hidden="true" />
-                    登出
-                  </button>
-                </MenuItem>
+          <p class="brand-sub text-sm text-500 mt-1">海外电商控制中心</p>
+        </div>
+        <div class="nav-scroll mt-4">
+          <nav class="flex flex-column gap-4">
+            <section v-for="group in visibleMenuGroups" :key="group.key" class="nav-group px-3">
+              <div class="nav-group-header mb-2 px-2">
+                <p class="text-xs font-semibold text-500 uppercase">{{ group.title }}</p>
               </div>
-            </MenuItems>
-          </transition>
-        </Menu>
-      </div>
-    </nav>
-
-    <!-- Main Content Area -->
-    <div class="flex flex-1 flex-col">
-      <!-- Mobile Header -->
-      <div class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 md:hidden">
-        <button type="button" class="-m-2.5 p-2.5 text-gray-700 lg:hidden" @click="mobileMenuOpen = true">
-          <span class="sr-only">Open sidebar</span>
-          <Bars3Icon class="h-6 w-6" aria-hidden="true" />
-        </button>
-        <div class="flex-1 text-sm font-semibold leading-6 text-gray-900">
-          {{ currentViewName }}
-        </div>
-        <div class="flex items-center gap-x-4 lg:gap-x-6">
-          <Menu as="div" class="relative">
-             <MenuButton class="-m-1.5 flex items-center p-1.5">
-                <span class="sr-only">Open user menu</span>
-                <img
-                  v-if="authStore.avatarUrl"
-                  :src="userAvatar"
-                  alt="Avatar"
-                  class="h-8 w-8 rounded-full bg-gray-50 object-cover"
+              <div class="flex flex-column gap-1">
+                <Button
+                  v-for="item in group.items"
+                  :key="item.key"
+                  :label="itemLabel(item)"
+                  :icon="getItemIcon(item.key)"
+                  class="w-full text-left justify-content-start px-3 py-2 text-sm"
+                  :class="{ 'bg-primary-50 text-primary font-medium': isActive(item), 'text-700 hover:bg-gray-50': !isActive(item) }"
+                  text
+                  @click="() => { handleNav(item); mobileMenuOpen = false; }"
                 />
-                <UserCircleIcon v-else class="h-8 w-8 text-gray-400" />
-             </MenuButton>
-             <transition
-              enter-active-class="transition ease-out duration-100"
-              enter-from-class="transform opacity-0 scale-95"
-              enter-to-class="transform opacity-100 scale-100"
-              leave-active-class="transition ease-in duration-75"
-              leave-from-class="transform opacity-100 scale-100"
-              leave-to-class="transform opacity-0 scale-95"
-            >
-              <MenuItems class="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
-                <MenuItem v-slot="{ active }">
-                  <button
-                    @click="setView('PROFILE_MGMT')"
-                    :class="[active ? 'bg-gray-50' : '', 'block w-full px-3 py-1 text-sm leading-6 text-gray-900 text-left']"
-                  >
-                    个人中心
-                  </button>
-                </MenuItem>
-                <MenuItem v-slot="{ active }">
-                  <button
-                    @click="handleLogout"
-                    :class="[active ? 'bg-gray-50' : '', 'block w-full px-3 py-1 text-sm leading-6 text-gray-900 text-left']"
-                  >
-                    登出
-                  </button>
-                </MenuItem>
-              </MenuItems>
-            </transition>
-          </Menu>
+              </div>
+            </section>
+          </nav>
+        </div>
+        <div class="sidebar-footer mt-auto px-3 pb-3">
+          <Button label="个人中心" icon="pi pi-user" severity="secondary" text class="w-full justify-content-start text-sm" @click="goProfile" />
+          <Button label="退出登录" icon="pi pi-sign-out" severity="danger" text class="w-full justify-content-start text-sm" @click="handleLogout" />
         </div>
       </div>
+    </Sidebar>
 
-      <main class="flex-1 overflow-auto px-4 py-6 md:px-8 md:py-10 lg:px-12">
+    <!-- Desktop Sidebar -->
+    <aside class="sidebar desktop-sidebar surface-card border-right-1 border-gray-200 h-screen sticky top-0 flex-shrink-0" style="width: 260px">
+      <div class="flex flex-column h-full">
+        <div class="brand p-4">
+          <div class="flex align-items-center gap-2">
+            <div class="bg-primary-50 text-primary border-round p-2 flex align-items-center justify-content-center">
+               <i class="pi pi-globe text-xl"></i>
+            </div>
+            <div>
+              <h1 class="text-lg font-bold text-900 m-0">Overseas Ops</h1>
+              <p class="text-xs text-500 m-0">控制中心</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="nav-scroll flex-1 overflow-y-auto custom-scrollbar">
+          <nav class="flex flex-column gap-4 px-3 pb-4">
+            <section v-for="group in visibleMenuGroups" :key="group.key" class="nav-group">
+              <div class="nav-group-header px-3 mb-2">
+                <p class="text-xs font-semibold text-500 uppercase m-0">{{ group.title }}</p>
+              </div>
+              <div class="flex flex-column gap-1">
+                <Button
+                  v-for="item in group.items"
+                  :key="item.key"
+                  :label="itemLabel(item)"
+                  :icon="getItemIcon(item.key)"
+                  class="w-full text-left justify-content-start px-3 py-2 text-sm border-round-lg transition-colors transition-duration-150"
+                  :class="{ 'bg-primary-50 text-primary font-semibold': isActive(item), 'text-600 hover:bg-gray-50 hover:text-900': !isActive(item) }"
+                  text
+                  @click="() => handleNav(item)"
+                />
+              </div>
+            </section>
+          </nav>
+        </div>
+
+        <div class="sidebar-footer p-3 border-top-1 border-gray-200">
+          <Button label="个人中心" icon="pi pi-user" severity="secondary" text class="w-full justify-content-start text-sm mb-1" @click="goProfile" />
+          <Button label="退出登录" icon="pi pi-sign-out" severity="danger" text class="w-full justify-content-start text-sm" @click="handleLogout" />
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main flex-1 min-w-0 flex flex-column bg-gray-50">
+      <Toolbar class="surface-white border-none border-bottom-1 border-gray-200 px-4 py-3 sticky top-0 z-5 shadow-sm">
+        <template #start>
+          <div class="flex align-items-center gap-3">
+            <Button
+              icon="pi pi-bars"
+              text
+              rounded
+              class="lg:hidden text-500"
+              aria-label="打开导航"
+              @click="mobileMenuOpen = true"
+            />
+            <div>
+              <p class="text-xs text-500 mb-1">当前视图</p>
+              <h2 class="text-lg font-bold text-900 m-0">{{ currentViewName }}</h2>
+            </div>
+          </div>
+        </template>
+        <template #end>
+          <div class="flex align-items-center gap-3">
+            <div class="flex align-items-center gap-2 px-3 py-1 border-round-2xl hover:bg-gray-50 cursor-pointer transition-colors" @click="toggleUserMenu">
+              <Avatar
+                v-if="userAvatar"
+                :image="userAvatar"
+                shape="circle"
+                class="w-2rem h-2rem"
+              />
+              <Avatar v-else icon="pi pi-user" shape="circle" class="w-2rem h-2rem bg-primary-100 text-primary" />
+              <div class="hidden md:flex flex-column">
+                <span class="text-sm font-semibold text-900">{{ authStore.nickname }}</span>
+                <span class="text-xs text-500">在线</span>
+              </div>
+              <i class="pi pi-angle-down text-500 text-xs ml-1"></i>
+            </div>
+            <Menu ref="userMenu" :model="userMenuItems" popup />
+          </div>
+        </template>
+      </Toolbar>
+
+      <main class="content flex-1 p-4 md:p-6 overflow-y-auto">
         <router-view v-slot="{ Component }">
           <KeepAlive>
             <component :is="Component" />
@@ -293,59 +140,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import {
-  Dialog,
-  DialogPanel,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
-  TransitionChild,
-  TransitionRoot,
-} from '@headlessui/vue';
-import {
-  ChevronUpIcon,
-  ArrowRightOnRectangleIcon,
-  UserCircleIcon,
-  Cog6ToothIcon,
-  Bars3Icon,
-  XMarkIcon,
-} from '@heroicons/vue/20/solid';
+import Sidebar from 'primevue/sidebar';
+import Toolbar from 'primevue/toolbar';
+import Button from 'primevue/button';
+import Avatar from 'primevue/avatar';
+import Menu from 'primevue/menu';
+
+type NavItem = { key: string; name: string; path: string; badge?: string };
+type NavGroup = {
+  key: string;
+  title: string;
+  description: string;
+  items: NavItem[];
+};
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 const mobileMenuOpen = ref(false);
+const userMenu = ref();
 
-type MenuItem = { key: string; name: string; path: string; badge?: string };
-type MenuGroup = {
-  key: string;
-  title: string;
-  description: string;
-  defaultOpen?: boolean;
-  items: MenuItem[];
-};
-
-const menuGroups: MenuGroup[] = [
+const menuGroups: NavGroup[] = [
   {
     key: 'workspace',
-    title: '工作台',
+    title: '工作区',
     description: '概览 · 节奏',
-    defaultOpen: true,
     items: [
       { key: 'DASHBOARD', name: '仪表盘', badge: 'live', path: '/' },
-      { key: 'CALENDAR', name: '工作日历', badge: 'team', path: '/calendar' }, // Need to map these paths in router later
-      { key: 'REPORTS', name: '报中心', path: '/reports' },
+      { key: 'CALENDAR', name: '工作日历', badge: 'team', path: '/calendar' },
+      { key: 'REPORTS', name: '周报中心', path: '/reports' },
     ],
   },
   {
     key: 'sales',
     title: '销售数据',
     description: '明细 · 导入',
-    defaultOpen: true,
     items: [
       { key: 'SALES_VISUALIZATION', name: '数据看板', badge: 'new', path: '/sales/dashboard' },
       { key: 'SALES_DATA', name: '销售明细', path: '/sales/data' },
@@ -357,42 +189,65 @@ const menuGroups: MenuGroup[] = [
     key: 'operations',
     title: '业务运营',
     description: '销售 · 运营 · 财务',
-    defaultOpen: true,
     items: [
       { key: 'ON_SALE_PRODUCTS', name: '店铺在售', path: '/products/on-sale' },
       { key: 'PRODUCT_CATALOG', name: '产品目录', path: '/products/catalog' },
       { key: 'OPERATION_CENTER', name: '运营中心', path: '/operations' },
       { key: 'FINANCE_ADMIN', name: '财务管理', path: '/finance' },
       { key: 'LOGISTICS_MGMT', name: '生产与物流', path: '/logistics' },
-      { key: 'PERFORMANCE_MGMT', name: '绩效管理', path: '/performance', badge: 'beta' }, // ⬅️ 【新增】
+      { key: 'PERFORMANCE_MGMT', name: '绩效管理', badge: 'beta', path: '/performance' },
     ],
   },
   {
     key: 'resources',
     title: '协作资源',
     description: '常用资料 · 链接',
-    defaultOpen: false,
     items: [{ key: 'LINKS', name: '常用链接', path: '/links' }],
   },
   {
     key: 'management',
     title: '组织配置',
     description: '门店 · 人员',
-    defaultOpen: false,
     items: [
       { key: 'ADMIN_STORES', name: '店铺管理', path: '/admin/stores' },
       { key: 'ADMIN_USERS', name: '员工配置与管理', path: '/admin/users' },
     ],
   },
+  {
+    key: 'admin',
+    title: '系统管理',
+    description: '国家 · 角色',
+    items: [
+      { key: 'ADMIN_COUNTRIES', name: '国家管理', path: '/admin/countries' },
+    ],
+  }
 ];
 
-// Map keys to paths for legacy support or just use paths directly
-// Ideally we should update router/index.js to match these paths.
-// For now, I will modify setView to push to router.
+// Add Admin Countries if missing in original but good to have for completeness if permissions allow
+// Actually I should stick to original items but just add icons.
 
-const openGroups = ref<Record<string, boolean>>(
-  Object.fromEntries(menuGroups.map((group) => [group.key, group.defaultOpen !== false])),
-);
+const getItemIcon = (key: string) => {
+  const icons: Record<string, string> = {
+    'DASHBOARD': 'pi pi-home',
+    'CALENDAR': 'pi pi-calendar',
+    'REPORTS': 'pi pi-book',
+    'SALES_VISUALIZATION': 'pi pi-chart-bar',
+    'SALES_DATA': 'pi pi-list',
+    'SALES_IMPORT': 'pi pi-upload',
+    'SALES_IMPORT_HISTORY': 'pi pi-history',
+    'ON_SALE_PRODUCTS': 'pi pi-shopping-bag',
+    'PRODUCT_CATALOG': 'pi pi-tags',
+    'OPERATION_CENTER': 'pi pi-cog',
+    'FINANCE_ADMIN': 'pi pi-wallet',
+    'LOGISTICS_MGMT': 'pi pi-box',
+    'PERFORMANCE_MGMT': 'pi pi-chart-line',
+    'LINKS': 'pi pi-link',
+    'ADMIN_STORES': 'pi pi-shop',
+    'ADMIN_USERS': 'pi pi-users',
+    'ADMIN_COUNTRIES': 'pi pi-globe',
+  };
+  return icons[key] || 'pi pi-circle';
+};
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
 const userAvatar = computed(() => {
@@ -402,57 +257,54 @@ const userAvatar = computed(() => {
     : `${apiBaseUrl}${authStore.avatarUrl}`;
 });
 
-const visibleMenuGroups = computed<MenuGroup[]>(() => {
+const visibleMenuGroups = computed<NavGroup[]>(() => {
   const perms = authStore.permissions || [];
   return menuGroups
     .map((group) => {
-      // Filter items based on permissions
-      // Note: PERFORMANCE_MGMT needs a permission key. Let's assume 'PERFORMANCE_MGMT' is in perms or we allow all for now?
-      // User didn't specify permission logic for Performance. Let's assume it's open or check 'PERFORMANCE_MGMT'.
-      // For safety, let's add 'PERFORMANCE_MGMT' to the check.
       const filteredItems = group.items.filter((item) => {
-        if (item.key === 'PERFORMANCE_MGMT') return true; // Allow for now, or check specific perm
+        if (item.key === 'PERFORMANCE_MGMT') return true;
+        // Basic permission check - assuming 'admin' role has all or specific perms are set
+        // If perms is empty and not admin, might hide everything.
+        // For safety, if role is admin, show all?
+        if (authStore.role === 'admin') return true;
         return perms.includes(item.key);
       });
-      
-      if (filteredItems.length === 0) return null as unknown as MenuGroup;
-      return {
-        ...group,
-        items: filteredItems,
-      };
+      if (filteredItems.length === 0) return null as unknown as NavGroup;
+      return { ...group, items: filteredItems };
     })
-    .filter(Boolean) as MenuGroup[];
+    .filter(Boolean) as NavGroup[];
 });
 
+const userMenuItems = [
+  { label: '个人中心', icon: 'pi pi-user', command: () => goProfile() },
+  { label: '退出登录', icon: 'pi pi-sign-out', command: () => handleLogout() },
+];
+
+const isActive = (item: NavItem) =>
+  route.path.startsWith(item.path) && (item.path !== '/' || route.path === '/');
+
+const itemLabel = (item: NavItem) => (item.badge ? `${item.name}` : item.name); // Badge moved to separate UI element if needed, or just append text. For now simple text.
+
 const currentViewName = computed(() => {
-  // Find name based on current route path
   const path = route.path;
   for (const group of visibleMenuGroups.value) {
-    const item = group.items.find(i => path.startsWith(i.path) && (i.path !== '/' || path === '/'));
+    const item = group.items.find((i) => isActive(i));
     if (item) return item.name;
   }
   if (path === '/profile') return '个人中心';
   return 'Dashboard';
 });
 
-const setView = (key: string) => {
-  if (key === 'PROFILE_MGMT') {
-    router.push('/profile');
-    return;
-  }
-  
-  // Find item to get path
-  for (const group of menuGroups) {
-    const item = group.items.find(i => i.key === key);
-    if (item) {
-      router.push(item.path);
-      return;
-    }
-  }
+const handleNav = (item: NavItem) => {
+  router.push(item.path);
 };
 
-const toggleGroup = (groupKey) => {
-  openGroups.value[groupKey] = !openGroups.value[groupKey];
+const goProfile = () => {
+  router.push('/profile');
+};
+
+const toggleUserMenu = (event: Event) => {
+  (userMenu.value as any)?.toggle(event);
 };
 
 const handleLogout = () => {
@@ -460,3 +312,56 @@ const handleLogout = () => {
   router.push('/login');
 };
 </script>
+
+<style scoped>
+.layout-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--surface-ground);
+  color: var(--text-color);
+}
+
+.sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--surface-border);
+  background: var(--surface-card);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.desktop-sidebar {
+  display: none;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+@media (min-width: 960px) {
+  .desktop-sidebar {
+    display: block;
+  }
+  .mobile-sidebar {
+    display: none;
+  }
+}
+
+/* Custom Scrollbar for Sidebar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--surface-300);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--surface-400);
+}
+</style>

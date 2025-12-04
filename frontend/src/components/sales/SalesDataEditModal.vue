@@ -1,537 +1,472 @@
 <template>
-  <Dialog :open="isOpen" @update:open="(val) => !val && closeModal()">
-    <DialogContent class="sm:max-w-[600px]">
-      <DialogHeader>
-        <DialogTitle>修改销售数据</DialogTitle>
-      </DialogHeader>
+  <Dialog
+    :visible="isOpen"
+    modal
+    :style="{ width: '640px' }"
+    header="修改销售数据"
+    @update:visible="onDialogToggle"
+  >
+    <div v-if="isLoading" class="p-4 text-center text-color-secondary">
+      正在加载表单选项...
+    </div>
 
-      <div v-if="isLoading" class="py-6 text-center text-muted-foreground">
-        正在加载表单选项...
-      </div>
-
-      <form v-else @submit.prevent="handleSubmit" class="grid gap-4 py-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="grid gap-2">
-            <Label for="edit_recordDate">记录日期 *</Label>
-            <Input type="date" id="edit_recordDate" v-model="formData.recordDate" required />
-          </div>
-
-          <div class="grid gap-2">
-            <Label>国家 *</Label>
-            <Select v-model="selectedCountry" required>
-              <SelectTrigger>
-                <SelectValue placeholder="请选择国家..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="country in countryOptions" :key="country.code" :value="country.code">
-                  {{ country.name }} ({{ country.code }})
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="grid gap-2">
-            <Label>平台 *</Label>
-            <Select v-model="selectedPlatform" :disabled="!selectedCountry" required>
-              <SelectTrigger>
-                <SelectValue placeholder="请选择平台..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="platform in platformOptions" :key="platform" :value="platform">
-                  {{ platform }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="grid gap-2">
-            <Label>店铺名称 *</Label>
-            <Select v-model="formData.storeId" :disabled="!selectedPlatform" required>
-              <SelectTrigger>
-                <SelectValue placeholder="请选择店铺..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="store in storeOptions" :key="store.id" :value="store.id">
-                  {{ store.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="grid gap-2 md:col-span-2">
-            <Label>
-              选择商品链接 (Listing) *
-              <span class="text-xs font-normal text-muted-foreground ml-1">格式: [商品代码] 标题 (SKU)</span>
-            </Label>
-            <Select v-model="formData.listingId" :disabled="!formData.storeId || isLoadingListings" required>
-              <SelectTrigger>
-                <SelectValue :placeholder="isLoadingListings ? '加载链接..' : '请选择具体链接...'" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="listing in storeListings" :key="listing.id" :value="listing.id">
-                  <span v-if="listing.productCode">[{{ listing.productCode }}] </span>
-                  {{ listing.storeTitle || '未命名链接' }} ({{ listing.product.sku }})
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p v-if="!saleDataToEdit?.listingId && !formData.listingId" class="text-[0.8rem] text-amber-600">
-              提示：这是一条旧数据，请重新关联到一个具体的商品链接
-            </p>
-          </div>
-
-          <div class="grid gap-2">
-            <Label for="edit_salesVolume">销量 *</Label>
-            <Input type="number" id="edit_salesVolume" v-model="formData.salesVolume" required />
-          </div>
-
-          <div class="grid gap-2">
-            <Label for="edit_revenue">销售额 *</Label>
-            <Input type="number" step="0.01" id="edit_revenue" v-model="formData.revenue" required />
-          </div>
-
-          <div class="grid gap-2">
-            <Label>订单状态</Label>
-            <Select v-model="formData.orderStatus">
-              <SelectTrigger>
-                <SelectValue placeholder="未设置" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="(label, value) in ORDER_STATUS_MAP" :key="value" :value="value">
-                  {{ label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="grid gap-2 md:col-span-2">
-            <Label for="edit_notes">备注 (可选)</Label>
-            <Textarea id="edit_notes" v-model="formData.notes" rows="3" />
-          </div>
+    <form v-else class="flex flex-column gap-3" @submit.prevent="handleSubmit">
+      <div class="grid formgrid p-fluid">
+        <div class="field col-12 md:col-6">
+          <label for="edit_recordDate" class="font-semibold text-sm mb-2 block">记录日期 *</label>
+          <Calendar
+            input-id="edit_recordDate"
+            v-model="formData.recordDate"
+            date-format="yy-mm-dd"
+            show-icon
+            class="w-full"
+          />
         </div>
 
-        <p v-if="errorMessage" class="text-destructive text-sm mt-2">
-          {{ errorMessage }}
-        </p>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">国家 *</label>
+          <Dropdown
+            v-model="selectedCountry"
+            :options="countryOptions"
+            option-label="name"
+            option-value="code"
+            placeholder="请选择国家..."
+            filter
+            class="w-full"
+          />
+        </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" @click="closeModal">取消</Button>
-          <Button type="submit">保存更改</Button>
-        </DialogFooter>
-      </form>
-    </DialogContent>
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">平台 *</label>
+          <Dropdown
+            v-model="selectedPlatform"
+            :options="platformOptions"
+            placeholder="请选择平台..."
+            :disabled="!selectedCountry"
+            filter
+            class="w-full"
+          />
+        </div>
+
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">店铺名称 *</label>
+          <Dropdown
+            v-model="formData.storeId"
+            :options="storeOptions"
+            option-label="name"
+            option-value="id"
+            placeholder="请选择店铺..."
+            :disabled="!selectedPlatform"
+            filter
+            class="w-full"
+          />
+        </div>
+
+        <div class="field col-12">
+          <label class="font-semibold text-sm mb-2 block">
+            选择商品链接 (Listing) *
+            <span class="text-xs font-normal text-color-secondary ml-1">格式: [商品代码] 标题 (SKU)</span>
+          </label>
+          <Dropdown
+            v-model="formData.listingId"
+            :options="listingOptions"
+            option-label="displayLabel"
+            option-value="id"
+            placeholder="请选择具体链接..."
+            :disabled="!formData.storeId || isLoadingListings"
+            :loading="isLoadingListings"
+            filter
+            class="w-full"
+          >
+            <template #option="slotProps">
+              <div class="flex flex-column">
+                <span class="font-medium text-sm">{{ slotProps.option.displayLabel }}</span>
+                <small v-if="slotProps.option.product?.sku" class="text-color-secondary">SKU: {{ slotProps.option.product.sku }}</small>
+              </div>
+            </template>
+            <template #value="slotProps">
+              <span v-if="slotProps.value">
+                {{ listingOptions.find((item) => item.id === slotProps.value)?.displayLabel || '请选择具体链接...' }}
+              </span>
+              <span v-else class="text-color-secondary">请选择具体链接...</span>
+            </template>
+          </Dropdown>
+          <p v-if="!saleDataToEdit?.listingId && !formData.listingId" class="text-sm text-amber-600 mt-2">
+            提示：这是旧数据，请重新关联到一个具体的商品链接
+          </p>
+        </div>
+
+        <div class="field col-12 md:col-6">
+          <label for="edit_salesVolume" class="font-semibold text-sm mb-2 block">销量 *</label>
+          <InputNumber
+            input-id="edit_salesVolume"
+            v-model="formData.salesVolume"
+            :min="0"
+            class="w-full"
+            input-class="w-full"
+          />
+        </div>
+
+        <div class="field col-12 md:col-6">
+          <label for="edit_revenue" class="font-semibold text-sm mb-2 block">销售额 *</label>
+          <InputNumber
+            input-id="edit_revenue"
+            v-model="formData.revenue"
+            :min="0"
+            :step="0.01"
+            mode="decimal"
+            :max-fraction-digits="2"
+            class="w-full"
+            input-class="w-full"
+          />
+        </div>
+
+        <div class="field col-12 md:col-6">
+          <label class="font-semibold text-sm mb-2 block">订单状态</label>
+          <Dropdown
+            v-model="formData.orderStatus"
+            :options="orderStatusOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="未设置"
+            show-clear
+            class="w-full"
+          />
+        </div>
+
+        <div class="field col-12">
+          <label for="edit_notes" class="font-semibold text-sm mb-2 block">备注（可选）</label>
+          <Textarea id="edit_notes" v-model="formData.notes" rows="3" auto-resize class="w-full" />
+        </div>
+      </div>
+
+      <Message v-if="errorMessage" severity="error" :closable="false">
+        {{ errorMessage }}
+      </Message>
+
+      <div class="flex justify-content-end gap-2 pt-1">
+        <Button type="button" label="取消" severity="secondary" text @click="closeModal" />
+        <Button type="submit" label="保存修改" icon="pi pi-check" :loading="isSubmitting" />
+      </div>
+    </form>
   </Dialog>
 </template>
 
-
-
 <script setup lang="ts">
-
-import { ref, watch, computed } from 'vue';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { computed, ref, watch } from 'vue';
+import { isAxiosError } from 'axios';
+import Dialog from 'primevue/dialog';
+import Calendar from 'primevue/calendar';
+import Dropdown from 'primevue/dropdown';
+import InputNumber from 'primevue/inputnumber';
+import Textarea from 'primevue/textarea';
+import Button from 'primevue/button';
+import Message from 'primevue/message';
 import apiClient from '@/services/apiClient';
-import { useAuthStore } from '../../stores/auth';
-import useStoreListings from '../../composables/useStoreListings';
+import { useAuthStore } from '@/stores/auth';
+import useStoreListings from '@/composables/useStoreListings';
 
-
-
-// --- 常量 (Constants) ---
-
-const ORDER_STATUS_MAP = {
-
-  'PENDING': '待付款',
-
-  'READY_TO_SHIP': '待发货',
-
-  'SHIPPED': '已发货',
-
-  'DELIVERED': '已送达',
-
-  'COMPLETED': '已完成',
-
-  'CANCELLED': '已取消',
-
-  'RETURNED': '已退货'
-
+type CountryOption = {
+  code: string;
+  name: string;
 };
 
+type StoreOption = {
+  id: string;
+  name: string;
+  countryCode: string;
+  platform: string;
+  country?: CountryOption;
+};
 
+type ListingOption = {
+  id: string;
+  productCode?: string | null;
+  storeTitle?: string | null;
+  title?: string | null;
+  sku?: string | null;
+  productId?: string | null;
+  product?: {
+    id: string;
+    sku: string;
+  } | null;
+};
 
-const props = defineProps({
+type SaleData = {
+  id: string;
+  recordDate: string;
+  storeId: string;
+  listingId?: string | null;
+  store?: {
+    countryCode: string;
+    platform: string;
+  };
+  salesVolume: number;
+  revenue: number;
+  notes?: string | null;
+  orderStatus?: string | null;
+};
 
-  isOpen: { type: Boolean, default: false },
+type SaleFormState = {
+  recordDate: Date | null;
+  storeId: string;
+  listingId: string;
+  salesVolume: number;
+  revenue: number;
+  notes: string;
+  orderStatus: string | null;
+};
 
-  saleDataToEdit: { type: Object, default: null }
+const ORDER_STATUS_OPTIONS = [
+  { value: 'PENDING', label: '待付款' },
+  { value: 'READY_TO_SHIP', label: '待发货' },
+  { value: 'SHIPPED', label: '已发货' },
+  { value: 'DELIVERED', label: '已送达' },
+  { value: 'COMPLETED', label: '已完成' },
+  { value: 'CANCELLED', label: '已取消' },
+  { value: 'RETURNED', label: '已退货' },
+];
 
-});
+const props = defineProps<{
+  isOpen: boolean;
+  saleDataToEdit: SaleData | null;
+}>();
 
-const emit = defineEmits(['close', 'sale-updated']);
-
-
+const emit = defineEmits<{
+  (e: 'close'): void;
+  (e: 'sale-updated', payload: unknown): void;
+}>();
 
 const authStore = useAuthStore();
+const { stores, fetchStores, storesError, getStoresByCountry, getStoresByCountryAndPlatform, fetchListings } =
+  useStoreListings();
 
-const {
-
-  stores,
-
-  fetchStores,
-
-  storesError,
-
-  getStoresByCountry,
-
-  getStoresByCountryAndPlatform,
-
-  fetchListings,
-
-} = useStoreListings();
-
-const formData = ref({});
+const formData = ref<SaleFormState>({
+  recordDate: null,
+  storeId: '',
+  listingId: '',
+  salesVolume: 0,
+  revenue: 0,
+  notes: '',
+  orderStatus: null,
+});
 
 const isLoading = ref(false);
-
+const isSubmitting = ref(false);
 const errorMessage = ref('');
-
-
-
-// --- 级联菜单状---
-
-const storeListings = ref([]); // ⬅️ 【修改】改Listings
-
 const isLoadingListings = ref(false);
-
+const storeListings = ref<ListingOption[]>([]);
 const selectedCountry = ref('');
-
 const selectedPlatform = ref('');
 
+const orderStatusOptions = ORDER_STATUS_OPTIONS;
 
-
-// --- 级联菜单逻辑 ---
-
-
-
-const countryOptions = computed(() => {
-
-  const uniqueCountriesMap = new Map();
-
-  stores.value.forEach(store => {
-
+const countryOptions = computed<CountryOption[]>(() => {
+  const map = new Map<string, CountryOption>();
+  stores.value.forEach((store) => {
     if (store.country) {
-
-      uniqueCountriesMap.set(store.country.code, store.country);
-
+      map.set(store.country.code, store.country);
     }
-
   });
-
-  const allUniqueCountries = Array.from(uniqueCountriesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-
-  
-
-  if (authStore.role === 'admin') return allUniqueCountries; 
-
-  const userCountryCodes = authStore.operatedCountries; 
-
-  return allUniqueCountries.filter(country => userCountryCodes.includes(country.code));
-
+  const all = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  if (authStore.role === 'admin') return all;
+  return all.filter((country) => authStore.operatedCountries.includes(country.code));
 });
-
-
 
 const platformOptions = computed(() => {
-
   if (!selectedCountry.value) return [];
-
-  const platforms = getStoresByCountry(selectedCountry.value)
-
-    .map(store => store.platform);
-
-  return [...new Set(platforms)].sort();
-
+  const platforms = getStoresByCountry(selectedCountry.value).map((store: StoreOption) => store.platform);
+  return Array.from(new Set(platforms)).sort();
 });
 
-
-
-const storeOptions = computed(() => {
-
+const storeOptions = computed<StoreOption[]>(() => {
   if (!selectedCountry.value || !selectedPlatform.value) return [];
-
-  return getStoresByCountryAndPlatform(selectedCountry.value, selectedPlatform.value)
-
-    .sort((a, b) => a.name.localeCompare(b.name));
-
+  return getStoresByCountryAndPlatform(selectedCountry.value, selectedPlatform.value).sort((a: StoreOption, b: StoreOption) =>
+    a.name.localeCompare(b.name),
+  );
 });
 
+const listingOptions = computed(() =>
+  storeListings.value.map((listing) => ({
+    ...listing,
+    displayLabel: buildListingLabel(listing),
+  })),
+);
 
+watch(
+  () => storesError.value,
+  (val) => {
+    if (val) {
+      errorMessage.value = val;
+    }
+  },
+);
 
-watch(() => storesError.value, (val) => {
-
-  if (val) {
-
-    errorMessage.value = val;
-
-  }
-
-});
-
-
-
-// (级联) 重置
-
-watch(selectedCountry, (newVal) => {
-
-  if (newVal !== formData.value.store?.countryCode) {
-
-    selectedPlatform.value = '';
-
-    formData.value.storeId = '';
-
-    formData.value.listingId = '';
-
-  }
-
-});
-
-watch(selectedPlatform, (newVal) => {
-
-  if (newVal !== formData.value.store?.platform) {
-
-    formData.value.storeId = '';
-
-    formData.value.listingId = '';
-
-  }
-
-});
-
-
-
-// (级联) 获取 Listings
-
-watch(() => formData.value.storeId, async (newStoreId, oldStoreId) => {
-
-  // 如果是初次加载（oldStoreId undefined）且 storeId 没变，则不清
-  if (newStoreId && newStoreId === props.saleDataToEdit?.storeId && !oldStoreId) {
-
-     // 保留 listingId，不做操
-  } else if (newStoreId !== oldStoreId) {
-
-     formData.value.listingId = ''; // 切换店铺时清
-  }
-
-  
-
+watch(selectedCountry, () => {
+  selectedPlatform.value = '';
+  formData.value.storeId = '';
+  formData.value.listingId = '';
   storeListings.value = [];
-
-  
-
-  if (!newStoreId) return;
-
-  
-
-  isLoadingListings.value = true;
-
-  try {
-
-    storeListings.value = await fetchListings(newStoreId);
-
-  } catch (error) {
-
-    errorMessage.value = error.message || '无法加载店铺链接列表';
-
-  } finally {
-
-    isLoadingListings.value = false;
-
-  }
-
 });
 
+watch(selectedPlatform, () => {
+  formData.value.storeId = '';
+  formData.value.listingId = '';
+  storeListings.value = [];
+});
 
+watch(
+  () => formData.value.storeId,
+  async (newStoreId, oldStoreId) => {
+    if (newStoreId === oldStoreId) return;
+    formData.value.listingId = '';
+    storeListings.value = [];
+    if (!newStoreId) return;
 
-// --- 弹窗核心逻辑 ---
+    isLoadingListings.value = true;
+    try {
+      const listings = await fetchListings(newStoreId);
+      storeListings.value = Array.isArray(listings) ? listings : [];
+    } catch (error) {
+      errorMessage.value = extractError(error, '无法加载店铺链接，请稍后重试');
+    } finally {
+      isLoadingListings.value = false;
+    }
+  },
+);
 
-watch(() => props.isOpen, async (newVal) => {
-
-  if (newVal && props.saleDataToEdit) {
-
-    isLoading.value = true;
-
-    errorMessage.value = '';
-
-    
-
-    // 1. 复制数据到表
-    formData.value = {
-
-      ...props.saleDataToEdit,
-
-      recordDate: new Date(props.saleDataToEdit.recordDate).toISOString().split('T')[0],
-
-      notes: props.saleDataToEdit.notes || '',
-
-      // ⬇️ 【新增】绑listingId
-
-      listingId: props.saleDataToEdit.listingId || '',
-
-      orderStatus: props.saleDataToEdit.orderStatus || ''
-
-    };
-
-
-
-    // 2. 加载所有店铺选项
-
-    await fetchStores();
-
-
-
-    // 3. 触发级联菜单
-
-    selectedCountry.value = props.saleDataToEdit.store.countryCode;
-
-    selectedPlatform.value = props.saleDataToEdit.store.platform;
-
-    
-
-    // 4. 手动触发一Listings 加载
-
-    if (props.saleDataToEdit.storeId) {
-
-       isLoadingListings.value = true;
-
-       try {
-
-         storeListings.value = await fetchListings(props.saleDataToEdit.storeId);
-
-       } finally {
-
-         isLoadingListings.value = false;
-
-       }
-
+watch(
+  () => props.isOpen,
+  async (visible) => {
+    if (!visible) return;
+    if (!props.saleDataToEdit) {
+      errorMessage.value = '未找到要编辑的销售数据';
+      return;
     }
 
-    
+    isLoading.value = true;
+    errorMessage.value = '';
 
-    isLoading.value = false;
+    try {
+      await fetchStores();
+      hydrateForm(props.saleDataToEdit);
+      if (formData.value.storeId) {
+        isLoadingListings.value = true;
+        try {
+          const listings = await fetchListings(formData.value.storeId, true);
+          storeListings.value = Array.isArray(listings) ? listings : [];
+        } finally {
+          isLoadingListings.value = false;
+        }
+      }
+    } catch (error) {
+      errorMessage.value = extractError(error, '加载数据失败，请稍后重试');
+    } finally {
+      isLoading.value = false;
+    }
+  },
+);
 
+const onDialogToggle = (visible: boolean) => {
+  if (!visible) {
+    closeModal();
   }
+};
 
-});
-
-
-
-// --- 提交 ---
-
-async function handleSubmit() {
+const handleSubmit = async () => {
+  if (!props.saleDataToEdit) return;
 
   errorMessage.value = '';
 
-
-
+  if (!formData.value.recordDate) {
+    errorMessage.value = '请填写记录日期';
+    return;
+  }
+  if (!formData.value.storeId) {
+    errorMessage.value = '请选择店铺';
+    return;
+  }
   if (!formData.value.listingId) {
-
     errorMessage.value = '请选择一个商品链接';
-
     return;
-
   }
 
-  
-
-  // ⬇️ 【新增】查listing 对应productId
-
-  const targetListing = storeListings.value.find(l => l.id === formData.value.listingId);
-
-  if (!targetListing) {
-
-    errorMessage.value = '链接数据无效，请刷新重试';
-
+  const targetListing = storeListings.value.find((item) => item.id === formData.value.listingId);
+  const productId = targetListing?.product?.id || targetListing?.productId || null;
+  if (!productId) {
+    errorMessage.value = '链接数据缺少对应商品，无法提交，请刷新后重试';
     return;
-
   }
-
-  
 
   const payload = {
-
-    recordDate: formData.value.recordDate,
-
+    recordDate: formatDate(formData.value.recordDate),
     storeId: formData.value.storeId,
-
-    listingId: formData.value.listingId, // ⬇️ 提交 listingId
-
-    productId: targetListing.product.id, // ⬇️ 提交对应productId
-
-    salesVolume: parseInt(formData.value.salesVolume) || 0,
-
-    revenue: parseFloat(formData.value.revenue) || 0,
-
-    notes: formData.value.notes || null,
-
-    orderStatus: formData.value.orderStatus || null
-
+    listingId: formData.value.listingId,
+    productId,
+    salesVolume: Number.isFinite(formData.value.salesVolume) ? formData.value.salesVolume : 0,
+    revenue: Number.isFinite(formData.value.revenue) ? formData.value.revenue : 0,
+    notes: formData.value.notes?.trim() || null,
+    orderStatus: formData.value.orderStatus || null,
   };
 
-
-
+  isSubmitting.value = true;
   try {
-
-    const response = await apiClient.put(
-
-      `/sales-data/${props.saleDataToEdit.id}`, 
-
-      payload
-
-    );
-
+    const response = await apiClient.put(`/sales-data/${props.saleDataToEdit.id}`, payload);
     emit('sale-updated', response.data);
-
+    closeModal();
   } catch (error) {
-
-    console.error('更新失败:', error);
-
-    errorMessage.value = error.response?.data?.error || '更新失败，请重试';
-
+    errorMessage.value = extractError(error, '更新失败，请稍后重试');
+  } finally {
+    isSubmitting.value = false;
   }
+};
 
-}
+const hydrateForm = (data: SaleData) => {
+  selectedCountry.value = data.store?.countryCode || '';
+  selectedPlatform.value = data.store?.platform || '';
 
+  formData.value = {
+    recordDate: parseDateInput(data.recordDate),
+    storeId: data.storeId,
+    listingId: data.listingId || '',
+    salesVolume: data.salesVolume ?? 0,
+    revenue: data.revenue ?? 0,
+    notes: data.notes || '',
+    orderStatus: data.orderStatus || null,
+  };
+};
 
+const buildListingLabel = (listing: ListingOption) => {
+  const code = listing.productCode ? `[${listing.productCode}] ` : '';
+  const title = listing.storeTitle || listing.title || '未命名链接';
+  const sku = listing.product?.sku || listing.sku || '';
+  return sku ? `${code}${title} (${sku})` : `${code}${title}`;
+};
 
-function closeModal() {
+const parseDateInput = (value: string | Date | null | undefined): Date | null => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const extractError = (error: unknown, fallback: string) => {
+  if (isAxiosError(error)) {
+    return error.response?.data?.error || fallback;
+  }
+  if (error instanceof Error) {
+    return error.message || fallback;
+  }
+  return fallback;
+};
+
+const closeModal = () => {
   emit('close');
-
-}
-
-
-
+};
 </script>
-
-
-
-<style scoped>
-/* Custom styles removed in favor of Shadcn/Tailwind */
-</style>
-

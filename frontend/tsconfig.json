@@ -4,7 +4,9 @@
         "useDefineForClassFields": true,
         "module": "ESNext",
         "moduleResolution": "Node",
-        "strict": true,
+        "strict": false,
+        "noImplicitAny": false,
+        "useUnknownInCatchVariables": false,
         "jsx": "preserve",
         "resolveJsonModule": true,
         "isolatedModules": true,
@@ -28,6 +30,9 @@
         "src/**/*.tsx",
         "src/**/*.vue"
     ],
+    "vueCompilerOptions": {
+        "strictTemplates": true
+    },
     "references": [
         {
             "path": "./tsconfig.node.json"

@@ -1,310 +1,432 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <h2 class="text-3xl font-bold tracking-tight text-stone-900">销售数据管理</h2>
-    </div>
-
-    <Card>
-      <CardHeader>
-        <CardTitle>筛选条件</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="space-y-2">
-            <Label for="startDate">开始日期</Label>
-            <Input type="date" id="startDate" v-model="filters.startDate" />
+  <div class="space-y-4">
+    <Card class="shadow-1 border-round-2xl">
+      <template #title>筛选条件</template>
+      <template #content>
+        <div class="grid formgrid p-fluid">
+          <div class="field col-12 md:col-3">
+            <label class="font-semibold text-sm mb-2 block">开始日期</label>
+            <Calendar v-model="filters.startDate" date-format="yy-mm-dd" show-icon class="w-full" />
           </div>
-          <div class="space-y-2">
-            <Label for="endDate">结束日期</Label>
-            <Input type="date" id="endDate" v-model="filters.endDate" />
+          <div class="field col-12 md:col-3">
+            <label class="font-semibold text-sm mb-2 block">结束日期</label>
+            <Calendar v-model="filters.endDate" date-format="yy-mm-dd" show-icon class="w-full" />
           </div>
-          
-          <div class="space-y-2">
-            <Label>国家</Label>
-            <Select v-model="filters.countryCode">
-              <SelectTrigger>
-                <SelectValue placeholder="所有国家" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">所有国家</SelectItem>
-                <SelectItem v-for="country in countryOptions" :key="country.code" :value="country.code">
-                  {{ country.name }} ({{ country.code }})
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          <div class="field col-12 md:col-2">
+            <label class="font-semibold text-sm mb-2 block">国家</label>
+            <Dropdown
+              v-model="filters.countryCode"
+              :options="countryOptions"
+              option-label="name"
+              option-value="code"
+              placeholder="全部国家"
+              show-clear
+              filter
+              class="w-full"
+            />
           </div>
-          
-          <div class="space-y-2">
-            <Label>平台</Label>
-            <Select v-model="filters.platform">
-              <SelectTrigger>
-                <SelectValue placeholder="所有平台" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">所有平台</SelectItem>
-                <SelectItem v-for="platform in platformOptions" :key="platform" :value="platform">
-                  {{ platform }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          <div class="field col-12 md:col-2">
+            <label class="font-semibold text-sm mb-2 block">平台</label>
+            <Dropdown
+              v-model="filters.platform"
+              :options="platformOptions"
+              placeholder="全部平台"
+              show-clear
+              class="w-full"
+            />
           </div>
-          
-          <div class="space-y-2">
-            <Label>店铺</Label>
-            <Select v-model="filters.storeId" :disabled="!filters.countryCode && !filters.platform">
-              <SelectTrigger>
-                <SelectValue placeholder="所有店铺" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">所有店铺</SelectItem>
-                <SelectItem v-for="store in storeOptions" :key="store.id" :value="store.id">
-                  {{ store.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          <div class="field col-12 md:col-2">
+            <label class="font-semibold text-sm mb-2 block">店铺</label>
+            <Dropdown
+              v-model="filters.storeId"
+              :options="storeOptions"
+              option-label="name"
+              option-value="id"
+              placeholder="全部店铺"
+              show-clear
+              filter
+              :disabled="storeOptions.length === 0"
+              class="w-full"
+            />
           </div>
-
-          <div class="space-y-2">
-            <Label>订单状态</Label>
-            <Select v-model="filters.orderStatus">
-              <SelectTrigger>
-                <SelectValue placeholder="所有状态" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">所有状态</SelectItem>
-                <SelectItem v-for="(label, value) in ORDER_STATUS_MAP" :key="value" :value="value">
-                  {{ label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          <div class="field col-12 md:col-2">
+            <label class="font-semibold text-sm mb-2 block">订单状态</label>
+            <Dropdown
+              v-model="filters.orderStatus"
+              :options="statusOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="全部状态"
+              show-clear
+              class="w-full"
+            />
           </div>
         </div>
-      </CardContent>
-      <CardFooter class="flex justify-end space-x-4">
-        <Button variant="outline" @click="resetFilters">
-          <ArrowPathIcon class="h-4 w-4 mr-2" />
-          重置
-        </Button>
-        <Button @click="fetchData(true)">
-          <FunnelIcon class="h-4 w-4 mr-2" />
-          查询
-        </Button>
-      </CardFooter>
+        <div class="flex justify-end gap-2 mt-2">
+          <Button label="重置" severity="secondary" text icon="pi pi-refresh" @click="resetFilters" />
+          <Button label="查询" icon="pi pi-search" @click="fetchData(true)" />
+        </div>
+      </template>
     </Card>
 
-    <div v-if="isLoading" class="text-center py-10 text-muted-foreground">正在加载数据...</div>
-    <div v-if="errorMessage" class="text-red-600 font-medium">{{ errorMessage }}</div>
-    
-    <div v-if="!isLoading && salesData.length > 0" class="rounded-md border bg-white">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead @click="setSort('recordDate')" class="cursor-pointer hover:bg-muted/50">
-              <div class="flex items-center space-x-1">
-                <span>日期</span>
-                <span class="inline-block w-4">
-                  <ChevronUpIcon v-if="sorting.by === 'recordDate' && sorting.order === 'asc'" class="h-4 w-4" />
-                  <ChevronDownIcon v-if="sorting.by === 'recordDate' && sorting.order === 'desc'" class="h-4 w-4" />
-                </span>
-              </div>
-            </TableHead>
-            <TableHead>国家</TableHead>
-            <TableHead>店铺</TableHead>
-            <TableHead>商品链接 / SKU</TableHead>
-            <TableHead>状态</TableHead>
-            <TableHead @click="setSort('salesVolume')" class="cursor-pointer hover:bg-muted/50">
-              <div class="flex items-center space-x-1">
-                <span>销量</span>
-                <span class="inline-block w-4">
-                  <ChevronUpIcon v-if="sorting.by === 'salesVolume' && sorting.order === 'asc'" class="h-4 w-4" />
-                  <ChevronDownIcon v-if="sorting.by === 'salesVolume' && sorting.order === 'desc'" class="h-4 w-4" />
-                </span>
-              </div>
-            </TableHead>
-            <TableHead @click="setSort('revenue')" class="cursor-pointer hover:bg-muted/50">
-              <div class="flex items-center space-x-1">
-                <span>销售额</span>
-                <span class="inline-block w-4">
-                  <ChevronUpIcon v-if="sorting.by === 'revenue' && sorting.order === 'asc'" class="h-4 w-4" />
-                  <ChevronDownIcon v-if="sorting.by === 'revenue' && sorting.order === 'desc'" class="h-4 w-4" />
-                </span>
-              </div>
-            </TableHead>
-            <TableHead>备注</TableHead>
-            <TableHead>录入人</TableHead>
-            <TableHead>操作</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="row in salesData" :key="row.id">
-            <TableCell>{{ formatDate(row.recordDate) }}</TableCell>
-            <TableCell>{{ row.store.country.name }}</TableCell>
-            <TableCell>{{ row.store.name }}</TableCell>
-            <TableCell>
-              <div v-if="row.listing && row.listing.productCode" class="flex flex-col">
-                <span class="font-semibold text-primary">{{ row.listing.productCode }}</span>
-                <span class="text-xs text-muted-foreground">{{ row.product.sku }}</span>
-              </div>
-              <div v-else class="text-muted-foreground">
-                {{ row.product.sku }} <span class="text-xs text-stone-400">(旧数据)</span>
-              </div>
-            </TableCell>
-            <TableCell>
-              <span v-if="row.orderStatus" :class="getStatusClass(row.orderStatus)" class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">
-                {{ ORDER_STATUS_MAP[row.orderStatus] || row.orderStatus }}
-              </span>
-              <span v-else class="text-muted-foreground">-</span>
-            </TableCell>
-            <TableCell>{{ row.salesVolume }}</TableCell>
-            <TableCell>{{ row.revenue.toFixed(2) }}</TableCell>
-            <TableCell class="max-w-xs truncate" :title="row.notes || ''">{{ row.notes || 'N/A' }}</TableCell>
-            <TableCell>{{ row.enteredBy.nickname }}</TableCell>
-            <TableCell>
-              <div v-if="row.canManage" class="flex space-x-2">
-                <Button variant="ghost" size="sm" @click="openEditModal(row)">修改</Button>
-                <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="handleDelete(row.id)">删除</Button>
-              </div>
-              <span v-else class="text-muted-foreground text-xs">无权限</span>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+    <Message v-if="errorMessage" severity="error" :closable="false" class="w-full">
+      {{ errorMessage }}
+    </Message>
 
-      <div class="flex items-center justify-between px-4 py-4 border-t">
-        <div class="text-sm text-muted-foreground">
-          显示 {{ (page - 1) * pageSize + 1 }} 到 {{ Math.min(page * pageSize, total) }} 条，共 {{ total }} 条
+    <DataTable
+      v-model:sortField="sorting.by"
+      :sortOrder="sorting.order === 'asc' ? 1 : -1"
+      :value="salesData"
+      data-key="id"
+      :loading="isLoading"
+      :paginator="true"
+      :rows="pageSize"
+      :total-records="total"
+      :lazy="true"
+      :first="(page - 1) * pageSize"
+      class="shadow-1 border-round-2xl"
+      @page="onPage"
+      @sort="onSort"
+    >
+      <template #header>
+        <div class="flex justify-between items-center w-full">
+          <div>
+            <h3 class="text-lg font-semibold text-color m-0">销售数据管理</h3>
+            <p class="text-sm text-color-secondary m-0">支持分页、排序与筛选</p>
+          </div>
+          <span class="text-sm text-color-secondary">共 {{ total }} 条</span>
         </div>
-        <div class="flex items-center space-x-2">
-          <Button variant="outline" size="sm" @click="changePage(page - 1)" :disabled="page <= 1">
-            <ChevronLeftIcon class="h-4 w-4" />
-          </Button>
-          <span class="text-sm font-medium">{{ page }} / {{ totalPages }}</span>
-          <Button variant="outline" size="sm" @click="changePage(page + 1)" :disabled="page >= totalPages">
-            <ChevronRightIcon class="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
-    
-    <div v-if="!isLoading && salesData.length === 0 && !errorMessage" class="p-8 text-center text-muted-foreground bg-white rounded-lg border">
-      <p>未找到符合条件的数据。</p>
-    </div>
+      </template>
+
+      <template #empty>
+        <div class="text-center py-4 text-color-secondary">未找到符合条件的数据。</div>
+      </template>
+
+      <Column field="recordDate" header="日期" sortable style="width: 8rem">
+        <template #body="{ data }">
+          {{ formatDate(data.recordDate) }}
+        </template>
+      </Column>
+      <Column header="国家" style="width: 6rem">
+        <template #body="{ data }">
+          {{ data.store?.country?.name || data.store?.country?.code || '-' }}
+        </template>
+      </Column>
+      <Column header="店铺" style="width: 10rem">
+        <template #body="{ data }">
+          {{ data.store?.name || '-' }}
+        </template>
+      </Column>
+      <Column header="商品链接 / SKU" style="min-width: 14rem">
+        <template #body="{ data }">
+          <div class="flex flex-column gap-1">
+            <span class="font-semibold text-primary">
+              {{ data.listing?.productCode || '未关联' }}
+            </span>
+            <small class="text-color-secondary">
+              {{ data.product?.sku || 'SKU 缺失' }}
+              <span v-if="!data.listing" class="ml-1 text-500">(旧数据)</span>
+            </small>
+          </div>
+        </template>
+      </Column>
+      <Column field="orderStatus" header="状态" style="width: 8rem">
+        <template #body="{ data }">
+          <Tag
+            v-if="data.orderStatus"
+            :value="ORDER_STATUS_MAP[data.orderStatus] || data.orderStatus"
+            :severity="statusSeverity(data.orderStatus)"
+            rounded
+          />
+          <span v-else class="text-color-secondary">-</span>
+        </template>
+      </Column>
+      <Column field="salesVolume" header="销量" sortable style="width: 6rem" />
+      <Column field="revenue" header="销售额" sortable style="width: 8rem">
+        <template #body="{ data }">
+          {{ formatNumber(data.revenue) }}
+        </template>
+      </Column>
+      <Column header="备注" style="min-width: 12rem">
+        <template #body="{ data }">
+          <span :title="data.notes || ''" class="text-ellipsis">
+            {{ data.notes || 'N/A' }}
+          </span>
+        </template>
+      </Column>
+      <Column header="录入人" style="width: 8rem">
+        <template #body="{ data }">
+          {{ data.enteredBy?.nickname || '-' }}
+        </template>
+      </Column>
+      <Column header="操作" style="width: 9rem">
+        <template #body="{ data }">
+          <div v-if="data.canManage" class="flex gap-2">
+            <Button label="修改" size="small" text @click="openEditModal(data)" />
+            <Button
+              label="删除"
+              size="small"
+              severity="danger"
+              text
+              @click="handleDelete(data.id)"
+            />
+          </div>
+          <span v-else class="text-color-secondary text-sm">无权限</span>
+        </template>
+      </Column>
+    </DataTable>
+
+    <SalesDataEditModal
+      :is-open="isModalOpen"
+      :sale-data-to-edit="selectedSaleData"
+      @close="closeModal"
+      @sale-updated="handleSaleUpdated"
+    />
   </div>
-
-  <SalesDataEditModal
-    :is-open="isModalOpen"
-    :sale-data-to-edit="selectedSaleData"
-    @close="closeModal"
-    @sale-updated="handleSaleUpdated"
-  />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
-import { useAuthStore } from '../../stores/auth';
-import useStoreListings from '../../composables/useStoreListings';
+import { computed, onMounted, ref, watch } from 'vue';
+import Button from 'primevue/button';
+import Calendar from 'primevue/calendar';
+import Card from 'primevue/card';
+import Column from 'primevue/column';
+import DataTable, { type DataTablePageEvent, type DataTableSortEvent } from 'primevue/datatable';
+import Dropdown from 'primevue/dropdown';
+import Message from 'primevue/message';
+import Tag from 'primevue/tag';
+import { useAuthStore } from '@/stores/auth';
+import useStoreListings from '@/composables/useStoreListings';
 import SalesDataEditModal from './SalesDataEditModal.vue';
-import { salesService } from '../../services/salesService';
-import { FunnelIcon, ArrowPathIcon, ChevronUpIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/20/solid';
+import { salesService } from '@/services/salesService';
 
-// Shadcn Components
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+type CountryOption = { code: string; name: string };
+type StoreOption = { id: string; name: string; countryCode: string; platform: string; country?: CountryOption };
+type OrderStatus =
+  | 'PENDING'
+  | 'READY_TO_SHIP'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'RETURNED';
 
-// --- 常量 (Constants) ---
-const ORDER_STATUS_MAP: Record<string, string> = {
-  'PENDING': '待付款',
-  'READY_TO_SHIP': '待发货',
-  'SHIPPED': '已发货',
-  'DELIVERED': '已送达',
-  'COMPLETED': '已完成',
-  'CANCELLED': '已取消',
-  'RETURNED': '已退货'
+type SalesRow = {
+  id: string;
+  recordDate: string;
+  storeId: string;
+  store?: {
+    id?: string;
+    name?: string;
+    country?: CountryOption;
+    countryCode: string;
+    platform: string;
+  };
+  listing?: { productCode?: string | null };
+  product?: { sku?: string | null };
+  orderStatus?: OrderStatus | null;
+  salesVolume: number;
+  revenue: number;
+  notes?: string | null;
+  enteredBy?: { nickname?: string | null };
+  canManage?: boolean;
 };
 
-// --- 状态(State) ---
-const salesData = ref<any[]>([]);
+type SalesQueryParams = {
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+  page: number;
+  pageSize: number;
+  startDate?: string;
+  endDate?: string;
+  countryCode?: string;
+  platform?: string;
+  storeId?: string;
+  orderStatus?: string;
+};
+
+type PaginatedResponse<T> = {
+  data: T[];
+  total: number;
+  page: number;
+};
+
+const ORDER_STATUS_MAP: Record<string, string> = {
+  PENDING: '待付款',
+  READY_TO_SHIP: '待发货',
+  SHIPPED: '已发货',
+  DELIVERED: '已送达',
+  COMPLETED: '已完成',
+  CANCELLED: '已取消',
+  RETURNED: '已退货',
+};
+
+const salesData = ref<SalesRow[]>([]);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const authStore = useAuthStore();
 
-// 分页状态
 const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1);
 
-// 筛选器状态
-const {
-  stores,
-  fetchStores,
-  storesError,
-} = useStoreListings();
+const statusOptions = Object.entries(ORDER_STATUS_MAP).map(([value, label]) => ({ value, label }));
 
-const defaultFilters = () => ({
-  startDate: '',
-  endDate: '',
-  countryCode: '',
-  platform: '',
-  storeId: '',
-  orderStatus: '',
+const { stores, fetchStores, storesError } = useStoreListings();
+
+type Filters = {
+  startDate: Date | null;
+  endDate: Date | null;
+  countryCode: string | null;
+  platform: string | null;
+  storeId: string | null;
+  orderStatus: OrderStatus | null;
+};
+
+const defaultFilters = (): Filters => ({
+  startDate: null,
+  endDate: null,
+  countryCode: null,
+  platform: null,
+  storeId: null,
+  orderStatus: null,
 });
-const filters = ref(defaultFilters());
-const sorting = ref({ by: 'recordDate', order: 'desc' });
 
-// 弹窗状态
-const isModalOpen = ref(false);
-const selectedSaleData = ref(null);
+const filters = ref<Filters>(defaultFilters());
+const sorting = ref<{ by: string; order: 'asc' | 'desc' }>({ by: 'recordDate', order: 'desc' });
 
-// --- 帮助组件：排序图标---
-// SortIcon logic inlined in template
+const countryOptions = computed<CountryOption[]>(() => {
+  const unique = new Map<string, CountryOption>();
+  stores.value.forEach((store: StoreOption) => {
+    if (store.country) {
+      unique.set(store.country.code, store.country);
+    }
+  });
+  const all = Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name));
+  if (authStore.role === 'admin') return all;
+  const allowed = authStore.operatedCountries || [];
+  return all.filter((country) => allowed.includes(country.code));
+});
 
-// --- 核心方法 (Methods) ---
-
-async function fetchData(resetPage = false) {
-  if (resetPage) {
-    page.value = 1;
+const platformOptions = computed(() => {
+  let list = stores.value as StoreOption[];
+  if (filters.value.countryCode) {
+    list = list.filter((store) => store.countryCode === filters.value.countryCode);
   }
-  isLoading.value = true;
-  errorMessage.value = '';
-  
-  const params: any = {
+  return Array.from(new Set(list.map((store) => store.platform))).sort();
+});
+
+const storeOptions = computed<StoreOption[]>(() => {
+  let list = stores.value as StoreOption[];
+  if (filters.value.countryCode) {
+    list = list.filter((store) => store.countryCode === filters.value.countryCode);
+  }
+  if (filters.value.platform) {
+    list = list.filter((store) => store.platform === filters.value.platform);
+  }
+  return list.sort((a, b) => a.name.localeCompare(b.name));
+});
+
+watch(
+  () => storesError.value,
+  (val) => {
+    if (val) {
+      errorMessage.value = val;
+    }
+    filters.value.storeId = null;
+  },
+);
+
+const formatNumber = (value: number) => (Number.isFinite(value) ? value.toFixed(2) : '0.00');
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toISOString().split('T')[0];
+};
+
+const statusSeverity = (status: string | undefined | null) => {
+  switch (status) {
+    case 'COMPLETED':
+      return 'success';
+    case 'PENDING':
+      return 'warning';
+    case 'CANCELLED':
+    case 'RETURNED':
+      return 'danger';
+    case 'READY_TO_SHIP':
+    case 'SHIPPED':
+      return 'info';
+    default:
+      return 'secondary';
+  }
+};
+
+const onPage = (event: DataTablePageEvent) => {
+  page.value = (event.page ?? 0) + 1;
+  pageSize.value = event.rows ?? pageSize.value;
+  fetchData();
+};
+
+const onSort = (event: DataTableSortEvent) => {
+  if (event.sortField) {
+    sorting.value.by = event.sortField as string;
+  }
+  sorting.value.order = event.sortOrder === 1 ? 'asc' : 'desc';
+  fetchData();
+};
+
+const buildParams = (): SalesQueryParams => {
+  const params: SalesQueryParams = {
     sortBy: sorting.value.by,
     sortOrder: sorting.value.order,
     page: page.value,
     pageSize: pageSize.value,
   };
-  
-  for (const key in filters.value) {
-    if ((filters.value as any)[key]) {
-      params[key] = (filters.value as any)[key];
-    }
+
+  const { startDate, endDate, countryCode, platform, storeId, orderStatus } = filters.value;
+
+  if (startDate) params.startDate = formatDateInput(startDate);
+  if (endDate) params.endDate = formatDateInput(endDate);
+  if (countryCode) params.countryCode = countryCode;
+  if (platform) params.platform = platform;
+  if (storeId) params.storeId = storeId;
+  if (orderStatus) params.orderStatus = orderStatus;
+
+  return params;
+};
+
+const formatDateInput = (date: Date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+};
+
+const resetFilters = () => {
+  filters.value = defaultFilters();
+  sorting.value = { by: 'recordDate', order: 'desc' };
+  page.value = 1;
+  fetchData();
+};
+
+const fetchData = async (resetPage = false) => {
+  if (resetPage) {
+    page.value = 1;
   }
+  isLoading.value = true;
+  errorMessage.value = '';
 
   try {
+    const params = buildParams();
     const data = await salesService.getSalesData(params);
-    
+
     if (Array.isArray(data)) {
-      // 兼容旧接口
       salesData.value = data;
       total.value = data.length;
     } else {
-      // 新分页接口
-      salesData.value = data.data;
-      total.value = data.total;
-      page.value = data.page;
+      const paged = data as PaginatedResponse<SalesRow>;
+      salesData.value = paged.data;
+      total.value = paged.total;
+      page.value = paged.page;
     }
   } catch (error) {
     console.error('获取销售数据失败', error);
@@ -312,136 +434,53 @@ async function fetchData(resetPage = false) {
   } finally {
     isLoading.value = false;
   }
-}
+};
 
-function changePage(newPage: number) {
-  if (newPage < 1 || newPage > totalPages.value) return;
-  page.value = newPage;
-  fetchData(false);
-}
-
-onMounted(() => {
-  fetchData();
-  fetchStores();
-});
-
-const countryOptions = computed(() => {
-  const uniqueCountriesMap = new Map<string, any>();
-  stores.value.forEach((store: any) => {
-    if (store.country) {
-      uniqueCountriesMap.set(store.country.code, store.country);
-    }
-  });
-  const allUniqueCountries = Array.from(uniqueCountriesMap.values())
-    .sort((a: any, b: any) => a.name.localeCompare(b.name));
-
-  if (authStore.role === 'admin') {
-    return allUniqueCountries; 
+const handleDelete = async (id: string) => {
+  if (!confirm('确定要删除这条销售数据吗？此操作不可逆。')) return;
+  try {
+    await salesService.delete(id);
+    salesData.value = salesData.value.filter((row) => row.id !== id);
+    total.value = Math.max(0, total.value - 1);
+  } catch (error: any) {
+    console.error('删除失败:', error);
+    errorMessage.value = error.response?.data?.error || '删除失败，请重试。';
   }
-  const userCountryCodes = authStore.operatedCountries || []; 
-  return allUniqueCountries.filter((country: any) => 
-    userCountryCodes.includes(country.code)
-  );
-});
+};
 
-const platformOptions = computed(() => {
-  let storesToFilter = stores.value;
-  if (filters.value.countryCode) {
-    storesToFilter = storesToFilter.filter((store: any) => store.countryCode === filters.value.countryCode);
-  }
-  const platforms = storesToFilter.map((store: any) => store.platform);
-  return [...new Set(platforms)].sort();
-});
+const isModalOpen = ref(false);
+const selectedSaleData = ref<SalesRow | null>(null);
 
-const storeOptions = computed(() => {
-  let storesToFilter = stores.value;
-  
-  if (filters.value.countryCode) {
-    storesToFilter = storesToFilter.filter((store: any) => 
-      store.countryCode === filters.value.countryCode
-    );
-  }
-  if (filters.value.platform) {
-    storesToFilter = storesToFilter.filter((store: any) =>
-      store.platform === filters.value.platform
-    );
-  }
-  
-  return storesToFilter.sort((a: any, b: any) => a.name.localeCompare(b.name));
-});
-
-watch(() => storesError.value, (val) => {
-  if (val) {
-    errorMessage.value = val;
-  }
-  filters.value.storeId = '';
-});
-
-function resetFilters() {
-  filters.value = defaultFilters();
-  sorting.value = { by: 'recordDate', order: 'desc' };
-  fetchData(true); // 重置筛选时也重置页码
-}
-
-function setSort(field: string) {
-  if (sorting.value.by === field) {
-    sorting.value.order = sorting.value.order === 'asc' ? 'desc' : 'asc';
-  } else {
-    sorting.value.by = field;
-    sorting.value.order = 'desc';
-  }
-  fetchData(false); // 排序时保持在当前页
-}
-
-async function handleDelete(id: string) {
-  if (confirm('确定要删除这条销售数据吗？此操作不可逆。')) {
-    try {
-      await salesService.delete(id);
-      salesData.value = salesData.value.filter(row => row.id !== id);
-    } catch (error: any) {
-      console.error('删除失败:', error);
-      errorMessage.value = error.response?.data?.error || '删除失败，请重试。';
-    }
-  }
-}
-
-function openEditModal(row: any) {
+const openEditModal = (row: SalesRow) => {
   selectedSaleData.value = row;
   isModalOpen.value = true;
-}
+};
 
-function closeModal() {
+const closeModal = () => {
   isModalOpen.value = false;
   selectedSaleData.value = null;
-}
+};
 
-function handleSaleUpdated(updatedRow: any) {
-  const index = salesData.value.findIndex(row => row.id === updatedRow.id);
+const handleSaleUpdated = (updatedRow: SalesRow) => {
+  const index = salesData.value.findIndex((row) => row.id === updatedRow.id);
   if (index !== -1) {
     salesData.value[index] = updatedRow;
   }
   closeModal();
-}
+};
 
-function formatDate(dateString: string) {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toISOString().split('T')[0];
-}
-
-function getStatusClass(status: string) {
-  const classes: Record<string, string> = {
-    'PENDING': 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
-    'READY_TO_SHIP': 'bg-blue-50 text-blue-700 ring-blue-600/20',
-    'SHIPPED': 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
-    'DELIVERED': 'bg-purple-50 text-purple-700 ring-purple-600/20',
-    'COMPLETED': 'bg-green-50 text-green-700 ring-green-600/20',
-    'CANCELLED': 'bg-red-50 text-red-700 ring-red-600/20',
-    'RETURNED': 'bg-orange-50 text-orange-700 ring-orange-600/20',
-  };
-  return classes[status] || 'bg-gray-50 text-gray-600 ring-gray-500/10';
-}
+onMounted(async () => {
+  await fetchStores();
+  fetchData();
+});
 </script>
 
 <style scoped>
-/* Removed custom styles in favor of Tailwind/Shadcn */
+.text-ellipsis {
+  display: inline-block;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

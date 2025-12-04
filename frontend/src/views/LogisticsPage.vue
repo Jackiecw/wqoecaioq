@@ -207,7 +207,6 @@
       :order-id="selectedDetailId" 
       :is-open="detailModalOpen"
       @close="closeDetail"
-      @refresh="fetchData(pagination.page)"
     />
 
     <LogisticsBatchFormModal 

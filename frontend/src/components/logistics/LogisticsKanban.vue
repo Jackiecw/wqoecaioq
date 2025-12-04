@@ -43,28 +43,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import LogisticsKanbanCard from './LogisticsKanbanCard.vue';
 
-const props = defineProps({
-  batches: {
-    type: Array,
-    required: true,
-  },
-  isLoading: {
-    type: Boolean,
-    default: false,
-  },
-  isAdmin: {
-    type: Boolean,
-    default: false,
-  },
-});
+type LogisticsStatus =
+  | 'FACTORY'
+  | 'WAREHOUSE_READY'
+  | 'CONTAINER_LOADED'
+  | 'EXPORT_CUSTOMS'
+  | 'SHIPPING'
+  | 'IMPORT_CUSTOMS'
+  | 'LOCAL_DELIVERY'
+  | 'COMPLETED';
 
-const emit = defineEmits(['update-status-request']);
+type Batch = {
+  id: string | number;
+  batchNumber: string;
+  currentStatus: LogisticsStatus;
+  totalPrice?: number | string | null;
+  product: {
+    sku: string;
+    name: string;
+  };
+  productSpec?: string | null;
+  quantity: number;
+  estimatedWarehouseDate?: string | null;
+  country: {
+    code: string;
+    name?: string | null;
+  };
+  [key: string]: any;
+};
 
-// (与 Stepper / Schema 保持一致)
-const STATUS_META = [
+type ColumnMeta = {
+  key: LogisticsStatus;
+  label: string;
+  subtitle: string;
+  accent: string;
+};
+
+type ColumnState = ColumnMeta & {
+  batches: Batch[];
+  totalAmount: string | null;
+  status: LogisticsStatus;
+};
+
+const props = defineProps<{
+  batches: Batch[];
+  isLoading?: boolean;
+  isAdmin?: boolean;
+}>();
+
+const emit = defineEmits<{
+  (e: 'update-status-request', payload: { batch: Batch; targetStatus: LogisticsStatus | null }): void;
+}>();
+
+const STATUS_META: ColumnMeta[] = [
   { key: 'FACTORY', label: '生产中', subtitle: '排产与备料', accent: '#A5B4FC' },
   { key: 'WAREHOUSE_READY', label: '待出库', subtitle: '成品待发', accent: '#67E8F9' },
   { key: 'CONTAINER_LOADED', label: '已装柜', subtitle: '等待出口', accent: '#34D399' },
@@ -75,9 +109,11 @@ const STATUS_META = [
   { key: 'COMPLETED', label: '已入仓', subtitle: '入仓完成', accent: '#A7F3D0' },
 ];
 
-// (核心) 将传入的 batches 数组按状态分组，顺便统计金额
-const columns = computed(() => {
-  const batchesByStatus = props.batches.reduce((acc, batch) => {
+const draggingBatchId = ref<string | number | null>(null);
+const dragOverStatus = ref<LogisticsStatus | null>(null);
+
+const columns = computed<ColumnState[]>(() => {
+  const batchesByStatus = props.batches.reduce<Record<string, Batch[]>>((acc, batch) => {
     const status = batch.currentStatus;
     if (!acc[status]) {
       acc[status] = [];
@@ -88,45 +124,38 @@ const columns = computed(() => {
 
   return STATUS_META.map((statusInfo) => {
     const batchesInColumn = batchesByStatus[statusInfo.key] || [];
-    const totalAmount = batchesInColumn.reduce((sum, batch) => {
-      return sum + (Number(batch.totalPrice) || 0);
-    }, 0);
-
+    const totalAmountNumber = batchesInColumn.reduce((sum, batch) => sum + (Number(batch.totalPrice) || 0), 0);
     return {
       ...statusInfo,
+      status: statusInfo.key,
       batches: batchesInColumn,
-      totalAmount: totalAmount
-        ? totalAmount.toLocaleString('zh-CN', { maximumFractionDigits: 0 })
+      totalAmount: totalAmountNumber
+        ? totalAmountNumber.toLocaleString('zh-CN', { maximumFractionDigits: 0 })
         : null,
     };
   });
 });
 
-// --- 拖拽逻辑 ---
-const draggingBatchId = ref(null);
-const dragOverStatus = ref(null); // (用于高亮)
-
-function onDragStart(batch) {
+const onDragStart = (batch: Batch) => {
   draggingBatchId.value = batch.id;
   dragOverStatus.value = null;
-}
+};
 
-function onDragOver(statusKey) {
+const onDragOver = (statusKey: LogisticsStatus) => {
   if (!props.isAdmin) return;
   dragOverStatus.value = statusKey;
-}
+};
 
-function onDragLeave(statusKey) {
+const onDragLeave = (statusKey: LogisticsStatus) => {
   if (dragOverStatus.value === statusKey) {
     dragOverStatus.value = null;
   }
-}
+};
 
-function onDrop(targetStatus) {
+const onDrop = (targetStatus: LogisticsStatus) => {
   if (!props.isAdmin) return;
-
   const batchId = draggingBatchId.value;
-  const batch = props.batches.find((b) => b.id === batchId);
+  const batch = props.batches.find((item) => item.id === batchId);
 
   dragOverStatus.value = null;
   draggingBatchId.value = null;
@@ -134,13 +163,12 @@ function onDrop(targetStatus) {
   if (batch && batch.currentStatus !== targetStatus) {
     emit('update-status-request', { batch, targetStatus });
   }
-}
+};
 
-// (点击卡片，也发出相同事件)
-function onCardClick(batch) {
+const onCardClick = (batch: Batch) => {
   if (!props.isAdmin) return;
   emit('update-status-request', { batch, targetStatus: null });
-}
+};
 </script>
 
 <style scoped>
@@ -197,39 +225,41 @@ function onCardClick(batch) {
   color: #0f172a;
 }
 .column-subtitle {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: 0.8rem;
+  color: #475569;
 }
 .column-metrics {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 .column-count {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #2563eb;
-  background-color: rgba(37, 99, 235, 0.12);
-  padding: 0.15rem 0.75rem;
+  background: #1d4ed8;
+  color: #fff;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
 }
 .column-amount {
-  font-size: 0.75rem;
-  color: #475569;
+  font-size: 0.85rem;
+  color: #0f172a;
+  font-weight: 600;
 }
 .column-body {
-  padding: 1rem;
-  height: calc(100% - 70px);
-  overflow-y: auto;
+  padding: 0.75rem 1rem 1rem;
+  min-height: 420px;
 }
 .column-empty {
-  padding: 2rem 0;
   text-align: center;
-  font-size: 0.875rem;
-  color: #9ca3af;
+  padding: 1.5rem 0.5rem;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  border: 1px dashed #e2e8f0;
+  border-radius: 0.75rem;
 }
 .column-empty .muted {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
 }
 </style>

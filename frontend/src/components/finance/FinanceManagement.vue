@@ -1,121 +1,170 @@
 <template>
-  <div class="space-y-6">
-    <h2 class="text-3xl font-bold text-stone-900">支出查询</h2>
-
-    <div class="p-4 bg-white rounded-lg shadow space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="input-group">
-          <label for="startDate">开始日期</label>
-          <input type="date" id="startDate" v-model="filters.startDate" class="form-input" />
-        </div>
-
-        <div class="input-group">
-          <label for="endDate">结束日期</label>
-          <input type="date" id="endDate" v-model="filters.endDate" class="form-input" />
-        </div>
-
-        <div class="input-group">
-          <label for="filterCountry">归属国家</label>
-          <select id="filterCountry" v-model="filters.countryCode" class="form-input">
-            <option value="">所有国家</option>
-            <option v-for="country in countryOptions" :key="country.code" :value="country.code">
-              {{ country.name }} ({{ country.code }})
-            </option>
-          </select>
-        </div>
-
-        <div class="input-group">
-          <label for="filterStore">归属店铺</label>
-          <select
-            id="filterStore"
-            v-model="filters.storeId"
-            :disabled="!filters.countryCode"
-            class="form-input disabled:bg-gray-100"
-          >
-            <option value="">所有店铺</option>
-            <option v-for="store in storeOptions" :key="store.id" :value="store.id">
-              {{ store.name }}
-            </option>
-          </select>
-        </div>
+  <div class="flex flex-column gap-4">
+    <!-- Page Header -->
+    <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3">
+      <div>
+        <h1 class="text-3xl font-bold text-900 m-0">财务管理</h1>
+        <p class="text-500 mt-1 mb-0">管理店铺支出记录与财务审核</p>
       </div>
-
-      <div class="flex justify-end space-x-4">
-        <button
-          @click="resetFilters"
-          class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          <ArrowPathIcon class="h-5 w-5 inline-block -mt-1 mr-1" />
-          重置
-        </button>
-        <button
-          @click="fetchData(true)"
-          class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          <FunnelIcon class="h-5 w-5 inline-block -mt-1 mr-1" />
-          查询
-        </button>
+      <div class="flex gap-2">
+        <!-- Future actions like "Export" can go here -->
       </div>
     </div>
 
-    <p v-if="isLoading" class="text-stone-500">正在加载数据...</p>
-    <p v-if="errorMessage" class="text-red-600">{{ errorMessage }}</p>
+    <!-- Main Content Card -->
+    <Card class="shadow-sm border-round-2xl">
+      <template #content>
+        <!-- Filters Section -->
+        <div class="surface-ground p-4 border-round-xl mb-4">
+          <div class="grid formgrid p-fluid">
+            <div class="field col-12 md:col-3 mb-0">
+              <label class="font-semibold text-sm mb-2 block text-700">开始日期</label>
+              <Calendar v-model="filters.startDate" date-format="yy-mm-dd" show-icon class="w-full" placeholder="选择开始日期" />
+            </div>
+            <div class="field col-12 md:col-3 mb-0">
+              <label class="font-semibold text-sm mb-2 block text-700">结束日期</label>
+              <Calendar v-model="filters.endDate" date-format="yy-mm-dd" show-icon class="w-full" placeholder="选择结束日期" />
+            </div>
+            <div class="field col-12 md:col-3 mb-0">
+              <label class="font-semibold text-sm mb-2 block text-700">归属国家</label>
+              <Dropdown
+                v-model="filters.countryCode"
+                :options="countryOptions"
+                option-label="name"
+                option-value="code"
+                placeholder="全部国家"
+                show-clear
+                filter
+                class="w-full"
+              />
+            </div>
+            <div class="field col-12 md:col-3 mb-0">
+              <label class="font-semibold text-sm mb-2 block text-700">归属店铺</label>
+              <Dropdown
+                v-model="filters.storeId"
+                :options="storeOptions"
+                option-label="name"
+                option-value="id"
+                placeholder="全部店铺"
+                show-clear
+                filter
+                :disabled="storeOptions.length === 0"
+                class="w-full"
+              />
+            </div>
+          </div>
+          <div class="flex justify-content-end gap-2 mt-3">
+            <Button label="重置" severity="secondary" text icon="pi pi-refresh" @click="resetFilters" />
+            <Button label="查询" icon="pi pi-search" @click="fetchData(true)" />
+          </div>
+        </div>
 
-    <div v-if="!isLoading && expenses.length > 0" class="bg-white rounded-lg shadow overflow-x-auto">
-      <table class="min-w-full divide-y divide-stone-200">
-        <thead class="bg-stone-50">
-          <tr>
-            <th @click="setSort('expenseDate')" class="table-th cursor-pointer">
-              支出日期 <SortIcon :field="'expenseDate'" :sorting="sorting" />
-            </th>
-            <th class="table-th">项目</th>
-            <th @click="setSort('amount')" class="table-th cursor-pointer">
-              金额 <SortIcon :field="'amount'" :sorting="sorting" />
-            </th>
-            <th class="table-th">付款方式</th>
-            <th class="table-th">付款方</th>
-            <th class="table-th">收款方</th>
-            <th class="table-th">归属店铺</th>
-            <th class="table-th">是否垫付</th>
-            <th class="table-th">票据状态</th>
-            <th class="table-th">录入</th>
-            <th class="table-th">操作</th>
-          </tr>
-        </thead>
+        <Message v-if="errorMessage" severity="error" :closable="false" class="mb-4">
+          {{ errorMessage }}
+        </Message>
 
-        <tbody class="bg-white divide-y divide-stone-200">
-          <tr v-for="row in expenses" :key="row.id">
-            <td class="table-td">{{ formatDate(row.expenseDate) }}</td>
-            <td class="table-td max-w-xs truncate" :title="row.itemDescription">{{ row.itemDescription }}</td>
-            <td class="table-td">{{ row.amount.toFixed(2) }}</td>
-            <td class="table-td">{{ paymentMethodMap[row.paymentMethod] || row.paymentMethod }}</td>
-            <td class="table-td">{{ row.payer }}</td>
-            <td class="table-td">{{ row.payee }}</td>
-            <td class="table-td">{{ row.store?.name || 'N/A' }}</td>
-            <td class="table-td">
-              <span v-if="row.isAdvancePayment" class="text-red-600 font-semibold">是</span>
-              <span v-else class="text-gray-400">否</span>
-            </td>
-            <td class="table-td">{{ invoiceStatusMap[row.invoiceStatus] || row.invoiceStatus }}</td>
-            <td class="table-td">{{ row.enteredBy?.nickname || '—' }}</td>
-            <td class="table-td">
-              <div v-if="row.canManage" class="flex space-x-3">
-                <button @click="openEditModal(row)" class="text-indigo-600 hover:text-indigo-900">修改</button>
-                <button @click="handleDelete(row.id)" class="text-red-600 hover:text-red-900">删除</button>
+        <!-- Data Table -->
+        <DataTable
+          v-model:sortField="sorting.by"
+          :sortOrder="sorting.order === 'asc' ? 1 : -1"
+          :value="expenses"
+          data-key="id"
+          :loading="isLoading"
+          :paginator="true"
+          :rows="pageSize"
+          :total-records="total"
+          :lazy="true"
+          :first="(page - 1) * pageSize"
+          class="p-datatable-lg"
+          @page="onPage"
+          @sort="onSort"
+        >
+          <template #empty>
+            <div class="text-center py-6">
+              <i class="pi pi-file-excel text-4xl text-400 mb-3"></i>
+              <p class="text-500">未找到符合条件的支出记录</p>
+            </div>
+          </template>
+
+          <Column field="expenseDate" header="支出日期" sortable style="width: 10%">
+            <template #body="{ data }">
+              <span class="font-medium text-900">{{ formatDate(data.expenseDate) }}</span>
+            </template>
+          </Column>
+          <Column header="项目" style="min-width: 15%">
+            <template #body="{ data }">
+              <span :title="data.itemDescription" class="text-ellipsis text-700 font-medium">
+                {{ data.itemDescription }}
+              </span>
+            </template>
+          </Column>
+          <Column field="amount" header="金额" sortable style="width: 10%">
+            <template #body="{ data }">
+              <span class="font-bold text-900">{{ formatNumber(data.amount) }}</span>
+            </template>
+          </Column>
+          <Column header="付款方式" style="width: 10%">
+            <template #body="{ data }">
+              <span class="text-700">{{ paymentMethodMap[data.paymentMethod] || data.paymentMethod }}</span>
+            </template>
+          </Column>
+          <Column header="付款人" style="width: 10%">
+            <template #body="{ data }">
+              {{ data.payer || '-' }}
+            </template>
+          </Column>
+          <Column header="收款人" style="width: 10%">
+            <template #body="{ data }">
+              {{ data.payee || '-' }}
+            </template>
+          </Column>
+          <Column header="归属店铺" style="width: 12%">
+            <template #body="{ data }">
+              <div class="flex align-items-center gap-2">
+                <i class="pi pi-shop text-500"></i>
+                <span>{{ data.store?.name || 'N/A' }}</span>
               </div>
-              <span v-else class="text-gray-400 text-xs">无权</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div
-      v-if="!isLoading && expenses.length === 0 && !errorMessage"
-      class="p-6 bg-white rounded-lg shadow text-center text-stone-500"
-    >
-      <p>未找到符合条件的数据</p>
-    </div>
+            </template>
+          </Column>
+          <Column header="垫付" style="width: 8%">
+            <template #body="{ data }">
+              <Tag :value="data.isAdvancePayment ? '是' : '否'" :severity="data.isAdvancePayment ? 'warning' : 'success'" rounded />
+            </template>
+          </Column>
+          <Column header="票据" style="width: 8%">
+            <template #body="{ data }">
+              <Tag
+                :value="invoiceStatusMap[data.invoiceStatus] || data.invoiceStatus"
+                :severity="invoiceSeverity(data.invoiceStatus)"
+                rounded
+              />
+            </template>
+          </Column>
+          <Column header="录入人" style="width: 8%">
+            <template #body="{ data }">
+              <span class="text-sm text-500">{{ data.enteredBy?.nickname || '-' }}</span>
+            </template>
+          </Column>
+          <Column header="操作" style="width: 10%" alignFrozen="right" frozen>
+            <template #body="{ data }">
+              <div v-if="data.canManage" class="flex gap-2">
+                <Button icon="pi pi-pencil" size="small" text rounded severity="secondary" @click="openEditModal(data)" v-tooltip.top="'修改'" />
+                <Button
+                  icon="pi pi-trash"
+                  size="small"
+                  severity="danger"
+                  text
+                  rounded
+                  @click="handleDelete(data.id)"
+                  v-tooltip.top="'删除'"
+                />
+              </div>
+              <span v-else class="text-500 text-xs">无权限</span>
+            </template>
+          </Column>
+        </DataTable>
+      </template>
+    </Card>
 
     <FinanceEditModal
       :is-open="isModalOpen"
@@ -127,21 +176,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, defineComponent } from 'vue';
-import { FunnelIcon, ArrowPathIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/vue/20/solid';
+import { computed, onMounted, ref, watch } from 'vue';
+import Button from 'primevue/button';
+import Calendar from 'primevue/calendar';
+import Card from 'primevue/card';
+import Column from 'primevue/column';
+import DataTable, { type DataTablePageEvent, type DataTableSortEvent } from 'primevue/datatable';
+import Dropdown from 'primevue/dropdown';
+import Message from 'primevue/message';
+import Tag from 'primevue/tag';
 import { useAuthStore } from '@/stores/auth';
 import FinanceEditModal from './FinanceEditModal.vue';
-import financeService, { ExpenseRecord, StoreOption } from '@/services/financeService';
+import financeService, { type ExpenseRecord, type StoreOption } from '@/services/financeService';
 
-type SortField = 'expenseDate' | 'amount';
+type SortByField = string;
 type SortOrder = 'asc' | 'desc';
 
-interface Filters {
-  startDate: string;
-  endDate: string;
-  countryCode: string;
-  storeId: string;
-}
+type Filters = {
+  startDate: Date | null;
+  endDate: Date | null;
+  countryCode: string | null;
+  storeId: string | null;
+};
+
+type PaginatedResponse<T> = {
+  data: T[];
+  total?: number;
+  page?: number;
+};
 
 const paymentMethodMap: Record<string, string> = {
   ALIPAY: '支付宝',
@@ -165,132 +227,151 @@ const isLoading = ref(true);
 const errorMessage = ref('');
 
 const allStores = ref<StoreOption[]>([]);
-const defaultFilters = (): Filters => ({
-  startDate: '',
-  endDate: '',
-  countryCode: '',
-  storeId: '',
+const filters = ref<Filters>({
+  startDate: null,
+  endDate: null,
+  countryCode: null,
+  storeId: null,
 });
-const filters = ref<Filters>(defaultFilters());
-const sorting = ref<{ by: SortField; order: SortOrder }>({ by: 'expenseDate', order: 'desc' });
+const sorting = ref<{ by: SortByField; order: SortOrder }>({ by: 'expenseDate', order: 'desc' });
 
-const isModalOpen = ref(false);
-const selectedExpense = ref<ExpenseRecord | null>(null);
-
-const SortIcon = defineComponent({
-  props: {
-    field: { type: String, required: true },
-    sorting: { type: Object as () => { by: SortField; order: SortOrder }, required: true },
-  },
-  components: { ChevronUpIcon, ChevronDownIcon },
-  template: `
-    <span class="inline-block w-4">
-      <ChevronUpIcon v-if="sorting.by === field && sorting.order === 'asc'" class="h-4 w-4" />
-      <ChevronDownIcon v-else-if="sorting.by === field && sorting.order === 'desc'" class="h-4 w-4" />
-    </span>
-  `,
-});
-
-const fetchData = async (showLoading = true) => {
-  if (showLoading) isLoading.value = true;
-  errorMessage.value = '';
-
-  const params: Record<string, any> = {
-    sortBy: sorting.value.by,
-    sortOrder: sorting.value.order,
-  };
-
-  Object.entries(filters.value).forEach(([key, value]) => {
-    if (value) params[key] = value;
-  });
-
-  try {
-    const data = await financeService.listExpenses(params);
-    if (Array.isArray(data)) {
-      expenses.value = data;
-    } else {
-      expenses.value = data.data || [];
-    }
-  } catch (error) {
-    console.error('获取支出数据失败:', error);
-    errorMessage.value = '获取数据失败，请重试';
-  } finally {
-    if (showLoading) isLoading.value = false;
-  }
-};
-
-const fetchStoresForFilter = async () => {
-  try {
-    allStores.value = await financeService.getStores();
-  } catch (error) {
-    console.error('获取店铺列表失败:', error);
-  }
-};
-
-onMounted(() => {
-  fetchData();
-  fetchStoresForFilter();
-});
+const page = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
 
 const countryOptions = computed(() => {
-  const uniqueCountriesMap = new Map<string, { code: string; name: string }>();
+  const unique = new Map<string, { code: string; name: string }>();
   allStores.value.forEach((store) => {
     if (store.country) {
-      uniqueCountriesMap.set(store.country.code, store.country);
+      unique.set(store.country.code, store.country);
     }
   });
-  const allUniqueCountries = Array.from(uniqueCountriesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  const all = Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name));
 
-  if (authStore.role === 'admin') {
-    return allUniqueCountries;
-  }
-  const userCountryCodes = authStore.supervisedCountries || authStore.operatedCountries || [];
-  return allUniqueCountries.filter((country) => userCountryCodes.includes(country.code));
+  if (authStore.role === 'admin') return all;
+  const userCountries = authStore.supervisedCountries || authStore.operatedCountries || [];
+  return all.filter((country) => userCountries.includes(country.code));
 });
 
 const storeOptions = computed(() => {
-  let storesToFilter = allStores.value;
-
+  let list = allStores.value;
   if (filters.value.countryCode) {
-    storesToFilter = storesToFilter.filter((store) => store.countryCode === filters.value.countryCode);
+    list = list.filter((store) => store.countryCode === filters.value.countryCode);
   }
-
-  return storesToFilter.sort((a, b) => a.name.localeCompare(b.name));
+  return list.sort((a, b) => a.name.localeCompare(b.name));
 });
 
 watch(
   () => filters.value.countryCode,
   () => {
-    filters.value.storeId = '';
+    filters.value.storeId = null;
   },
 );
 
-const resetFilters = () => {
-  filters.value = defaultFilters();
-  sorting.value = { by: 'expenseDate', order: 'desc' };
-  fetchData();
+const formatDate = (dateString?: string) => {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toISOString().split('T')[0];
 };
 
-const setSort = (field: SortField) => {
-  if (sorting.value.by === field) {
-    sorting.value.order = sorting.value.order === 'asc' ? 'desc' : 'asc';
-  } else {
-    sorting.value.by = field;
-    sorting.value.order = 'desc';
+const formatNumber = (num: number) => (Number.isFinite(num) ? num.toFixed(2) : '0.00');
+
+const invoiceSeverity = (status: string | undefined) => {
+  switch (status) {
+    case 'SPECIAL':
+      return 'info';
+    case 'REGULAR':
+      return 'success';
+    default:
+      return 'secondary';
   }
+};
+
+const onPage = (event: DataTablePageEvent) => {
+  page.value = (event.page ?? 0) + 1;
+  pageSize.value = event.rows ?? pageSize.value;
   fetchData(false);
 };
 
+const onSort = (event: DataTableSortEvent) => {
+  if (event.sortField) sorting.value.by = event.sortField as SortByField;
+  sorting.value.order = event.sortOrder === 1 ? 'asc' : 'desc';
+  fetchData(false);
+};
+
+const formatDateInput = (date: Date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+};
+
+const buildParams = () => {
+  const params: Record<string, any> = {
+    sortBy: sorting.value.by,
+    sortOrder: sorting.value.order,
+    page: page.value,
+    pageSize: pageSize.value,
+  };
+
+  const { startDate, endDate, countryCode, storeId } = filters.value;
+  if (startDate) params.startDate = formatDateInput(startDate);
+  if (endDate) params.endDate = formatDateInput(endDate);
+  if (countryCode) params.countryCode = countryCode;
+  if (storeId) params.storeId = storeId;
+
+  return params;
+};
+
+const resetFilters = () => {
+  filters.value = {
+    startDate: null,
+    endDate: null,
+    countryCode: null,
+    storeId: null,
+  };
+  sorting.value = { by: 'expenseDate', order: 'desc' };
+  page.value = 1;
+  fetchData();
+};
+
+const fetchData = async (resetPage = false) => {
+  if (resetPage) page.value = 1;
+  isLoading.value = true;
+  errorMessage.value = '';
+
+  try {
+    const params = buildParams();
+    const data = await financeService.listExpenses(params);
+    if (Array.isArray(data)) {
+      expenses.value = data;
+      total.value = data.length;
+    } else {
+      const paged = data as PaginatedResponse<ExpenseRecord>;
+      expenses.value = paged.data || [];
+      total.value = paged.total ?? expenses.value.length;
+      page.value = paged.page ?? page.value;
+    }
+  } catch (error) {
+    console.error('获取支出数据失败:', error);
+    errorMessage.value = '获取数据失败，请重试';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 const handleDelete = async (id: string) => {
-  if (!confirm('确定要删除这条支出数据吗？此操作不可逆')) return;
+  if (!confirm('确定要删除这条支出记录吗？此操作不可逆。')) return;
   try {
     await financeService.deleteExpense(id);
     expenses.value = expenses.value.filter((row) => row.id !== id);
+    total.value = Math.max(0, total.value - 1);
   } catch (error: any) {
     console.error('删除失败:', error);
     errorMessage.value = error?.response?.data?.error || '删除失败，请重试';
   }
 };
+
+const isModalOpen = ref(false);
+const selectedExpense = ref<ExpenseRecord | null>(null);
 
 const openEditModal = (row: ExpenseRecord) => {
   selectedExpense.value = row;
@@ -310,42 +391,26 @@ const handleExpenseUpdated = (updatedRow: ExpenseRecord) => {
   closeModal();
 };
 
-const formatDate = (dateString?: string) => {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toISOString().split('T')[0];
+const fetchStoresForFilter = async () => {
+  try {
+    allStores.value = await financeService.getStores();
+  } catch (error) {
+    console.error('获取店铺列表失败:', error);
+  }
 };
+
+onMounted(() => {
+  fetchStoresForFilter();
+  fetchData();
+});
 </script>
 
 <style scoped>
-.input-group {
-  display: flex;
-  flex-direction: column;
-}
-.input-group label {
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
-  font-size: 0.875rem;
-}
-.form-input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-.table-th {
-  padding: 0.75rem 1.5rem;
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.table-td {
-  padding: 1rem 1.5rem;
+.text-ellipsis {
+  display: inline-block;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.875rem;
-  color: #374151;
 }
 </style>

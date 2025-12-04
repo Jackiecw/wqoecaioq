@@ -1,218 +1,173 @@
 <template>
-  <div class="space-y-8">
-    <section class="rounded-3xl bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] p-8 text-white shadow-xl shadow-blue-900/20">
-      <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">Daily Brief</p>
-          <h2 class="mt-2 text-3xl font-semibold">
-            {{ greeting }}，{{ authStore.nickname }}
-          </h2>
-          <p class="text-white/80">{{ todayDate }}</p>
-          <p class="mt-4 text-sm text-white/70 line-clamp-2">
-            {{ hitokoto || '今天也要加油' }}
-          </p>
-        </div>
-        <div class="grid w-full gap-4 text-sm sm:grid-cols-2 lg:w-auto">
-          <div
-            v-for="metric in highlightMetrics"
-            :key="metric.label"
-            class="rounded-2xl border border-white/30 bg-white/10 p-4 backdrop-blur"
-          >
-            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/70">{{ metric.label }}</p>
-            <p class="mt-3 text-2xl font-semibold text-white">{{ metric.value }}</p>
-            <p class="text-sm text-white/80">{{ metric.sub }}</p>
-          </div>
-        </div>
+  <div class="flex flex-column gap-4">
+    <!-- Page Header -->
+    <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3">
+      <div>
+        <h1 class="text-3xl font-bold text-900 m-0">工作台</h1>
+        <p class="text-500 mt-1 mb-0">{{ greeting }}，{{ authStore.nickname }}。{{ hitokoto || '今天也要加油' }}</p>
       </div>
-    </section>
+      <div class="flex align-items-center gap-2">
+        <span class="text-sm text-500">{{ todayDate }}</span>
+      </div>
+    </div>
 
-    <div class="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-      <div class="space-y-6">
-        <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <!-- KPI Metrics - Simple & Clean -->
+    <div class="grid">
+      <div v-for="(metric, idx) in kpiMetrics" :key="metric.label" class="col-12 md:col-6 xl:col">
+        <div 
+          class="surface-card border-round-xl p-4 h-full shadow-1 hover:shadow-2 transition-all transition-duration-200"
+          :style="{ borderLeft: `4px solid ${metric.color}` }"
+        >
+          <div class="flex flex-column gap-3">
+            <div class="flex align-items-center justify-content-between">
+              <span class="text-xs font-semibold text-500 uppercase">
+                {{ metric.label }}
+              </span>
+              <div 
+                class="flex align-items-center justify-content-center border-round-lg p-2"
+                :style="{ background: metric.color + '15' }"
+              >
+                <i :class="metric.icon" :style="{ color: metric.color }" class="text-xl"></i>
+              </div>
+            </div>
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#6B7280]">GMV Overview</p>
-              <h3 class="mt-1 text-2xl font-semibold text-[#1F2937]">销售数据(GMV)</h3>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3">
-              <div class="flex items-center rounded-full border border-[#E5E7EB] bg-[#F3F4F6] p-1">
-                <button
-                  v-for="country in countryFilterOptions"
-                  :key="country.code"
-
-                  :class="[
-                    'px-3 py-1.5 text-sm font-semibold rounded-full transition-all',
-                    selectedCountryCode === country.code
-                      ? 'bg-white text-[#3B82F6] shadow'
-                      : 'text-[#6B7280] hover:text-[#1F2937]'
-                  ]"
+              <div class="text-3xl font-bold text-900 mb-1">{{ metric.value }}</div>
+              <div class="flex align-items-center gap-2">
+                <span class="text-sm text-600">{{ metric.sub }}</span>
+                <span 
+                  v-if="metric.trend" 
+                  class="text-xs font-semibold px-2 py-1 border-round"
+                  :style="{ 
+                    background: metric.trend.type === 'up' ? '#22c55e20' : '#ef444420',
+                    color: metric.trend.type === 'up' ? '#22c55e' : '#ef4444'
+                  }"
                 >
-                  {{ country.code }}
-                </button>
+                  <i :class="metric.trend.type === 'up' ? 'pi pi-arrow-up' : 'pi pi-arrow-down'" class="text-xs"></i>
+                  {{ metric.trend.value }}
+                </span>
               </div>
-
-              <Listbox v-model="selectedStoreId" as="div" class="relative w-48">
-                <ListboxButton class="relative w-full cursor-default rounded-2xl border border-[#E5E7EB] bg-white py-2 pl-3 pr-10 text-left text-sm text-[#1F2937] shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]">
-                  <span class="block truncate">{{ selectedStoreName }}</span>
-                  <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-                    <ChevronUpDownIcon class="h-5 w-5 text-[#94A3B8]" aria-hidden="true" />
-                  </span>
-                </ListboxButton>
-                <transition leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
-                  <ListboxOptions class="absolute mt-1 max-h-60 w-full overflow-auto rounded-2xl border border-[#E5E7EB] bg-white py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none sm:text-sm z-10">
-                    <ListboxOption
-                      v-for="store in storeFilterOptions"
-                      :key="store.id"
-                      :value="store.id"
-                      v-slot="{ active, selected }"
-                    >
-                      <li :class="[active ? 'bg-[#DBEAFE] text-[#1D4ED8]' : 'text-[#1F2937]', 'relative cursor-default select-none py-2 px-4']">
-                        <span :class="[selected ? 'font-medium' : 'font-normal', 'block truncate']">{{ store.name }}</span>
-                      </li>
-                    </ListboxOption>
-                  </ListboxOptions>
-                </transition>
-              </Listbox>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
 
-          <div v-if="isLoading.summary" class="py-10 text-center text-[#6B7280]">
-            加载 GMV 数据...
-          </div>
-          <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div class="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <label class="text-sm font-medium text-[#6B7280]">今日 GMV</label>
-              <p class="mt-2 text-2xl font-bold text-[#1F2937]">
-                {{ formatCurrency(summaryData.gmv.today, summaryData.gmv.currency) }}
-              </p>
-              <p class="text-sm text-[#6B7280]">
-                ≈ {{ formatCurrency(summaryData.gmv.cnyEquivalent.today, 'CNY') }}
-              </p>
-            </div>
-            <div class="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <label class="text-sm font-medium text-[#6B7280]">本周 GMV</label>
-              <p class="mt-2 text-2xl font-bold text-[#1F2937]">
-                {{ formatCurrency(summaryData.gmv.thisWeek, summaryData.gmv.currency) }}
-              </p>
-              <p class="text-sm text-[#6B7280]">
-                ≈ {{ formatCurrency(summaryData.gmv.cnyEquivalent.thisWeek, 'CNY') }}
-              </p>
-            </div>
-            <div class="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
-              <label class="text-sm font-medium text-[#6B7280]">本月 GMV</label>
-              <p class="mt-2 text-2xl font-bold text-[#1F2937]">
-                {{ formatCurrency(summaryData.gmv.thisMonth, summaryData.gmv.currency) }}
-              </p>
-              <p class="text-sm text-[#6B7280]">
-                ≈ {{ formatCurrency(summaryData.gmv.cnyEquivalent.thisMonth, 'CNY') }}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <DashboardTodo class="lg:col-span-1" />
-
-          <article class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-            <button @click="isScheduleOpen = true" class="text-left text-lg font-semibold text-[#1F2937] transition hover:text-[#3B82F6]">
-              日程总览
-            </button>
-            <p class="mt-3 text-sm font-medium text-[#1F2937]">本周重点</p>
-            <p class="mt-1 text-sm text-[#6B7280] line-clamp-5">
-              {{ summaryData.schedule.planNextWeek || '暂无计划，建议在周报中补充' }}
-            </p>
-          </article>
-
-          <DashboardRecurringTask class="lg:col-span-1" />
-        </section>
+    <div class="grid">
+      <!-- Left Column: Sales Trend Chart -->
+      <div class="col-12 xl:col-8">
+        <div class="flex flex-column gap-4 h-full">
+          <SalesTrendChart 
+            :country-code="selectedCountryCode"
+            :store-id="selectedStoreId"
+          />
+        </div>
       </div>
 
-      <div class="space-y-6">
-        <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h4 class="text-lg font-semibold text-[#1F2937]">今日汇率</h4>
-            <div class="flex flex-col items-start gap-2 text-xs text-[#6B7280] sm:flex-row sm:items-center sm:gap-3">
-              <div class="flex flex-wrap items-center gap-2">
-                <span v-if="formattedRatesUpdatedAt" class="text-xs text-[#6B7280]">更新于 {{ formattedRatesUpdatedAt }}</span>
-                <button
-                  type="button"
-                  class="rounded-full border border-[#D1D5DB] px-3 py-1 text-xs font-medium transition hover:border-[#3B82F6] hover:text-[#3B82F6]"
-                  :class="isCalculationMode ? 'bg-[#3B82F6] text-white border-[#3B82F6]' : 'text-[#1F2937]'"
-                  @click="toggleCalculationMode"
-                >
-                  {{ isCalculationMode ? '退出计算模式' : '开启计算模式' }}
-                </button>
-                <button
-                  type="button"
-                  class="rounded-full border border-[#D1D5DB] px-3 py-1 text-xs font-medium transition hover:border-[#10B981] hover:text-[#10B981]"
-                  :class="[
-                    canTriggerManualRefresh ? 'text-[#1F2937]' : 'text-[#9CA3AF] cursor-not-allowed opacity-60',
-                    manualRefreshStatus.isRefreshing ? 'border-[#10B981] text-[#10B981]' : ''
-                  ]"
-                  :disabled="!canTriggerManualRefresh"
-                  @click="handleManualRatesRefresh"
-                >
-                  {{ manualRefreshStatus.isRefreshing ? '更新中...' : '手动更新' }}
-                </button>
+      <!-- Right Column: Todo, Schedule & Rates -->
+      <div class="col-12 xl:col-4">
+        <div class="flex flex-column gap-6 h-full">
+          <!-- 待办事项 Top 5 - 新位置 -->
+          <Card class="shadow-sm border-round-2xl">
+            <template #title>
+              <div class="px-1">
+                <span class="text-lg font-bold text-900">待办事项</span>
               </div>
-              <div class="flex flex-col gap-1 text-xs text-[#9CA3AF]">
-                <span>{{ manualRefreshQuotaText }}</span>
-                <span v-if="manualRefreshStatus.error" class="text-red-500">{{ manualRefreshStatus.error }}</span>
+            </template>
+            <template #content>
+              <div class="pt-2">
+                <DashboardTodo :compact="true" :max-items="5" />
               </div>
-            </div>
-          </div>
-          <div v-if="isLoading.rates" class="text-[#6B7280]">
-            加载汇率中...
-          </div>
-          <div v-else class="space-y-3">
-            <div
-              v-for="row in rateRows"
-              :key="row.code"
-              class="space-y-3 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4"
-            >
-              <div class="flex items-center gap-3">
-                <div class="flex flex-1 items-center gap-3 text-sm text-[#6B7280]">
-                  <div class="flex items-center gap-2">
-                    <template v-if="isCalculationMode">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        class="w-24 rounded-xl border border-[#D1D5DB] bg-white px-3 py-1 text-sm text-[#111827] shadow-sm focus:border-[#3B82F6] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
-                        :value="rateStates[row.code]?.amount ?? 1"
-                        @input="updateRateAmount(row.code, $event.target.value)"
+            </template>
+          </Card>
+          <!-- Schedule -->
+          <Card class="shadow-sm border-round-2xl">
+            <template #title>
+              <div class="px-1 cursor-pointer" @click="isScheduleOpen = true">
+                <div class="flex align-items-center justify-content-between">
+                  <span class="text-lg font-bold text-900">日程总览</span>
+                  <i class="pi pi-angle-right text-500"></i>
+                </div>
+              </div>
+            </template>
+            <template #content>
+              <div class="pt-2 cursor-pointer" @click="isScheduleOpen = true">
+                <span class="text-sm font-semibold text-700 block mb-2">本周重点</span>
+                <p class="text-sm text-600 line-height-3 m-0 line-clamp-3">
+                  {{ summaryData.schedule.planNextWeek || '暂无计划，点击填写' }}
+                </p>
+              </div>
+            </template>
+          </Card>
+
+          <!-- Rates -->
+          <Card class="shadow-sm border-round-2xl flex-1">
+            <template #title>
+              <div class="px-1">
+                <div class="flex flex-column gap-2">
+                  <div class="flex align-items-center justify-content-between">
+                    <span class="text-lg font-bold text-900">今日汇率</span>
+                    <div class="flex gap-1">
+                      <Button
+                        icon="pi pi-calculator"
+                        :severity="isCalculationMode ? 'primary' : 'secondary'"
+                        text
+                        rounded
+                        size="small"
+                        title="计算模式"
+                        @click="toggleCalculationMode"
                       />
-                    </template>
-                    <template v-else>
-                      <span class="text-lg font-semibold text-[#1F2937]">
-                        {{ formatInputAmount(rateStates[row.code]?.amount ?? 1) }}
-                      </span>
-                    </template>
-                    <span class="text-sm font-medium text-[#1F2937]">{{ row.baseCurrency }}</span>
+                      <Button
+                        icon="pi pi-refresh"
+                        :loading="manualRefreshStatus.isRefreshing"
+                        :disabled="!canTriggerManualRefresh"
+                        severity="success"
+                        text
+                        rounded
+                        size="small"
+                        title="手动刷新"
+                        @click="handleManualRatesRefresh"
+                      />
+                    </div>
                   </div>
-                  <span class="text-xs text-[#9CA3AF]">=</span>
-                </div>
-                <button
-                  type="button"
-                  class="rounded-xl border border-transparent bg-white p-2 text-[#6B7280] shadow-sm transition hover:text-[#111827]"
-                  @click="toggleRateDirection(row.code)"
-                >
-                  <ArrowsRightLeftIcon class="h-5 w-5" />
-                </button>
-                <div class="text-right">
-                  <p class="text-lg font-semibold text-[#1F2937]">
-                    {{ formatRateValue(row.convertedValue, row.quoteCurrency) }}
-                  </p>
-                  <p class="text-xs text-[#6B7280]">{{ row.quoteCurrency }}</p>
+                  <div class="flex align-items-center justify-content-between text-xs text-500">
+                    <span>{{ formattedRatesUpdatedAt ? `更新于 ${formattedRatesUpdatedAt}` : '' }}</span>
+                    <span>{{ manualRefreshQuotaText }}</span>
+                  </div>
+                  <span v-if="manualRefreshStatus.error" class="text-xs text-red-500">{{ manualRefreshStatus.error }}</span>
                 </div>
               </div>
-              <p class="text-xs text-[#9CA3AF]">
-                1 {{ row.baseCurrency }} = {{ formatRateValue(row.unitRate, row.quoteCurrency, true) }} {{ row.quoteCurrency }}
-              </p>
-            </div>
-          </div>
-        </section>
+            </template>
+            <template #content>
+              <div v-if="isLoading.rates" class="text-center text-500 py-4">加载汇率中...</div>
+              <div v-else class="flex flex-column gap-1 overflow-y-auto" style="max-height: 18rem">
+                <div v-for="row in rateRows" :key="row.code" class="surface-ground p-2 border-round-lg flex flex-column gap-1">
+                   <div class="flex align-items-center justify-content-between">
+                      <div class="flex align-items-center gap-2">
+                         <template v-if="isCalculationMode">
+                            <input
+                              type="number"
+                              class="w-4rem p-1 border-1 border-300 border-round text-center text-sm"
+                              :value="rateStates[row.code]?.amount ?? 1"
+                              @input="updateRateAmount(row.code, ($event.target as HTMLInputElement).value)"
+                            />
+                         </template>
+                         <span v-else class="font-semibold text-900 text-sm">{{ formatInputAmount(rateStates[row.code]?.amount ?? 1) }}</span>
+                         <span class="text-xs text-600">{{ row.baseCurrency }}</span>
+                      </div>
+                      <i class="pi pi-arrow-right-arrow-left text-xs text-500 cursor-pointer hover:text-primary" @click="toggleRateDirection(row.code)"></i>
+                      <div class="flex align-items-center gap-2">
+                         <span class="font-bold text-900 text-base">{{ row.unitRate !== null ? formatNumber(row.unitRate) : '--' }}</span>
+                         <span class="text-xs text-600">{{ row.quoteCurrency }}</span>
+                      </div>
+                   </div>
+                   <div v-if="row.convertedValue !== null" class="text-xs text-500 text-right">
+                      = {{ formatNumber(row.convertedValue) }} {{ row.quoteCurrency }}
+                   </div>
+                </div>
+              </div>
+            </template>
+          </Card>
+        </div>
       </div>
     </div>
 
@@ -226,24 +181,48 @@
 </template>
 
 <script setup lang="ts">
-// Bug 修复
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import Dropdown from 'primevue/dropdown';
+import Button from 'primevue/button';
+import Card from 'primevue/card';
 import { useAuthStore } from '../../stores/auth';
 import apiClient from '@/services/apiClient';
-import {
-  Listbox,
-  ListboxButton,
-  ListboxOptions,
-  ListboxOption,
-} from '@headlessui/vue';
-import { ChevronUpDownIcon, ArrowsRightLeftIcon } from '@heroicons/vue/20/solid';
-
 import DashboardTodo from './DashboardTodo.vue';
 import DashboardSchedule from './DashboardSchedule.vue';
-import DashboardRecurringTask from './DashboardRecurringTask.vue';
+import SalesTrendChart from './SalesTrendChart.vue';
+
+type GmvSummary = {
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+  currency: string;
+  cnyEquivalent: {
+    today: number;
+    thisWeek: number;
+    thisMonth: number;
+  };
+};
+
+type ScheduleSummary = {
+  planNextWeek: string;
+  teamFocus: string;
+};
+
+type SummaryResponse = {
+  gmv: GmvSummary;
+  schedule: ScheduleSummary;
+};
+
+type RateState = {
+  amount: number;
+  swapped: boolean;
+};
+
+type CountryOption = { code: string; name: string };
+type StoreOption = { id: string; name: string; countryCode: string };
 
 const authStore = useAuthStore();
-const DEFAULT_RATES = Object.freeze({
+const DEFAULT_RATES: Record<string, number> = Object.freeze({
   CNY_USD: 0.14,
   CNY_IDR: 2300,
   CNY_VND: 3500,
@@ -257,7 +236,7 @@ const MANUAL_REFRESH_LIMIT = 3;
 const greeting = computed(() => {
   const hour = new Date().getHours();
   if (hour < 6) return '凌晨好';
-  if (hour < 12) return '早上好';
+  if (hour < 12) return '上午好';
   if (hour < 18) return '下午好';
   return '晚上好';
 });
@@ -268,7 +247,7 @@ const todayDate = computed(() =>
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  })
+  }),
 );
 
 const hitokoto = ref('...');
@@ -279,23 +258,29 @@ const isLoading = ref({
   filters: true,
 });
 
-const summaryData = ref({
-  gmv: { today: 0, thisWeek: 0, thisMonth: 0, currency: '¥', cnyEquivalent: { today: 0, thisWeek: 0, thisMonth: 0 } },
+const summaryData = ref<SummaryResponse>({
+  gmv: {
+    today: 0,
+    thisWeek: 0,
+    thisMonth: 0,
+    currency: '¥',
+    cnyEquivalent: { today: 0, thisWeek: 0, thisMonth: 0 },
+  },
   schedule: { planNextWeek: '加载中...', teamFocus: '' },
 });
-const ratesData = ref({});
-const ratesUpdatedAt = ref(null);
-const rateStates = ref({});
+const ratesData = ref<Record<string, number>>({});
+const ratesUpdatedAt = ref<string | null>(null);
+const rateStates = ref<Record<string, RateState>>({});
 const isCalculationMode = ref(false);
-const remainingManualRefreshes = ref(null);
+const remainingManualRefreshes = ref<number | null>(null);
 const manualRefreshStatus = ref({
   isRefreshing: false,
   error: '',
-  });
-const allCountries = ref([]);
-const allStores = ref([]);
-const selectedCountryCode = ref(null);
-const selectedStoreId = ref(null);
+});
+const allCountries = ref<CountryOption[]>([]);
+const allStores = ref<StoreOption[]>([]);
+const selectedCountryCode = ref<string | null>(null);
+const selectedStoreId = ref<string | null>(null);
 const isScheduleOpen = ref(false);
 
 const countryFilterOptions = computed(() => {
@@ -306,16 +291,10 @@ const countryFilterOptions = computed(() => {
 });
 
 const storeFilterOptions = computed(() => {
-  if (!selectedCountryCode.value) {
-    return []; // 如果没有选国家，列表为空
-  }
-  
-  // 核心修复：根据 allStores 列表，筛选出 store.countryCode 
-  // 等于 selectedCountryCode.value (当前选中的国家) 的店铺
-  return allStores.value.filter(
-    (store) => store.countryCode === selectedCountryCode.value
-  );
+  if (!selectedCountryCode.value) return [];
+  return allStores.value.filter((store) => store.countryCode === selectedCountryCode.value);
 });
+
 const selectedStoreName = computed(() => {
   const store = storeFilterOptions.value.find((s) => s.id === selectedStoreId.value);
   return store ? store.name : '选择店铺...';
@@ -331,27 +310,125 @@ const highlightMetrics = computed(() => {
     ];
   }
   const { gmv, schedule } = summaryData.value;
-  const cny = gmv.cnyEquivalent || {};
+  const cny = gmv.cnyEquivalent;
   return [
     {
       label: '今日 GMV',
       value: formatCurrency(gmv.today, gmv.currency),
-      sub: `≈ ${formatCurrency(cny.today, 'CNY')}`,
+      sub: `≈${formatCurrency(cny.today, 'CNY')}`,
+      icon: 'pi pi-dollar',
     },
     {
       label: '本周 GMV',
       value: formatCurrency(gmv.thisWeek, gmv.currency),
-      sub: `≈ ${formatCurrency(cny.thisWeek, 'CNY')}`,
+      sub: `≈${formatCurrency(cny.thisWeek, 'CNY')}`,
+      icon: 'pi pi-chart-line',
     },
     {
       label: '本月 GMV',
       value: formatCurrency(gmv.thisMonth, gmv.currency),
-      sub: `≈ ${formatCurrency(cny.thisMonth, 'CNY')}`,
+      sub: `≈${formatCurrency(cny.thisMonth, 'CNY')}`,
+      icon: 'pi pi-calendar',
     },
     {
       label: '团队计划',
       value: schedule.planNextWeek ? '已同步' : '待填写',
       sub: schedule.planNextWeek || '周报 > 下周计划',
+      icon: 'pi pi-users',
+    },
+  ];
+});
+
+// 核心KPI指标，简洁设计
+const kpiMetrics = computed(() => {
+  if (isLoading.value.summary) {
+    return [
+      { 
+        label: '今日 GMV', 
+        value: '加载中', 
+        sub: '数据抓取中',
+        icon: 'pi pi-dollar',
+        color: '#8b5cf6',
+        trend: null,
+      },
+      { 
+        label: '今日订单', 
+        value: '加载中', 
+        sub: '数据抓取中',
+        icon: 'pi pi-shopping-cart',
+        color: '#ec4899',
+        trend: null,
+      },
+      { 
+        label: '待发货', 
+        value: '加载中', 
+        sub: '数据抓取中',
+        icon: 'pi pi-box',
+        color: '#3b82f6',
+        trend: null,
+      },
+      { 
+        label: '库存预警', 
+        value: '加载中', 
+        sub: '数据抓取中',
+        icon: 'pi pi-exclamation-triangle',
+        color: '#10b981',
+        trend: null,
+      },
+      { 
+        label: '广告花费', 
+        value: '加载中', 
+        sub: '数据抓取中',
+        icon: 'pi pi-megaphone',
+        color: '#f59e0b',
+        trend: null,
+      },
+    ];
+  }
+
+  const { gmv } = summaryData.value;
+  const cny = gmv.cnyEquivalent;
+
+  return [
+    {
+      label: '今日 GMV',
+      value: formatCurrency(gmv.today, gmv.currency),
+      sub: `≈${formatCurrency(cny.today, 'CNY')}`,
+      icon: 'pi pi-dollar',
+      color: '#8b5cf6', // 紫色
+      trend: null, // 待开发：需后端API提供日环比数据
+    },
+    {
+      label: '今日订单',
+      value: '待开发',
+      sub: '需后端API支持',
+      icon: 'pi pi-shopping-cart',
+      color: '#ec4899', // 粉色
+      trend: null,
+    },
+    {
+      label: '待发货',
+      value: '待开发',
+      sub: '需后端API支持',
+      icon: 'pi pi-box',
+      color: '#3b82f6', // 蓝色
+      trend: null,
+    },
+    {
+      label: '库存预警',
+      value: '待开发',
+      sub: '低于安全库存的SKU数',
+      icon: 'pi pi-exclamation-triangle',
+      color: '#10b981', // 绿色
+      trend: null,
+    },
+    {
+      label: '广告花费',
+      value: '待开发',
+      sub: '今日广告消耗金额',
+      icon: 'pi pi-megaphone',
+      color: '#f59e0b', // 橙色
+      trend: null,
     },
   ];
 });
@@ -361,8 +438,8 @@ const userCountryCodesForRates = computed(() => {
     return ['IDR', 'VND', 'THB', 'MYR', 'PHP', 'SGD'];
   }
   return authStore.operatedCountries
-    .map((code) => {
-      const currencyMap = { ID: 'IDR', VN: 'VND', TH: 'THB', MY: 'MYR', PH: 'PHP', SG: 'SGD' };
+    .map((code: string) => {
+      const currencyMap: Record<string, string> = { ID: 'IDR', VN: 'VND', TH: 'THB', MY: 'MYR', PH: 'PHP', SG: 'SGD' };
       return currencyMap[code];
     })
     .filter(Boolean);
@@ -376,13 +453,13 @@ const supportedRateCodes = computed(() => {
 watch(
   supportedRateCodes,
   (codes) => {
-    const nextState = {};
+    const nextState: Record<string, RateState> = {};
     codes.forEach((code) => {
       nextState[code] = rateStates.value[code] || { amount: 1, swapped: false };
     });
     rateStates.value = nextState;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const rateRows = computed(() => {
@@ -392,7 +469,7 @@ const rateRows = computed(() => {
     const quoteCurrency = state.swapped ? 'CNY' : code;
     const amount = Number.isFinite(state.amount) ? state.amount : 1;
     const rawRate = ratesData.value[`CNY_${code}`];
-    let unitRate = null;
+    let unitRate: number | null = null;
     if (typeof rawRate === 'number' && rawRate > 0) {
       unitRate = state.swapped ? 1 / rawRate : rawRate;
     }
@@ -450,225 +527,150 @@ const canTriggerManualRefresh = computed(() => {
   return remaining > 0;
 });
 
-function applyRatesPayload(payload = {}) {
+function applyRatesPayload(payload: any = {}) {
   const incomingRates = payload.rates;
   if (incomingRates && Object.keys(incomingRates).length) {
     ratesData.value = incomingRates;
   } else if (!Object.keys(ratesData.value || {}).length) {
     ratesData.value = { ...DEFAULT_RATES };
   }
-  ratesUpdatedAt.value = payload.updatedAt || new Date().toISOString();
-  if (Object.prototype.hasOwnProperty.call(payload, 'remainingRefreshes')) {
-    remainingManualRefreshes.value = payload.remainingRefreshes;
-  }
+  ratesUpdatedAt.value = payload.updatedAt || ratesUpdatedAt.value;
 }
 
 async function fetchHitokoto() {
   try {
-    const response = await fetch('https://v1.hitokoto.cn/?c=i&encode=text');
-    hitokoto.value = await response.text();
+    const res = await fetch('https://v1.hitokoto.cn/?c=i');
+    const data = await res.json();
+    hitokoto.value = data.hitokoto || hitokoto.value;
   } catch (error) {
-    hitokoto.value = '今天也要加油！';
+    console.error(error);
   }
 }
 
-async function fetchFilterOptions() {
+async function fetchSummary() {
+  isLoading.value.summary = true;
+  try {
+    const response = await apiClient.get<SummaryResponse>('/dashboard/summary');
+    summaryData.value = response.data;
+  } catch (error) {
+    console.error('获取 summary 失败', error);
+  } finally {
+    isLoading.value.summary = false;
+  }
+}
+
+async function fetchRates() {
+  isLoading.value.rates = true;
+  try {
+    const response = await apiClient.get('/exchange-rates');
+    applyRatesPayload(response.data);
+  } catch (error) {
+    console.error('获取汇率失败', error);
+  } finally {
+    isLoading.value.rates = false;
+  }
+}
+
+async function fetchFilters() {
   isLoading.value.filters = true;
   try {
-    const response = await apiClient.get('/dashboard/filter-options');
-    allCountries.value = response.data.countries;
-    allStores.value = response.data.stores;
+    const [countriesRes, storesRes] = await Promise.all([
+      apiClient.get('/countries'),
+      apiClient.get('/stores'),
+    ]);
+    allCountries.value = countriesRes.data || [];
+    allStores.value = storesRes.data || [];
 
-    // 步骤 1: 设置国家
-    if (countryFilterOptions.value.length > 0) {
-      selectedCountryCode.value = countryFilterOptions.value[0].code;
-    }
-    
-    // 步骤 2: (核心修复) 等待 Vue 响应，让 storeFilterOptions (已修复) 重新计算
-    await nextTick(); 
-
-    // 步骤 3: 现在 storeFilterOptions 已经更新了，可以安全地设置店铺
-    if (storeFilterOptions.value.length > 0) {
-      selectedStoreId.value = storeFilterOptions.value[0].id;
-    }
+    // 默认选第一项
+    selectedCountryCode.value = countryFilterOptions.value[0]?.code || null;
+    selectedStoreId.value = storeFilterOptions.value[0]?.id || null;
   } catch (error) {
-    console.error('加载筛选器失败:', error);
+    console.error('获取筛选项失败', error);
   } finally {
     isLoading.value.filters = false;
   }
 }
 
-async function fetchDashboardData() {
-  if (!selectedCountryCode.value || !selectedStoreId.value) {
-    isLoading.value.summary = false;
-    isLoading.value.rates = false;
-    return;
+async function fetchManualRefreshQuota() {
+  if (!isRateRefreshLimited.value) return;
+  try {
+    const res = await apiClient.get('/exchange-rates/refresh-quota');
+    remainingManualRefreshes.value = res.data?.remaining ?? MANUAL_REFRESH_LIMIT;
+  } catch (error) {
+    remainingManualRefreshes.value = MANUAL_REFRESH_LIMIT;
   }
-
-  isLoading.value.summary = true;
-  isLoading.value.rates = true;
-
-  const params = {
-    countryCode: selectedCountryCode.value,
-    storeId: selectedStoreId.value,
-  };
-
-  const summaryPromise = apiClient
-    .get('/dashboard/summary', { params })
-    .then((summaryResponse) => {
-      const schedule = summaryResponse.data.schedule || {};
-      summaryData.value = {
-        ...summaryResponse.data,
-        schedule: {
-          planNextWeek: schedule.planNextWeek || '',
-          teamFocus: schedule.teamFocus || '',
-        },
-      };
-    })
-    .catch((error) => {
-      console.error('加载 GMV 摘要失败:', error);
-    })
-    .finally(() => {
-      isLoading.value.summary = false;
-    });
-
-  const ratesPromise = apiClient
-    .get('/rates')
-    .then((ratesResponse) => {
-      applyRatesPayload(ratesResponse.data || {});
-    })
-    .catch((error) => {
-      console.error('加载汇率失败:', error);
-      if (!Object.keys(ratesData.value || {}).length) {
-        ratesData.value = { ...DEFAULT_RATES };
-        ratesUpdatedAt.value = new Date().toISOString();
-      }
-    })
-    .finally(() => {
-      isLoading.value.rates = false;
-    });
-
-  await Promise.all([summaryPromise, ratesPromise]);
 }
-
-onMounted(async () => {
-  fetchHitokoto();
-  await fetchFilterOptions();
-  fetchDashboardData();
-});
-
-function selectCountry(code) {
-  selectedCountryCode.value = code;
-  const firstStore = storeFilterOptions.value[0];
-  selectedStoreId.value = firstStore ? firstStore.id : null;
-}
-
-watch(selectedCountryCode, (newVal, oldVal) => {
-  if (newVal === oldVal) return;
-  if (!storeFilterOptions.value.find((s) => s.id === selectedStoreId.value)) {
-    const firstStore = storeFilterOptions.value[0];
-    selectedStoreId.value = firstStore ? firstStore.id : null;
-  }
-  fetchDashboardData();
-});
-
-watch(selectedStoreId, (newVal, oldVal) => {
-  if (newVal === oldVal || !newVal) return;
-  fetchDashboardData();
-});
-
-watch(
-  () => authStore.role,
-  (role) => {
-    if (role === 'admin') {
-      remainingManualRefreshes.value = null;
-    }
-  },
-  { immediate: true }
-);
 
 async function handleManualRatesRefresh() {
   if (!canTriggerManualRefresh.value) return;
-  manualRefreshStatus.value.error = '';
   manualRefreshStatus.value.isRefreshing = true;
+  manualRefreshStatus.value.error = '';
   try {
-    const response = await apiClient.post('/rates/refresh');
-    applyRatesPayload(response.data || {});
-  } catch (error) {
-    manualRefreshStatus.value.error =
-      error.response?.data?.error || '刷新失败，请稍后再试';
+    const res = await apiClient.post('/exchange-rates/refresh');
+    applyRatesPayload(res.data);
+    await fetchManualRefreshQuota();
+  } catch (error: any) {
+    manualRefreshStatus.value.error = error.response?.data?.error || '刷新失败，请稍后重试';
   } finally {
     manualRefreshStatus.value.isRefreshing = false;
   }
+}
+
+function formatCurrency(value: number, currency: string) {
+  if (value === null || value === undefined) return '--';
+  try {
+    return new Intl.NumberFormat('zh-CN', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch (error) {
+    return `${currency} ${value}`;
+  }
+}
+
+function formatNumber(value: number) {
+  return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 4 });
+}
+
+function formatInputAmount(value: number) {
+  return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+}
+
+function toggleRateDirection(code: string) {
+  rateStates.value = {
+    ...rateStates.value,
+    [code]: { ...(rateStates.value[code] || { amount: 1, swapped: false }), swapped: !rateStates.value[code]?.swapped },
+  };
 }
 
 function toggleCalculationMode() {
   isCalculationMode.value = !isCalculationMode.value;
 }
 
-function toggleRateDirection(code) {
-  if (!rateStates.value[code]) return;
+function updateRateAmount(code: string, input: string) {
+  const num = Number(input);
   rateStates.value = {
     ...rateStates.value,
-    [code]: {
-      ...rateStates.value[code],
-      swapped: !rateStates.value[code].swapped,
-    },
+    [code]: { ...(rateStates.value[code] || { amount: 1, swapped: false }), amount: Number.isFinite(num) ? num : 1 },
   };
 }
 
-function updateRateAmount(code, rawValue) {
-  if (!rateStates.value[code]) return;
-  const numericValue = parseFloat(rawValue);
-  const safeValue = Number.isFinite(numericValue) ? Math.max(numericValue, 0) : 0;
-  rateStates.value = {
-    ...rateStates.value,
-    [code]: {
-      ...rateStates.value[code],
-      amount: safeValue,
-    },
-  };
+function applyStoreFilter() {
+  // Placeholder for store-based filtering. Currently no-op.
 }
 
-function formatInputAmount(value) {
-  if (!Number.isFinite(value)) return '0';
-  return Number.isInteger(value) ? value.toString() : value.toFixed(2);
-}
-
-function formatRateValue(value, currency, allowPlaceholder = false) {
-  if (value === null || value === undefined || Number.isNaN(value)) {
-    return allowPlaceholder ? 'N/A' : '--';
+function applyCountryFilter() {
+  if (selectedCountryCode.value && !storeFilterOptions.value.find((s) => s.id === selectedStoreId.value)) {
+    selectedStoreId.value = storeFilterOptions.value[0]?.id || null;
   }
-  const decimals = currency === 'USD' ? 4 : 2;
-  return value.toFixed(decimals);
+  nextTick(applyStoreFilter);
 }
 
-function formatCurrency(value, currency) {
-  if (currency === 'CNY') {
-    return (value || 0).toFixed(2);
-  }
-  return (value || 0).toFixed(0);
-}
+watch(selectedCountryCode, () => applyCountryFilter());
+watch(selectedStoreId, () => applyStoreFilter());
+
+onMounted(async () => {
+  await Promise.all([fetchSummary(), fetchRates(), fetchFilters(), fetchHitokoto(), fetchManualRefreshQuota()]);
+});
 </script>
-
-<style lang="postcss">
-@import "tailwindcss" reference;
-
-.dashboard-widget {
-  @apply bg-white p-6 rounded-lg shadow-lg h-full flex flex-col;
-}
-.dashboard-widget-title {
-  font-weight: 700;
-  color: #1F2937;
-}
-.form-input {
-  display: block;
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #E5E7EB;
-  border-radius: 0.375rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-  font-size: 0.875rem;
-  color: #1F2937;
-}
-</style>

@@ -1,136 +1,181 @@
 <template>
-  <div class="dashboard-widget">
-    <h4 class="dashboard-widget-title">待办</h4>
-    
-    <div v-if="isLoading" class="text-stone-500 text-sm">加载..</div>
-    <p v-if="!isLoading && todos.length === 0" class="text-stone-400 text-sm">
-      暂无待办事项
-    </p>
+  <section 
+    class="h-full flex flex-column gap-3" 
+    :class="compact ? 'p-0' : 'surface-card border-round-lg shadow-1 p-4'"
+  >
+    <header v-if="!compact" class="flex align-items-center justify-content-between">
+      <div>
+        <h4 class="m-0">待办</h4>
+        <p class="text-sm text-color-secondary m-0">快速管理本周的待办事项</p>
+      </div>
+    </header>
 
-    <div class="space-y-2 mt-4 max-h-48 overflow-y-auto pr-2">
-      <div v-for="todo in todos" :key="todo.id" class="flex items-center group">
-        <input 
-          type="checkbox"
-          :id="'todo-' + todo.id"
-          :checked="todo.isCompleted"
-          @change="() => handleToggleTodo(todo)"
-          class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+    <Message v-if="errorMessage" severity="error" :closable="false">
+      {{ errorMessage }}
+    </Message>
+
+    <div v-if="isLoading" :class="compact ? 'text-xs text-color-secondary' : 'text-sm text-color-secondary'">正在加载...</div>
+    <Message v-else-if="displayTodos.length === 0" severity="info" :closable="false">
+      暂无待办，添加第一条吧
+    </Message>
+
+    <div 
+      v-else 
+      class="flex flex-column overflow-auto pr-2" 
+      :class="compact ? 'gap-2' : 'gap-2'" 
+      :style="compact ? 'max-height: 12rem;' : 'max-height: 16rem;'"
+    >
+      <div
+        v-for="todo in displayTodos"
+        :key="todo.id"
+        class="flex align-items-center pb-2"
+        :class="compact ? 'gap-2 border-bottom-1 surface-border' : 'gap-3 border-bottom-1 surface-border'"
+      >
+        <Checkbox
+          :input-id="`todo-${todo.id}`"
+          binary
+          :model-value="todo.isCompleted"
+          @update:model-value="(value) => handleToggleTodo(todo, value)"
         />
-        <label 
-          :for="'todo-' + todo.id" 
+        <label
+          :for="`todo-${todo.id}`"
+          class="flex-1 cursor-pointer"
           :class="[
-            'ml-3 text-sm text-stone-700 w-full', 
-            todo.isCompleted ? 'line-through text-stone-400' : ''
+            compact ? 'text-xs' : 'text-sm',
+            { 'line-through text-color-secondary': todo.isCompleted }
           ]"
         >
           {{ todo.content }}
         </label>
-        <button 
-          @click="() => handleDeleteTodo(todo.id)" 
-          class="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"
-        >
-          <XCircleIcon class="h-4 w-4" />
-        </button>
+        <Button
+          v-if="!compact"
+          icon="pi pi-trash"
+          severity="danger"
+          text
+          rounded
+          aria-label="删除待办"
+          @click="handleDeleteTodo(todo.id)"
+        />
       </div>
     </div>
 
-    <form @submit.prevent="handleNewTodo" class="mt-4 flex space-x-2">
-      <input 
-        type="text" 
+    <form v-if="!compact" class="flex align-items-center gap-2 pt-2" @submit.prevent="handleNewTodo">
+      <InputText
         v-model="newTodoText"
-        placeholder="添加新待.."
-        class="form-input text-sm"
+        class="flex-1"
+        autocomplete="off"
+        placeholder="添加新待办..."
       />
-      <button 
-        type="submit" 
+      <Button
+        type="submit"
+        label="添加"
+        icon="pi pi-plus"
+        :loading="isSaving"
         :disabled="!newTodoText"
-        class="p-2 bg-indigo-600 text-white rounded-lg shadow disabled:bg-indigo-300"
-      >
-        <PlusIcon class="h-4 w-4" />
-      </button>
+      />
     </form>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted, ref, computed } from 'vue';
+import Checkbox from 'primevue/checkbox';
+import InputText from 'primevue/inputtext';
+import Button from 'primevue/button';
+import Message from 'primevue/message';
+import { isAxiosError } from 'axios';
 import apiClient from '@/services/apiClient';
-import { PlusIcon, XCircleIcon } from '@heroicons/vue/20/solid';
 
-const todos = ref([]);
+type TodoItem = {
+  id: number;
+  content: string;
+  isCompleted: boolean;
+};
+
+// Props
+const props = withDefaults(defineProps<{
+  compact?: boolean;
+  maxItems?: number;
+}>(), {
+  compact: false,
+  maxItems: 999,
+});
+
+const todos = ref<TodoItem[]>([]);
 const isLoading = ref(true);
+const isSaving = ref(false);
+const errorMessage = ref('');
 const newTodoText = ref('');
 
-async function fetchTodos() {
+// 显示的待办列表（根据maxItems限制）
+const displayTodos = computed(() => {
+  return todos.value.slice(0, props.maxItems);
+});
+
+const extractError = (error: unknown, fallback: string) => {
+  if (isAxiosError(error)) {
+    return error.response?.data?.error || fallback;
+  }
+  return fallback;
+};
+
+const fetchTodos = async () => {
   isLoading.value = true;
+  errorMessage.value = '';
   try {
-    const response = await apiClient.get('/todos');
-    todos.value = response.data;
+    const { data } = await apiClient.get<TodoItem[]>('/todos');
+    todos.value = data;
   } catch (error) {
-    console.error("加载待办事项失败:", error);
+    errorMessage.value = extractError(error, '加载待办列表失败，请稍后重试');
   } finally {
     isLoading.value = false;
   }
-}
+};
 
 onMounted(fetchTodos);
 
-async function handleToggleTodo(todo) {
-  try {
-    const updatedTodo = await apiClient.put(`/todos/${todo.id}`, { 
-      isCompleted: !todo.isCompleted 
-    });
-    // 更新本地数据
-    const index = todos.value.findIndex(t => t.id === todo.id);
-    if (index !== -1) {
-      todos.value[index].isCompleted = updatedTodo.isCompleted;
-    }
-  } catch (error) {
-    console.error("更新待办失败:", error);
-  }
-}
+const handleToggleTodo = async (todo: TodoItem, nextValue: boolean) => {
+  const index = todos.value.findIndex((item) => item.id === todo.id);
+  if (index === -1) return;
 
-async function handleDeleteTodo(id) {
-  if (!confirm('确定删除这个待办事项吗？')) return;
+  const previousValue = todos.value[index].isCompleted;
+  todos.value[index] = { ...todo, isCompleted: nextValue };
+
+  try {
+    await apiClient.put(`/todos/${todo.id}`, { isCompleted: nextValue });
+  } catch (error) {
+    todos.value[index].isCompleted = previousValue;
+    errorMessage.value = extractError(error, '更新失败，请稍后重试');
+  }
+};
+
+const handleDeleteTodo = async (id: number) => {
+  if (!confirm('确定删除这条待办吗？')) return;
+  const previous = [...todos.value];
+  todos.value = previous.filter((item) => item.id !== id);
+
   try {
     await apiClient.delete(`/todos/${id}`);
-    todos.value = todos.value.filter(t => t.id !== id);
   } catch (error) {
-    console.error("删除待办失败:", error);
+    todos.value = previous;
+    errorMessage.value = extractError(error, '删除失败，请稍后重试');
   }
-}
+};
 
-async function handleNewTodo() {
-  if (!newTodoText.value.trim()) return;
+const handleNewTodo = async () => {
+  const content = newTodoText.value.trim();
+  if (!content) return;
+
+  isSaving.value = true;
+  errorMessage.value = '';
   try {
-    const response = await apiClient.post('/todos', { 
-      content: newTodoText.value 
-    });
-    todos.value.push(response.data);
+    const { data } = await apiClient.post<TodoItem>('/todos', { content });
+    todos.value.push(data);
     newTodoText.value = '';
   } catch (error) {
-    console.error("添加待办失败:", error);
+    errorMessage.value = extractError(error, '创建失败，请稍后重试');
+  } finally {
+    isSaving.value = false;
   }
-}
+};
 </script>
-
-<style lang="postcss" scoped>
-/* ⬇️ 【修复重新添加此行 */
-@import "tailwindcss" reference;
-
-/* (复用样式) */
-.form-input {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-.dashboard-widget {
-  @apply bg-white p-6 rounded-lg shadow-lg h-full flex flex-col;
-}
-.dashboard-widget-title {
-  @apply font-bold text-stone-900 mb-2;
-}
-</style>

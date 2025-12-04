@@ -1,97 +1,63 @@
 <template>
-  <TransitionRoot appear :show="isOpen" as="template">
-    <Dialog as="div" @close="closeModal" class="relative z-10">
-      <TransitionChild
-        as="template"
-        enter="duration-300 ease-out"
-        enter-from="opacity-0"
-        enter-to="opacity-100"
-        leave="duration-200 ease-in"
-        leave-from="opacity-100"
-        leave-to="opacity-0"
-      >
-        <div class="fixed inset-0 bg-black/25" />
-      </TransitionChild>
-
-      <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center">
-          <TransitionChild
-            as="template"
-            enter="duration-300 ease-out"
-            enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95"
-          >
-            <DialogPanel class="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-              <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900">
-                周报详情
-              </DialogTitle>
-
-              <div v-if="report" class="mt-4 space-y-4">
-                <div class="flex flex-wrap gap-8 text-sm">
-                  <div class="flex flex-col">
-                    <span class="font-bold text-gray-500">开始日</span>
-                    <span>{{ formatDate(report.weekStartDate) }}</span>
-                  </div>
-                  <div class="flex flex-col">
-                    <span class="font-bold text-gray-500">提交人</span>
-                    <span>{{ report.author?.nickname ?? '--' }}</span>
-                  </div>
-                  <div class="flex flex-col">
-                    <span class="font-bold text-gray-500">提交时间</span>
-                    <span>{{ formatDateTime(report.createdAt) }}</span>
-                  </div>
-                </div>
-
-                <div class="report-section">
-                  <label>本周总结</label>
-                  <p>{{ report.summaryThisWeek || '无' }}</p>
-                </div>
-
-                <div class="report-section">
-                  <label>下周计划</label>
-                  <p>{{ report.planNextWeek || '无' }}</p>
-                </div>
-
-                <div class="report-section">
-                  <label>遇到的问题</label>
-                  <p>{{ report.problemsEncountered || '无' }}</p>
-                </div>
-
-                <div class="report-section">
-                  <label>其他</label>
-                  <p>{{ report.other || '无' }}</p>
-                </div>
-              </div>
-
-              <div class="mt-6 flex justify-end">
-                <button
-                  type="button"
-                  @click="closeModal"
-                  class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none"
-                >
-                  关闭
-                </button>
-              </div>
-            </DialogPanel>
-          </TransitionChild>
+  <Dialog v-model:visible="isVisible" modal header="周报详情" :style="{ width: '40rem' }" @update:visible="handleDialogClose">
+    <div v-if="report" class="flex flex-column gap-4">
+      <div class="flex flex-wrap gap-6 text-sm">
+        <div class="flex flex-column gap-1">
+          <span class="font-bold text-500">开始日期</span>
+          <span class="text-900">{{ formatDate(report.weekStartDate) }}</span>
+        </div>
+        <div class="flex flex-column gap-1">
+          <span class="font-bold text-500">提交人</span>
+          <span class="text-900">{{ report.author?.nickname ?? '--' }}</span>
+        </div>
+        <div class="flex flex-column gap-1">
+          <span class="font-bold text-500">提交时间</span>
+          <span class="text-900">{{ formatDateTime(report.createdAt) }}</span>
         </div>
       </div>
-    </Dialog>
-  </TransitionRoot>
+
+      <Divider />
+
+      <div class="flex flex-column gap-2">
+        <label class="font-bold text-700">本周总结</label>
+        <div class="p-3 border-1 border-200 border-round bg-surface-50 text-sm white-space-pre-wrap">
+          {{ report.summaryThisWeek || '无' }}
+        </div>
+      </div>
+
+      <div class="flex flex-column gap-2">
+        <label class="font-bold text-700">下周计划</label>
+        <div class="p-3 border-1 border-200 border-round bg-surface-50 text-sm white-space-pre-wrap">
+          {{ report.planNextWeek || '无' }}
+        </div>
+      </div>
+
+      <div class="flex flex-column gap-2">
+        <label class="font-bold text-700">遇到的问题</label>
+        <div class="p-3 border-1 border-200 border-round bg-surface-50 text-sm white-space-pre-wrap">
+          {{ report.problemsEncountered || '无' }}
+        </div>
+      </div>
+
+      <div class="flex flex-column gap-2">
+        <label class="font-bold text-700">其他</label>
+        <div class="p-3 border-1 border-200 border-round bg-surface-50 text-sm white-space-pre-wrap">
+          {{ report.other || '无' }}
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <Button label="关闭" @click="closeModal" />
+    </template>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import {
-  TransitionRoot,
-  TransitionChild,
-  Dialog,
-  DialogPanel,
-  DialogTitle,
-} from '@headlessui/vue';
+import { ref, watch } from 'vue';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import Divider from 'primevue/divider';
 import type { WeeklyReport } from '@/services/reportService';
 
 const props = defineProps<{
@@ -103,7 +69,23 @@ const emit = defineEmits<{
   close: [];
 }>();
 
+const isVisible = ref(false);
+
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    isVisible.value = newVal;
+  },
+);
+
+const handleDialogClose = (val: boolean) => {
+  if (!val) {
+    closeModal();
+  }
+};
+
 const closeModal = () => {
+  isVisible.value = false;
   emit('close');
 };
 
@@ -116,29 +98,4 @@ const formatDateTime = (dateString?: string) => {
   if (!dateString) return 'N/A';
   return new Date(dateString).toLocaleString('zh-CN', { hour12: false });
 };
-
-const isOpen = computed(() => props.isOpen);
-const report = computed(() => props.report);
 </script>
-
-<style scoped>
-.report-section {
-  margin-top: 1rem;
-}
-.report-section label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
-  font-size: 0.875rem;
-}
-.report-section p {
-  padding: 0.75rem;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background-color: #f8f9fa;
-  font-size: 0.9rem;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-</style>

@@ -1,75 +1,54 @@
 <template>
-  <div class="space-y-8">
-    <section class="rounded-3xl bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] p-8 text-white shadow-xl shadow-blue-900/20">
-      <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/70">Weekly Rhythm</p>
-          <h2 class="mt-2 text-3xl font-semibold">周报中心</h2>
-          <p class="mt-2 text-sm text-white/80">回顾本周成果、记录问题并制定下一步计划。</p>
-        </div>
-        <div class="grid gap-4 text-sm sm:grid-cols-2">
-          <div class="rounded-2xl border border-white/30 bg-white/10 p-4 backdrop-blur">
-            <p class="text-white/70">本周周期</p>
-            <p class="mt-1 text-xl font-semibold">{{ currentWeekRange }}</p>
-          </div>
-          <div class="rounded-2xl border border-white/30 bg-white/10 p-4 backdrop-blur">
-            <p class="text-white/70">建议提交日</p>
-            <p class="mt-1 text-xl font-semibold">{{ reminderDate }}</p>
-          </div>
-        </div>
+  <div class="flex flex-column gap-6">
+    <!-- Header Section -->
+    <div class="flex flex-column gap-4 md:flex-row md:align-items-center md:justify-content-between">
+      <div>
+        <h1 class="text-3xl font-bold text-900 m-0">周报中心</h1>
+        <p class="text-500 mt-1 mb-0">回顾本周成果，制定下周计划，保持团队节奏。</p>
       </div>
-    </section>
-
-    <div class="rounded-3xl border border-[#E5E7EB] bg-white shadow-sm">
-      <div class="flex flex-col gap-3 border-b border-[#E5E7EB] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#94A3B8]">Weekly Control</p>
-          <h3 class="mt-1 text-2xl font-semibold text-[#1F2937]">周报概览</h3>
-        </div>
-        <p class="text-sm text-[#6B7280]">保持节奏，让团队同步每周重点。</p>
-      </div>
-
-      <div class="px-6 pt-4">
-        <nav class="flex flex-wrap gap-3">
-          <button
-            v-if="canFillReports"
-            @click="currentTab = 'entry'"
-            :class="[
-              'rounded-full px-5 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#3B82F6]',
-              currentTab === 'entry'
-                ? 'bg-[#3B82F6] text-white shadow-lg shadow-blue-500/30'
-                : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
-            ]"
-          >
-            周报填写
-          </button>
-          <button
-            v-if="canViewReports"
-            @click="currentTab = 'management'"
-            :class="[
-              'rounded-full px-5 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#3B82F6]',
-              currentTab === 'management'
-                ? 'bg-[#3B82F6] text-white shadow-lg shadow-blue-500/30'
-                : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
-            ]"
-          >
-            周报查看
-          </button>
-        </nav>
-      </div>
-
-      <div class="rounded-b-3xl bg-[#F9FAFB] px-6 py-6">
-        <div v-if="currentTab === 'entry'">
-          <WeeklyReportForm />
-        </div>
-        <div
-          v-else-if="currentTab === 'management'"
-          class="-mx-6 rounded-b-3xl border-t border-stone-200 bg-white px-6 pb-6 pt-4"
-        >
-          <ViewReports />
-        </div>
+      <div class="flex gap-3">
+        <Card class="shadow-sm border-round-xl p-0" style="border-left: 4px solid #3b82f6">
+          <template #content>
+            <div class="px-4 py-3">
+              <p class="text-xs font-semibold text-500 uppercase m-0 mb-1">本周周期</p>
+              <p class="text-lg font-bold text-900 m-0">{{ currentWeekRange }}</p>
+            </div>
+          </template>
+        </Card>
+        <Card class="shadow-sm border-round-xl p-0" style="border-left: 4px solid #10b981">
+          <template #content>
+            <div class="px-4 py-3">
+              <p class="text-xs font-semibold text-500 uppercase m-0 mb-1">建议提交日</p>
+              <p class="text-lg font-bold text-primary m-0">{{ reminderDate }}</p>
+            </div>
+          </template>
+        </Card>
       </div>
     </div>
+
+    <!-- Main Content -->
+    <Card class="shadow-sm border-round-2xl">
+      <template #content>
+        <div class="border-bottom-1 surface-border pb-4 mb-4">
+          <SelectButton
+            v-model="currentTab"
+            :options="tabOptions"
+            option-label="label"
+            option-value="value"
+            :allow-empty="false"
+          />
+        </div>
+
+        <Transition name="fade" mode="out-in">
+          <div v-if="currentTab === 'entry'" key="entry">
+            <WeeklyReportForm />
+          </div>
+          <div v-else key="management">
+            <ViewReports />
+          </div>
+        </Transition>
+      </template>
+    </Card>
   </div>
 </template>
 
@@ -78,19 +57,24 @@ import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import WeeklyReportForm from '@/components/reports/WeeklyReportForm.vue';
 import ViewReports from '@/components/reports/ViewReports.vue';
+import SelectButton from 'primevue/selectbutton';
+import Card from 'primevue/card';
 
 const authStore = useAuthStore();
 
 const canFillReports = computed(() => authStore.permissions.includes('WEEKLY_REPORT'));
 const canViewReports = computed(() => authStore.permissions.includes('VIEW_REPORTS'));
 
+const tabOptions = computed(() => {
+  const options = [];
+  if (canFillReports.value) options.push({ label: '填写周报', value: 'entry' });
+  if (canViewReports.value) options.push({ label: '查看周报', value: 'management' });
+  return options;
+});
+
 const getDefaultTab = (): 'entry' | 'management' => {
-  if (canFillReports.value) {
-    return 'entry';
-  }
-  if (canViewReports.value) {
-    return 'management';
-  }
+  if (canFillReports.value) return 'entry';
+  if (canViewReports.value) return 'management';
   return 'entry';
 };
 
@@ -128,3 +112,15 @@ const reminderDate = computed(() => {
   return formatDisplayDate(friday);
 });
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

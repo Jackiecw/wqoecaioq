@@ -182,7 +182,29 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'listing-created', 'listing-updated']);
 
-const defaultFormData = () => ({
+type ListingProduct = {
+  id: string;
+  sku?: string;
+  name?: string;
+};
+
+type CountryOption = { code: string; name: string };
+
+type ListingFormState = {
+  productId: string;
+  storeId: string;
+  storeTitle: string;
+  productCode: string;
+  currentPrice: number | string;
+  platformUrl: string;
+};
+
+type OptionPayload = {
+  products?: ListingProduct[];
+  currencyMap?: Record<string, string>;
+};
+
+const defaultFormData = (): ListingFormState => ({
   productId: '',
   storeId: '',
   storeTitle: '',
@@ -191,16 +213,16 @@ const defaultFormData = () => ({
   platformUrl: '',
 });
 
-const formData = ref(defaultFormData());
-const allProducts = ref([]);
-const currencyMap = ref({});
-const selectedCountryCode = ref('');
+const formData = ref<ListingFormState>(defaultFormData());
+const allProducts = ref<ListingProduct[]>([]);
+const currencyMap = ref<Record<string, string>>({});
+const selectedCountryCode = ref<string>('');
 const isLoading = ref(false);
 const isLoadingMessage = ref('');
 
-const selectedFile = ref(null);
-const previewUrl = ref(null);
-const errorMessage = ref('');
+const selectedFile = ref<File | null>(null);
+const previewUrl = ref<string | null>(null);
+const errorMessage = ref<string>('');
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
 
 const isEditMode = computed(() => !!props.listingToEditId);
@@ -211,8 +233,8 @@ const {
   getStoresByCountry,
 } = useStoreListings();
 
-const countryOptions = computed(() => {
-  const uniqueCountriesMap = new Map();
+const countryOptions = computed<CountryOption[]>(() => {
+  const uniqueCountriesMap = new Map<string, CountryOption>();
   stores.value.forEach((store) => {
     if (store.country) {
       uniqueCountriesMap.set(store.country.code, store.country);
@@ -295,13 +317,14 @@ async function fetchListingDetails() {
   }
 }
 
-function applyOptionPayload(payload = {}) {
+function applyOptionPayload(payload: OptionPayload = {}) {
   allProducts.value = payload.products || [];
   currencyMap.value = payload.currencyMap || {};
 }
 
-function onFileSelected(event) {
-  const file = event.target.files[0];
+function onFileSelected(event: Event) {
+  const target = event.target as HTMLInputElement | null;
+  const file = target?.files?.[0];
   if (file) {
     selectedFile.value = file;
     if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
@@ -319,7 +342,8 @@ async function handleSubmit() {
   const payload = new FormData();
   payload.append('storeTitle', formData.value.storeTitle || '');
   payload.append('productCode', formData.value.productCode || '');
-  payload.append('currentPrice', formData.value.currentPrice || 0);
+  const price = formData.value.currentPrice === '' ? '' : String(formData.value.currentPrice);
+  payload.append('currentPrice', price);
   payload.append('platformUrl', formData.value.platformUrl || '');
 
   if (selectedFile.value) {

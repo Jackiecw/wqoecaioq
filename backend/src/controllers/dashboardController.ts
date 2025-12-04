@@ -15,11 +15,12 @@ class DashboardController {
     async getSummary(req: Request, res: Response, next: NextFunction) {
         try {
             const { countryCode, storeId } = req.query;
-            if (!countryCode || !storeId) {
-                throw new AppError('countryCode 和 storeId 必填', 400);
-            }
+            // Allow optional params. Service should handle undefined.
             const summary = await dashboardService.getSummary(
-                { countryCode, storeId },
+                {
+                    countryCode: countryCode as string | undefined,
+                    storeId: storeId as string | undefined
+                },
                 (req as any).user
             );
             res.json(summary);

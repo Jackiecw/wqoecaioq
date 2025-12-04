@@ -1,131 +1,140 @@
 <template>
-  <section class="rounded-2xl border border-[#E5E7EB] bg-white shadow-sm backdrop-blur">
-    <header class="flex flex-col gap-4 border-b border-[#E5E7EB] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#3B82F6]">Weekly Entry</p>
-        <h3 class="mt-1 text-2xl font-semibold text-[#1F2937]">填写周报</h3>
-        <p class="mt-1 text-sm text-[#6B7280]">用统一的结构记录成果、计划以及阻碍。</p>
+  <section class="surface-card border-1 border-round-xl shadow-1 p-4 md:p-5">
+    <header class="flex flex-column gap-3 md:flex-row md:align-items-center md:justify-content-between">
+      <div class="flex flex-column gap-1">
+        <p class="text-xs text-primary font-semibold uppercase letter-spacing-3">Weekly Entry</p>
+        <h3 class="text-2xl font-bold m-0">填写周报</h3>
+        <p class="text-sm text-color-secondary m-0">用统一的结构记录本周成果、下周计划以及阻碍。</p>
       </div>
-      <div class="rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3 text-[#1D4ED8] shadow-inner">
-        <p class="text-xs font-semibold uppercase tracking-wide text-[#60A5FA]">当前</p>
-        <p class="text-lg font-semibold text-[#1D4ED8]">{{ currentWeekIndex }} </p>
-        <p class="text-xs text-[#3B82F6]">{{ formattedWeekStart }}</p>
+      <div class="border-1 border-primary-100 bg-primary-50 text-primary border-round-xl p-3 w-full md:w-auto">
+        <p class="text-xs font-semibold uppercase text-primary-400 mb-1">当前</p>
+        <p class="text-lg font-semibold m-0">第 {{ currentWeekIndex }} 周</p>
+        <p class="text-xs text-primary-600 m-0">{{ formattedWeekStart }}</p>
       </div>
     </header>
 
-    <form @submit.prevent="handleSubmit" class="space-y-8 px-6 py-6">
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
-        <div class="space-y-2">
-          <label for="weekStartDate" class="text-sm font-semibold text-[#1F2937]">开始日期</label>
-          <input
-            type="date"
-            id="weekStartDate"
+    <div class="grid mt-4 gap-3">
+      <div class="col-12 md:col-8">
+        <div class="field">
+          <label class="font-semibold text-sm mb-2 block" for="weekStartDate">开始日期</label>
+          <Calendar
+            input-id="weekStartDate"
             v-model="formData.weekStartDate"
-            required
-            class="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#1F2937] shadow-sm transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]"
+            date-format="yy-mm-dd"
+            show-icon
+            class="w-full"
+            :manual-input="true"
           />
-          <p class="text-xs text-[#94A3B8]">系统默认选本周一，建议保持一致以便统计。</p>
+          <small class="text-color-secondary">系统默认选本周一，建议保持一致便于统计。</small>
         </div>
-        <div class="rounded-2xl border border-dashed border-[#E5E7EB] bg-[#F9FAFB] p-4 text-sm text-[#1F2937]">
-          <p class="font-semibold text-[#1F2937]">书写提示</p>
-          <ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-[#6B7280]">
+      </div>
+      <div class="col-12 md:col-4">
+        <div class="border-1 border-dashed surface-border border-round-lg p-3">
+          <p class="font-semibold text-sm mb-2">书写提示</p>
+          <ul class="pl-3 text-sm text-color-secondary m-0">
             <li>总结突出成就、关键数字和学习</li>
-            <li>计划拆分 3-5 个可执行事项</li>
+            <li>计划拆分为 3-5 个可执行事项</li>
             <li>遇到问题请写清阻碍与所需支持</li>
           </ul>
         </div>
       </div>
+    </div>
 
-      <div class="grid gap-6 lg:grid-cols-2">
-        <div class="space-y-6">
-          <div class="space-y-2">
-            <label for="summaryThisWeek" class="text-sm font-semibold text-[#1F2937]">本周总结 *</label>
-            <textarea
+    <div class="grid mt-3 gap-4">
+      <div class="col-12 md:col-6">
+        <div class="surface-50 border-round-xl p-4 h-full">
+          <div class="field flex flex-column gap-2 mb-4">
+            <label class="font-semibold text-sm" for="summaryThisWeek">本周总结 *</label>
+            <Textarea
               id="summaryThisWeek"
-              rows="6"
               v-model="formData.summaryThisWeek"
+              rows="7"
+              auto-resize
+              class="w-full"
               required
-              class="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#1F2937] shadow-sm transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]"
-            ></textarea>
-            <p class="text-xs text-[#94A3B8]">已输入 {{ summaryLength }} 字</p>
-          </div>
-          <div class="space-y-2">
-            <label for="problemsEncountered" class="text-sm font-semibold text-[#1F2937]">遇到的问题</label>
-            <textarea
-              id="problemsEncountered"
-              rows="4"
-              v-model="formData.problemsEncountered"
-              class="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#1F2937] shadow-sm transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]"
-            ></textarea>
-          </div>
-        </div>
-        <div class="space-y-6">
-          <div class="space-y-2">
-            <label for="planNextWeek" class="text-sm font-semibold text-[#1F2937]">下周计划 *</label>
-            <textarea
-              id="planNextWeek"
-              rows="6"
-              v-model="formData.planNextWeek"
-              required
-              class="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#1F2937] shadow-sm transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]"
-            ></textarea>
-            <p class="text-xs text-[#94A3B8]">已输入 {{ planLength }} 字</p>
-          </div>
-          <div class="space-y-2">
-            <label for="other" class="text-sm font-semibold text-[#1F2937]">其他</label>
-            <textarea
-              id="other"
-              rows="4"
-              v-model="formData.other"
-              class="w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm text-[#1F2937] shadow-sm transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none focus:ring-2 focus:ring-[#BFDBFE]"
-            ></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-4 border-t border-[#E5E7EB] pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-sm text-[#6B7280]">提交后可在“周报查看”中回顾与导出记录。</p>
-        <button
-          type="submit"
-          class="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#3B82F6] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-[#2563EB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#3B82F6]"
-        >
-          <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path
-              d="M3 10.75l4.5 4.5L17 5.75"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              fill="none"
             />
-          </svg>
-          <span>提交周报</span>
-        </button>
+            <small class="text-color-secondary">已输入 {{ summaryLength }} 字</small>
+          </div>
+
+          <div class="field flex flex-column gap-2 m-0">
+            <label class="font-semibold text-sm" for="problemsEncountered">遇到的问题</label>
+            <Textarea
+              id="problemsEncountered"
+              v-model="formData.problemsEncountered"
+              rows="5"
+              auto-resize
+              class="w-full"
+            />
+          </div>
+        </div>
       </div>
 
-      <div
-        v-if="successMessage"
-        class="rounded-2xl border border-[#BBF7D0] bg-[#ECFDF5] px-4 py-3 text-sm text-[#10B981] shadow-inner"
-      >
-        {{ successMessage }}
+      <div class="col-12 md:col-6">
+        <div class="surface-50 border-round-xl p-4 h-full">
+          <div class="field flex flex-column gap-2 mb-4">
+            <label class="font-semibold text-sm" for="planNextWeek">下周计划 *</label>
+            <Textarea
+              id="planNextWeek"
+              v-model="formData.planNextWeek"
+              rows="7"
+              auto-resize
+              class="w-full"
+              required
+            />
+            <small class="text-color-secondary">已输入 {{ planLength }} 字</small>
+          </div>
+
+          <div class="field flex flex-column gap-2 m-0">
+            <label class="font-semibold text-sm" for="other">其他</label>
+            <Textarea
+              id="other"
+              v-model="formData.other"
+              rows="5"
+              auto-resize
+              class="w-full"
+            />
+          </div>
+        </div>
       </div>
-      <div
-        v-if="errorMessage"
-        class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-inner"
-      >
-        {{ errorMessage }}
-      </div>
-    </form>
+    </div>
+
+    <div class="flex flex-column gap-3 border-top-1 surface-border pt-4 md:flex-row md:align-items-center md:justify-content-between mt-4">
+      <p class="text-sm text-color-secondary m-0">提交后可在“周报查看”中回顾与导出记录。</p>
+      <Button
+        type="button"
+        label="提交周报"
+        icon="pi pi-check"
+        raised
+        @click="handleSubmit"
+      />
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import Calendar from 'primevue/calendar';
+import Textarea from 'primevue/textarea';
+import Button from 'primevue/button';
+import { useToast } from 'primevue/usetoast';
 import reportService, { WeeklyReportPayload } from '@/services/reportService';
 
-type FormState = WeeklyReportPayload;
+type FormState = {
+  weekStartDate: Date | null;
+  summaryThisWeek: string;
+  planNextWeek: string;
+  problemsEncountered: string;
+  other: string;
+};
 
-const formatISODate = (date: Date) => date.toISOString().split('T')[0];
+const toast = useToast();
+
+const formatISODate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const getCurrentWeekStart = () => {
   const now = new Date();
@@ -138,7 +147,7 @@ const getCurrentWeekStart = () => {
 };
 
 const buildInitialForm = (): FormState => ({
-  weekStartDate: formatISODate(getCurrentWeekStart()),
+  weekStartDate: getCurrentWeekStart(),
   summaryThisWeek: '',
   planNextWeek: '',
   problemsEncountered: '',
@@ -147,12 +156,9 @@ const buildInitialForm = (): FormState => ({
 
 const formData = ref<FormState>(buildInitialForm());
 
-const successMessage = ref('');
-const errorMessage = ref('');
-
 const formattedWeekStart = computed(() => {
   if (!formData.value.weekStartDate) return '--';
-  return new Date(formData.value.weekStartDate).toLocaleDateString('zh-CN', {
+  return formData.value.weekStartDate.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'numeric',
     day: 'numeric',
@@ -161,7 +167,7 @@ const formattedWeekStart = computed(() => {
 
 const currentWeekIndex = computed(() => {
   if (!formData.value.weekStartDate) return '--';
-  const date = new Date(formData.value.weekStartDate);
+  const date = formData.value.weekStartDate;
   const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
   const pastDays = Math.floor((date.getTime() - firstDayOfYear.getTime()) / 86400000);
   return Math.max(1, Math.ceil((pastDays + firstDayOfYear.getDay() + 1) / 7));
@@ -170,28 +176,53 @@ const currentWeekIndex = computed(() => {
 const summaryLength = computed(() => formData.value.summaryThisWeek.trim().length);
 const planLength = computed(() => formData.value.planNextWeek.trim().length);
 
-const resetFeedback = () => {
-  successMessage.value = '';
-  errorMessage.value = '';
-};
-
 const resetForm = () => {
   formData.value = buildInitialForm();
 };
 
+const toPayload = (state: FormState): WeeklyReportPayload => ({
+  weekStartDate: formatISODate(state.weekStartDate || getCurrentWeekStart()),
+  summaryThisWeek: state.summaryThisWeek,
+  planNextWeek: state.planNextWeek,
+  problemsEncountered: state.problemsEncountered,
+  other: state.other,
+});
+
 const handleSubmit = async () => {
-  resetFeedback();
+  if (!formData.value.summaryThisWeek.trim() || !formData.value.planNextWeek.trim()) {
+    toast.add({ severity: 'warn', summary: '请填写必填项', detail: '本周总结与下周计划不能为空', life: 2500 });
+    return;
+  }
+
   try {
-    const result = await reportService.create(formData.value);
-    successMessage.value = `周报提交成功 (ID: ${result.id})`;
+    const payload = toPayload(formData.value);
+    const result = await reportService.create(payload);
+    toast.add({ severity: 'success', summary: '周报提交成功', detail: `ID: ${result.id}`, life: 3000 });
     resetForm();
   } catch (error: any) {
     console.error('提交失败:', error);
-    if (error.response?.data?.error) {
-      errorMessage.value = error.response.data.error;
-    } else {
-      errorMessage.value = '提交失败，请检查网络或联系管理员。';
-    }
+    const detail =
+      error?.response?.data?.error ||
+      '提交失败，请检查网络或联系管理员。';
+    toast.add({ severity: 'error', summary: '提交失败', detail, life: 3500 });
   }
 };
 </script>
+
+<style scoped>
+.letter-spacing-3 {
+  letter-spacing: 0.3em;
+}
+
+.field :deep(.p-inputtextarea) {
+  width: 100%;
+}
+
+.border-round-xl {
+  border-radius: 1rem;
+}
+
+.shadow-1 {
+  box-shadow: var(--shadow-2, 0 8px 30px -12px rgba(0, 0, 0, 0.18));
+}
+</style>

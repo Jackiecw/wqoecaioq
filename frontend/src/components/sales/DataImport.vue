@@ -125,7 +125,7 @@
 
 <script setup lang="ts">
 
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, type Component } from 'vue'
 import useStoreListings from '../../composables/useStoreListings'
 import { useAuthStore } from '@/stores/auth'
 import BatchImport from './BatchImport.vue'
@@ -155,9 +155,9 @@ const selectedCountry = ref('')
 
 
 
-const currentTabComponent = computed(() => {
+const currentTabComponent = computed<Component>(() => {
 
-  return tabs.find(t => t.name === currentTab.value)?.component
+  return tabs.find(t => t.name === currentTab.value)?.component || BatchImport
 
 })
 

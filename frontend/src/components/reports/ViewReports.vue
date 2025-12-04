@@ -1,52 +1,107 @@
 <template>
-  <div class="space-y-6">
-    <h2 class="text-3xl font-bold text-stone-900">周报查看</h2>
+  <div class="flex flex-col gap-6">
+    <!-- Page Header -->
+    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-900">周报查看</h1>
+        <p class="mt-1 text-500">查看团队成员提交的周报记录与历史归档。</p>
+      </div>
+      <div class="flex gap-2">
+        <Button 
+          icon="pi pi-refresh" 
+          label="刷新" 
+          severity="secondary" 
+          text 
+          @click="fetchReports" 
+          :loading="isLoading"
+        />
+      </div>
+    </div>
 
-    <p v-if="isLoading" class="text-stone-500">正在加载周报列表...</p>
-    <p v-if="errorMessage" class="text-red-600 mb-4">{{ errorMessage }}</p>
+    <!-- Content Card -->
+    <div class="card border-0 shadow-sm rounded-2xl bg-white">
+      <DataTable
+        :value="reports"
+        :loading="isLoading"
+        paginator
+        :rows="10"
+        :rowsPerPageOptions="[10, 20, 50]"
+        tableStyle="min-width: 50rem"
+        class="p-datatable-lg"
+      >
+        <template #empty>
+          <div class="text-center py-8">
+            <i class="pi pi-folder-open text-4xl text-400 mb-3"></i>
+            <p class="text-500">暂无周报记录</p>
+          </div>
+        </template>
 
-    <div v-if="!isLoading && reports.length > 0" class="bg-white rounded-lg shadow overflow-hidden">
-      <table class="min-w-full divide-y divide-stone-200">
-        <thead class="bg-stone-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">开始日</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">提交人</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">提交时间</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">操作</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-stone-200">
-          <tr v-for="report in reports" :key="report.id">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">{{ formatDate(report.weekStartDate) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">{{ report.author?.nickname ?? '--' }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">{{ formatDateTime(report.createdAt) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <button @click="openReportModal(report)" class="text-[#3B82F6] hover:text-[#1D4ED8]">
-                查看详情
-              </button>
-              <button
+        <Column field="weekStartDate" header="开始日期" sortable style="width: 15%">
+          <template #body="{ data }">
+            <span class="font-medium text-900">{{ formatDate(data.weekStartDate) }}</span>
+          </template>
+        </Column>
+        
+        <Column field="author.nickname" header="提交人" sortable style="width: 15%">
+          <template #body="{ data }">
+            <div class="flex items-center gap-2">
+              <Avatar 
+                icon="pi pi-user" 
+                shape="circle" 
+                class="bg-primary-50 text-primary"
+                style="width: 2rem; height: 2rem"
+              />
+              <span class="text-700">{{ data.author?.nickname ?? '未知用户' }}</span>
+            </div>
+          </template>
+        </Column>
+
+        <Column field="createdAt" header="提交时间" sortable style="width: 20%">
+          <template #body="{ data }">
+            <span class="text-500">{{ formatDateTime(data.createdAt) }}</span>
+          </template>
+        </Column>
+
+        <Column header="摘要" style="width: 30%">
+          <template #body="{ data }">
+            <p class="truncate max-w-xs text-500" :title="data.summaryThisWeek">
+              {{ data.summaryThisWeek || '无摘要' }}
+            </p>
+          </template>
+        </Column>
+
+        <Column header="操作" style="width: 20%; text-align: right" bodyClass="text-right">
+          <template #body="{ data }">
+            <div class="flex justify-end gap-2">
+              <Button 
+                icon="pi pi-eye" 
+                label="详情" 
+                size="small" 
+                severity="secondary" 
+                outlined
+                @click="openReportModal(data)" 
+              />
+              <Button
                 v-if="isSuperAdmin"
-                @click="handleDeleteReport(report.id)"
-                class="ml-4 text-red-600 hover:text-red-900"
-              >
-                删除
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                icon="pi pi-trash"
+                size="small"
+                severity="danger"
+                text
+                @click="handleDeleteReport(data.id)"
+                aria-label="删除"
+              />
+            </div>
+          </template>
+        </Column>
+      </DataTable>
     </div>
 
-    <div v-if="!isLoading && reports.length === 0 && !errorMessage" class="p-6 bg-white rounded-lg shadow text-center text-stone-500">
-      <p>目前还没有人提交周报。</p>
-    </div>
+    <ReportDetailModal
+      :is-open="isModalOpen"
+      :report="selectedReport"
+      @close="closeReportModal"
+    />
   </div>
-
-  <ReportDetailModal
-    :is-open="isModalOpen"
-    :report="selectedReport"
-    @close="closeReportModal"
-  />
 </template>
 
 <script setup lang="ts">
@@ -54,11 +109,16 @@ import { computed, ref, onMounted } from 'vue';
 import reportService, { WeeklyReport } from '@/services/reportService';
 import ReportDetailModal from './ReportDetailModal.vue';
 import { useAuthStore } from '@/stores/auth';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Button from 'primevue/button';
+import Avatar from 'primevue/avatar';
+import { useToast } from 'primevue/usetoast';
 
 const reports = ref<WeeklyReport[]>([]);
 const isLoading = ref(true);
-const errorMessage = ref('');
 const authStore = useAuthStore();
+const toast = useToast();
 const isSuperAdmin = computed(() => authStore.role === 'admin');
 
 const isModalOpen = ref(false);
@@ -66,17 +126,12 @@ const selectedReport = ref<WeeklyReport | null>(null);
 
 const fetchReports = async () => {
   isLoading.value = true;
-  errorMessage.value = '';
   try {
     const response = await reportService.list();
     reports.value = response;
   } catch (error: any) {
     console.error('获取周报列表失败', error);
-    if (error.response?.status === 403) {
-      errorMessage.value = '您没有权限查看此内容。';
-    } else {
-      errorMessage.value = '获取周报列表失败，请稍后重试。';
-    }
+    toast.add({ severity: 'error', summary: '加载失败', detail: '无法获取周报列表', life: 3000 });
   } finally {
     isLoading.value = false;
   }
@@ -99,13 +154,13 @@ const handleDeleteReport = async (reportId: string) => {
   if (!isSuperAdmin.value) return;
   if (!confirm('确定要删除这份周报吗？该操作不可恢复。')) return;
 
-  errorMessage.value = '';
   try {
     await reportService.remove(reportId);
     reports.value = reports.value.filter((report) => report.id !== reportId);
+    toast.add({ severity: 'success', summary: '删除成功', detail: '周报已删除', life: 3000 });
   } catch (error: any) {
     console.error('删除周报失败', error);
-    errorMessage.value = error.response?.data?.error || '删除周报失败，请稍后再试。';
+    toast.add({ severity: 'error', summary: '删除失败', detail: error.response?.data?.error || '请稍后再试', life: 3000 });
   }
 };
 
