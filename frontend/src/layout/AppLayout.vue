@@ -1,7 +1,7 @@
 <template>
   <div class="flex min-h-screen bg-slate-50">
     <!-- 移动端侧边栏 -->
-    <Sidebar
+    <Drawer
       v-model:visible="mobileMenuOpen"
       position="left"
       class="mobile-sidebar"
@@ -64,7 +64,7 @@
           />
         </div>
       </div>
-    </Sidebar>
+    </Drawer>
 
     <!-- 桌面端左侧侧边栏 -->
     <AppSidebar />
@@ -92,7 +92,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import AppSidebar from './AppSidebar.vue';
 import AppTopbar from './AppTopbar.vue';
-import Sidebar from 'primevue/sidebar';
+import Drawer from 'primevue/drawer';
 import Button from 'primevue/button';
 import { MENU_GROUPS, type NavItem, type NavGroup } from './menuConfig';
 

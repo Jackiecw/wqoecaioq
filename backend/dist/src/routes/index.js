@@ -18,6 +18,7 @@ const profileRoutes_1 = __importDefault(require("./profileRoutes"));
 const salesImportRoutes_1 = __importDefault(require("./salesImportRoutes"));
 const dashboardRoutes_1 = __importDefault(require("./dashboardRoutes"));
 const calendarRoutes_1 = __importDefault(require("./calendarRoutes"));
+const commonRoutes_1 = __importDefault(require("./commonRoutes"));
 function registerRoutes(app) {
     app.use('/api', auth_1.default);
     app.use('/api', salesData_1.default);
@@ -25,6 +26,7 @@ function registerRoutes(app) {
     app.use('/api', salesImportRoutes_1.default);
     app.use('/api', dashboardRoutes_1.default);
     app.use('/api', calendarRoutes_1.default);
+    app.use('/api', commonRoutes_1.default);
     app.use('/api/admin', productRoutes_1.default);
     app.use('/api/admin', storeListingRoutes_1.default);
     app.use('/api/admin', adminRoutes_1.default);

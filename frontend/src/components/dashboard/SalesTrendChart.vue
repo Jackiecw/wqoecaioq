@@ -1,7 +1,7 @@
 <template>
-  <Card class="shadow-sm border-round-2xl h-full w-full">
-    <template #title>
-      <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3 px-1">
+  <div class="glass-card-solid h-full w-full">
+    <div class="p-4 md:p-5">
+      <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3 mb-4">
         <div>
           <h3 class="text-lg font-bold text-900 m-0">销售趋势</h3>
           <p class="text-xs text-500 mt-1 mb-0">GMV 与订单量走势分析</p>
@@ -14,13 +14,12 @@
             :severity="selectedRange === range.value ? 'primary' : 'secondary'"
             :outlined="selectedRange !== range.value"
             size="small"
+            class="border-round-xl"
             @click="selectedRange = range.value"
           />
         </div>
       </div>
-    </template>
-    <template #content>
-      <div class="pt-2">
+      <div>
         <BaseChart 
           :option="chartOption" 
           height="380px"
@@ -28,22 +27,21 @@
         />
         <div v-if="!isLoading" class="flex justify-content-center gap-4 mt-3 text-sm">
           <div class="flex align-items-center gap-2">
-            <div class="w-3rem h-0" style="border-top: 3px solid #8b5cf6"></div>
+            <div class="w-3rem" style="height: 0; border-top: 3px solid #8b5cf6"></div>
             <span class="text-600">GMV (¥)</span>
           </div>
           <div class="flex align-items-center gap-2">
-            <div class="w-3rem h-0" style="border-top: 3px dashed #3b82f6"></div>
+            <div class="w-3rem" style="height: 0; border-top: 3px dashed #3b82f6"></div>
             <span class="text-600">订单量</span>
           </div>
         </div>
       </div>
-    </template>
-  </Card>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import Card from 'primevue/card';
 import Button from 'primevue/button';
 import BaseChart from '@/components/charts/BaseChart.vue';
 

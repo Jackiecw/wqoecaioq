@@ -1,35 +1,32 @@
 <template>
-  <div class="dashboard-home p-4 md:p-6 xl:px-10 w-full max-w-none min-h-full flex flex-col min-w-0">
+  <div class="dashboard-container p-4 md:p-5 xl:px-6 w-full min-h-full flex flex-column">
     <!-- 顶部区域 (Header Area) -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8">
+    <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3 mb-5">
       <!-- 左侧：问候语 -->
       <div>
-        <h1 class="text-3xl font-bold text-slate-900 m-0">{{ greeting }}，{{ authStore.nickname }}</h1>
-        <p class="text-slate-500 mt-1 mb-0">{{ todayDate }}</p>
+        <h1 class="text-3xl font-bold text-900 m-0">{{ greeting }}，{{ authStore.nickname }}</h1>
+        <p class="text-color-secondary mt-1 mb-0">{{ todayDate }}</p>
       </div>
 
       <!-- 右侧：过滤器 -->
-    <div class="flex items-center gap-3 flex-wrap justify-end">
+      <div class="flex align-items-center gap-3 flex-wrap justify-content-end">
         <!-- 国家筛选 -->
         <IconField>
-          <InputIcon class="pi pi-globe text-slate-400" />
+          <InputIcon class="pi pi-globe" style="color: var(--surface-500)" />
           <Select
             v-model="selectedCountryCode"
             :options="countryFilterOptions"
             optionLabel="name"
             optionValue="code"
             placeholder="选择国家"
-            class="
-              bg-white border-0 shadow-sm rounded-full pl-10
-              min-w-[150px]
-              focus:ring-2 focus:ring-indigo-500
-            "
+            class="filter-select pl-5"
+            style="min-width: 150px"
           />
         </IconField>
 
         <!-- 店铺筛选 -->
         <IconField>
-          <InputIcon class="pi pi-shop text-slate-400" />
+          <InputIcon class="pi pi-shop" style="color: var(--surface-500)" />
           <Select
             v-model="selectedStoreId"
             :options="storeFilterOptions"
@@ -37,61 +34,56 @@
             optionValue="id"
             placeholder="选择店铺"
             :disabled="!selectedCountryCode"
-            class="
-              bg-white border-0 shadow-sm rounded-full pl-10
-              min-w-[180px]
-              focus:ring-2 focus:ring-indigo-500
-            "
+            class="filter-select pl-5"
+            style="min-width: 180px"
           />
         </IconField>
       </div>
     </div>
 
     <!-- KPI 卡片区 (Metrics Row) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8 w-full min-w-0">
+    <div class="grid mb-5">
       <div 
-        v-for="metric in kpiMetrics" 
+        v-for="(metric, index) in kpiMetrics" 
         :key="metric.label"
-        class="
-          bg-white rounded-xl p-4 md:p-6
-          shadow-sm hover:shadow-md
-          transition-all duration-200
-          border border-slate-100
-        "
+        class="col-12 sm:col-6 xl:col-3"
       >
-        <!-- 图标 -->
-        <div class="flex items-center justify-between mb-4">
-          <span class="text-xs font-semibold text-slate-500 uppercase">{{ metric.label }}</span>
-          <div 
-            class="w-10 h-10 rounded-lg flex items-center justify-center"
-            :style="{ backgroundColor: metric.color + '15' }"
-          >
-            <i :class="metric.icon" :style="{ color: metric.color }" class="text-lg"></i>
+        <div 
+          class="kpi-card animate-fade-in-up"
+          :class="[`kpi-card--${metric.colorKey}`]"
+          :style="{ animationDelay: `${index * 100}ms` }"
+        >
+          <!-- 头部：标签 + 图标 -->
+          <div class="flex align-items-center justify-content-between mb-4">
+            <span class="text-xs font-semibold text-500 uppercase">{{ metric.label }}</span>
+            <div class="kpi-icon" :class="[`kpi-icon--${metric.colorKey}`]">
+              <i :class="metric.icon"></i>
+            </div>
           </div>
-        </div>
 
-        <!-- 数值 -->
-        <div class="text-2xl font-bold text-slate-900 mb-2 tabular-nums">{{ metric.value }}</div>
+          <!-- 数值 -->
+          <div class="kpi-value mb-2">{{ metric.value }}</div>
 
-        <!-- 副标题和趋势 -->
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-slate-600">{{ metric.sub }}</span>
-          <span 
-            v-if="metric.trend"
-            class="text-xs font-semibold px-2 py-0.5 rounded-full"
-            :class="metric.trend.type === 'up' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'"
-          >
-            <i :class="metric.trend.type === 'up' ? 'pi pi-arrow-up' : 'pi pi-arrow-down'" class="text-xs"></i>
-            {{ metric.trend.value }}
-          </span>
+          <!-- 副标题和趋势 -->
+          <div class="flex align-items-center gap-2">
+            <span class="text-sm text-600">{{ metric.sub }}</span>
+            <span 
+              v-if="metric.trend"
+              class="kpi-trend"
+              :class="metric.trend.type === 'up' ? 'kpi-trend--up' : 'kpi-trend--down'"
+            >
+              <i :class="metric.trend.type === 'up' ? 'pi pi-arrow-up' : 'pi pi-arrow-down'" style="font-size: 0.625rem"></i>
+              {{ metric.trend.value }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 主要内容区 (Bento Grid Layout) -->
-    <div class="grid !grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8 min-w-0 flex-1 w-full items-start">
+    <div class="grid flex-1">
       <!-- 左侧 (2/3 宽度)：销售趋势图表 -->
-      <div class="min-w-0 lg:col-span-8">
+      <div class="col-12 lg:col-8">
         <SalesTrendChart 
           class="h-full w-full"
           :country-code="selectedCountryCode"
@@ -100,164 +92,166 @@
       </div>
 
       <!-- 右侧 (1/3 宽度)：工具栏 -->
-      <div class="flex flex-col gap-6 md:gap-8 min-w-0 h-full lg:col-span-4">
+      <div class="col-12 lg:col-4 flex flex-column gap-4">
         <!-- 卡片 A: 极简汇率计算器 -->
-        <Card class="
-          shadow-md rounded-2xl border-0
-          bg-gradient-to-br from-indigo-500 to-violet-600
-          text-white
-          min-h-[520px]
-        ">
-          <template #content>
-            <div class="p-6">
-              <!-- 标题 -->
-              <div class="flex items-center justify-between mb-6">
-                <div>
-                  <h3 class="text-lg font-bold m-0 mb-1">汇率计算器</h3>
-                  <div class="text-xs opacity-80 flex items-center gap-2">
-                    <span v-if="isUsingFallbackRates" class="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded">
-                      <i class="pi pi-info-circle text-xs"></i>
-                      离线汇率
-                    </span>
-                    <span v-else-if="formattedRatesUpdatedAt">更新于 {{ formattedRatesUpdatedAt }}</span>
-                    <span v-else>加载中...</span>
-                  </div>
-                </div>
-                <Button
-                  icon="pi pi-refresh"
-                  :loading="manualRefreshStatus.isRefreshing"
-                  :disabled="!canTriggerManualRefresh || isUsingFallbackRates"
-                  severity="secondary"
-                  text
-                  rounded
-                  size="small"
-                  class="text-white hover:bg-white/20"
-                  @click="handleManualRatesRefresh"
-                />
-              </div>
-
-              <!-- 汇率计算区 -->
-              <div v-if="isLoading.rates" class="text-center py-12">
-                <i class="pi pi-spin pi-spinner text-3xl opacity-50"></i>
-              </div>
-              <div v-else class="space-y-4">
-                <!-- CNY 输入 -->
-                <div class="bg-white/15 backdrop-blur-sm rounded-xl p-5">
-                  <div class="text-xs opacity-80 mb-3 font-semibold">人民币 (CNY)</div>
-                  <input
-                    v-model.number="exchangeCalcAmount"
-                    type="number"
-                    :min="0"
-                    class="
-                      w-full bg-transparent border-0
-                      text-white text-4xl font-bold
-                      outline-none focus:outline-none
-                      placeholder-white/40
-                      tabular-nums
-                    "
-                    placeholder="100.00"
-                  />
-                </div>
-
-                <!-- 交换按钮 -->
-                <div class="flex justify-center -my-2">
-                  <button
-                    class="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center text-white"
-                    @click="swapExchangeCurrencies"
-                  >
-                    <i class="pi pi-arrow-down-up text-lg"></i>
-                  </button>
-                </div>
-
-                <!-- 目标货币和结果 -->
-                <div class="bg-white/15 backdrop-blur-sm rounded-xl p-5">
-                  <div class="flex items-center justify-between mb-3">
-                    <div class="text-xs opacity-80 font-semibold">目标货币</div>
-                    <Select
-                      v-model="targetCurrency"
-                      :options="supportedRateCodes"
-                      placeholder="选择货币"
-                      class="
-                        bg-white/20 border-0 rounded-lg text-white min-w-[100px]
-                        [&_.p-select-label]:text-white
-                        [&_.p-select-label]:font-semibold
-                      "
-                    />
-                  </div>
-                  <div class="text-4xl font-bold tabular-nums">
-                    {{ formatNumber(convertedAmount) }}
-                  </div>
-                </div>
-
-                <!-- 汇率比例 -->
-                <div class="text-xs opacity-80 text-center bg-white/10 py-2 rounded-lg">
-                  1 CNY = {{ formatNumber(currentRate) }} {{ targetCurrency }}
-                </div>
+        <div class="gradient-card p-5">
+          <!-- 标题 -->
+          <div class="flex align-items-center justify-content-between mb-5">
+            <div>
+              <h3 class="text-lg font-bold m-0 mb-1">汇率计算器</h3>
+              <div class="text-xs opacity-80 flex align-items-center gap-2">
+                <span v-if="isUsingFallbackRates" class="inline-flex align-items-center gap-1 bg-white-alpha-20 px-2 py-1 border-round">
+                  <i class="pi pi-info-circle text-xs"></i>
+                  离线汇率
+                </span>
+                <span v-else-if="formattedRatesUpdatedAt">更新于 {{ formattedRatesUpdatedAt }}</span>
+                <span v-else>加载中...</span>
               </div>
             </div>
-          </template>
-        </Card>
+            <Button
+              icon="pi pi-refresh"
+              :loading="manualRefreshStatus.isRefreshing"
+              :disabled="!canTriggerManualRefresh || isUsingFallbackRates"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              class="text-white hover:bg-white-alpha-20"
+              @click="handleManualRatesRefresh"
+            />
+          </div>
 
-        <!-- 卡片 B: 待办与日程 (自定义 Segmented Control) -->
-        <Card class="shadow-sm rounded-2xl border border-slate-100 flex-1">
-          <template #content>
-            <div class="p-6">
-              <!-- 自定义 Segmented Control -->
-              <div class="bg-slate-100 rounded-lg p-1 mb-6 grid grid-cols-2 gap-1">
-                <button
-                  class="
-                    py-2 px-4 rounded-md text-sm font-medium
-                    transition-all duration-200
-                  "
-                  :class="[
-                    activeTab === 'todo'
-                      ? 'bg-white shadow-sm text-slate-900'
-                      : 'text-slate-600 hover:text-slate-900'
-                  ]"
-                  @click="activeTab = 'todo'"
-                >
-                  待办事项
-                </button>
-                <button
-                  class="
-                    py-2 px-4 rounded-md text-sm font-medium
-                    transition-all duration-200
-                  "
-                  :class="[
-                    activeTab === 'schedule'
-                      ? 'bg-white shadow-sm text-slate-900'
-                      : 'text-slate-600 hover:text-slate-900'
-                  ]"
-                  @click="activeTab = 'schedule'"
-                >
-                  日程总览
-                </button>
-              </div>
+          <!-- 汇率计算区 -->
+          <div v-if="isLoading.rates" class="text-center py-6">
+            <i class="pi pi-spin pi-spinner text-3xl opacity-50"></i>
+          </div>
+          <div v-else class="flex flex-column gap-3">
+            <!-- CNY 输入 -->
+            <div class="bg-white-alpha-10 border-round-xl p-4">
+              <div class="text-xs opacity-80 mb-2 font-semibold">人民币 (CNY)</div>
+              <input
+                v-model.number="exchangeCalcAmount"
+                type="number"
+                :min="0"
+                class="w-full bg-transparent border-none text-white text-4xl font-bold outline-none"
+                style="font-variant-numeric: tabular-nums"
+                placeholder="100.00"
+              />
+            </div>
 
-              <!-- 内容区 -->
-              <div v-if="activeTab === 'todo'">
-                <DashboardTodo :compact="true" :max-items="5" />
-              </div>
-              <div v-else class="cursor-pointer" @click="isScheduleOpen = true">
-                <div class="mb-4">
-                  <span class="text-sm font-semibold text-slate-700 block mb-2">本周重点</span>
-                  <p class="text-sm text-slate-600 leading-relaxed m-0">
-                    {{ summaryData.schedule.planNextWeek || '暂无计划，点击填写' }}
-                  </p>
-                </div>
-                <Button
-                  label="查看详情"
-                  icon="pi pi-arrow-right"
-                  iconPos="right"
-                  severity="secondary"
-                  outlined
-                  size="small"
-                  class="w-full rounded-full"
+            <!-- 交换按钮 -->
+            <div class="flex justify-content-center" style="margin: -0.5rem 0">
+              <button
+                class="w-3rem h-3rem border-round-3xl bg-white-alpha-20 hover:bg-white-alpha-30 border-none cursor-pointer flex align-items-center justify-content-center text-white transition-colors transition-duration-200"
+                @click="swapExchangeCurrencies"
+              >
+                <i class="pi pi-arrow-down-up text-lg"></i>
+              </button>
+            </div>
+
+            <!-- 目标货币和结果 -->
+            <div class="bg-white-alpha-10 border-round-xl p-4">
+              <div class="flex align-items-center justify-content-between mb-2">
+                <div class="text-xs opacity-80 font-semibold">目标货币</div>
+                <Select
+                  v-model="targetCurrency"
+                  :options="supportedRateCodes"
+                  placeholder="选择货币"
+                  class="bg-white-alpha-20 border-none border-round-lg text-white"
+                  style="min-width: 100px"
+                  :pt="{
+                    label: { class: 'text-white font-semibold' }
+                  }"
                 />
               </div>
+              <div class="text-4xl font-bold" style="font-variant-numeric: tabular-nums">
+                {{ formatNumber(convertedAmount) }}
+              </div>
             </div>
-          </template>
-        </Card>
+
+            <!-- 汇率比例 -->
+            <div class="text-xs opacity-80 text-center bg-white-alpha-10 py-2 border-round-lg">
+              1 CNY = {{ formatNumber(currentRate) }} {{ targetCurrency }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 卡片 B: 待办与日程 -->
+        <div class="glass-card-solid p-5 flex-1">
+          <!-- 自定义 Tab 切换 -->
+          <div class="tab-switcher mb-4">
+            <button
+              class="tab-switcher-btn"
+              :class="{ 'tab-switcher-btn--active': activeTab === 'todo' }"
+              @click="activeTab = 'todo'"
+            >
+              待办事项
+            </button>
+            <button
+              class="tab-switcher-btn"
+              :class="{ 'tab-switcher-btn--active': activeTab === 'schedule' }"
+              @click="activeTab = 'schedule'"
+            >
+              日程总览
+            </button>
+          </div>
+
+          <!-- 内容区 -->
+          <div v-if="activeTab === 'todo'">
+            <DashboardTodo :compact="true" :max-items="5" />
+          </div>
+          <div v-else class="cursor-pointer" @click="isScheduleOpen = true">
+            <div class="mb-4">
+              <span class="text-sm font-semibold text-700 block mb-2">本周重点</span>
+              <p class="text-sm text-600 line-height-3 m-0">
+                {{ summaryData.schedule.planNextWeek || '暂无计划，点击填写' }}
+              </p>
+            </div>
+            <Button
+              label="查看详情"
+              icon="pi pi-arrow-right"
+              iconPos="right"
+              severity="secondary"
+              outlined
+              size="small"
+              class="w-full border-round-3xl"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 快捷链接栏 -->
+    <div class="mt-5 pt-4 border-top-1 surface-border">
+      <div class="flex align-items-center justify-content-between mb-3">
+        <span class="text-sm font-semibold text-700">快捷链接</span>
+        <Button
+          v-if="authStore.role === 'admin'"
+          label="管理"
+          icon="pi pi-cog"
+          size="small"
+          text
+          @click="goToLinksPage"
+        />
+      </div>
+      <div class="quick-links" v-if="!isLoadingLinks && quickLinks.length > 0">
+        <a
+          v-for="link in quickLinks"
+          :key="link.id"
+          :href="link.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="quick-link-item"
+        >
+          <i class="pi pi-external-link text-xs"></i>
+          {{ link.title }}
+        </a>
+      </div>
+      <div v-else-if="isLoadingLinks" class="text-sm text-color-secondary">
+        加载中...
+      </div>
+      <div v-else class="text-sm text-color-secondary">
+        暂无快捷链接
       </div>
     </div>
 
@@ -275,10 +269,10 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import { useAuthStore } from '../../stores/auth';
+import { useRouter } from 'vue-router';
 import apiClient from '@/services/apiClient';
 import DashboardTodo from './DashboardTodo.vue';
 import DashboardSchedule from './DashboardSchedule.vue';
@@ -313,8 +307,10 @@ type RateState = {
 
 type CountryOption = { code: string; name: string };
 type StoreOption = { id: string; name: string; countryCode: string };
+type LinkItem = { id: number; title: string; url: string; description?: string };
 
 const authStore = useAuthStore();
+const router = useRouter();
 
 // 默认参考汇率（容错机制）
 const DEFAULT_RATES: Record<string, number> = Object.freeze({
@@ -332,8 +328,8 @@ const MANUAL_REFRESH_LIMIT = 3;
 const exchangeCalcAmount = ref(100);
 const targetCurrency = ref('USD');
 const isExchangeSwapped = ref(false);
-const activeTab = ref<'todo' | 'schedule'>('todo'); // 新增：自定义 tab 状态
-const isUsingFallbackRates = ref(false); // 新增：标记是否使用离线汇率
+const activeTab = ref<'todo' | 'schedule'>('todo');
+const isUsingFallbackRates = ref(false);
 
 const greeting = computed(() => {
   const hour = new Date().getHours();
@@ -351,8 +347,6 @@ const todayDate = computed(() =>
     day: 'numeric',
   }),
 );
-
-const hitokoto = ref('...');
 
 const isLoading = ref({
   summary: true,
@@ -373,7 +367,6 @@ const summaryData = ref<SummaryResponse>({
 const ratesData = ref<Record<string, number>>({});
 const ratesUpdatedAt = ref<string | null>(null);
 const rateStates = ref<Record<string, RateState>>({});
-const isCalculationMode = ref(false);
 const remainingManualRefreshes = ref<number | null>(null);
 const manualRefreshStatus = ref({
   isRefreshing: false,
@@ -384,6 +377,10 @@ const allStores = ref<StoreOption[]>([]);
 const selectedCountryCode = ref<string | null>(null);
 const selectedStoreId = ref<string | null>(null);
 const isScheduleOpen = ref(false);
+
+// 快捷链接
+const quickLinks = ref<LinkItem[]>([]);
+const isLoadingLinks = ref(true);
 
 const countryFilterOptions = computed(() => {
   const countries = allCountries.value.map((c) => ({ code: c.code, name: c.name }));
@@ -397,11 +394,6 @@ const storeFilterOptions = computed(() => {
   return allStores.value.filter((store) => store.countryCode === selectedCountryCode.value);
 });
 
-const selectedStoreName = computed(() => {
-  const store = storeFilterOptions.value.find((s) => s.id === selectedStoreId.value);
-  return store ? store.name : '选择店铺...';
-});
-
 // 核心KPI指标
 const kpiMetrics = computed(() => {
   if (isLoading.value.summary) {
@@ -411,7 +403,7 @@ const kpiMetrics = computed(() => {
         value: '加载中', 
         sub: '数据抓取中',
         icon: 'pi pi-dollar',
-        color: '#8b5cf6',
+        colorKey: 'purple',
         trend: null,
       },
       { 
@@ -419,7 +411,7 @@ const kpiMetrics = computed(() => {
         value: '加载中', 
         sub: '数据抓取中',
         icon: 'pi pi-shopping-cart',
-        color: '#ec4899',
+        colorKey: 'pink',
         trend: null,
       },
       { 
@@ -427,7 +419,7 @@ const kpiMetrics = computed(() => {
         value: '加载中', 
         sub: '数据抓取中',
         icon: 'pi pi-box',
-        color: '#3b82f6',
+        colorKey: 'blue',
         trend: null,
       },
       { 
@@ -435,7 +427,7 @@ const kpiMetrics = computed(() => {
         value: '加载中', 
         sub: '数据抓取中',
         icon: 'pi pi-exclamation-triangle',
-        color: '#10b981',
+        colorKey: 'green',
         trend: null,
       },
     ];
@@ -450,7 +442,7 @@ const kpiMetrics = computed(() => {
       value: formatCurrency(gmv.today, gmv.currency),
       sub: `≈${formatCurrency(cny.today, 'CNY')}`,
       icon: 'pi pi-dollar',
-      color: '#8b5cf6',
+      colorKey: 'purple',
       trend: { type: 'up', value: '+5%' },
     },
     {
@@ -458,7 +450,7 @@ const kpiMetrics = computed(() => {
       value: '待开发',
       sub: '需后端API支持',
       icon: 'pi pi-shopping-cart',
-      color: '#ec4899',
+      colorKey: 'pink',
       trend: null,
     },
     {
@@ -466,7 +458,7 @@ const kpiMetrics = computed(() => {
       value: '待开发',
       sub: '需后端API支持',
       icon: 'pi pi-box',
-      color: '#3b82f6',
+      colorKey: 'blue',
       trend: null,
     },
     {
@@ -474,7 +466,7 @@ const kpiMetrics = computed(() => {
       value: '待开发',
       sub: '低于安全库存的SKU数',
       icon: 'pi pi-exclamation-triangle',
-      color: '#10b981',
+      colorKey: 'green',
       trend: null,
     },
   ];
@@ -527,29 +519,6 @@ watch(
   { immediate: true },
 );
 
-const rateRows = computed(() => {
-  return supportedRateCodes.value.map((code) => {
-    const state = rateStates.value[code] || { amount: 1, swapped: false };
-    const baseCurrency = state.swapped ? code : 'CNY';
-    const quoteCurrency = state.swapped ? 'CNY' : code;
-    const amount = Number.isFinite(state.amount) ? state.amount : 1;
-    const rawRate = ratesData.value[`CNY_${code}`];
-    let unitRate: number | null = null;
-    if (typeof rawRate === 'number' && rawRate > 0) {
-      unitRate = state.swapped ? 1 / rawRate : rawRate;
-    }
-    const convertedValue = unitRate !== null ? amount * unitRate : null;
-    return {
-      code,
-      baseCurrency,
-      quoteCurrency,
-      amount,
-      unitRate,
-      convertedValue,
-    };
-  });
-});
-
 const formattedRatesUpdatedAt = computed(() => {
   if (!ratesUpdatedAt.value) return '';
   try {
@@ -566,17 +535,6 @@ const formattedRatesUpdatedAt = computed(() => {
 });
 
 const isRateRefreshLimited = computed(() => authStore.role !== 'admin');
-
-const manualRefreshQuotaText = computed(() => {
-  if (!isRateRefreshLimited.value) {
-    return '管理员无限次';
-  }
-  const remaining =
-    typeof remainingManualRefreshes.value === 'number'
-      ? remainingManualRefreshes.value
-      : MANUAL_REFRESH_LIMIT;
-  return `今日剩余 ${remaining} 次`;
-});
 
 const canTriggerManualRefresh = computed(() => {
   if (manualRefreshStatus.value.isRefreshing) {
@@ -598,21 +556,10 @@ function applyRatesPayload(payload: any = {}) {
     ratesData.value = incomingRates;
     isUsingFallbackRates.value = false;
   } else {
-    // 容错：使用默认汇率
     ratesData.value = { ...DEFAULT_RATES };
     isUsingFallbackRates.value = true;
   }
   ratesUpdatedAt.value = payload.updatedAt || ratesUpdatedAt.value;
-}
-
-async function fetchHitokoto() {
-  try {
-    const res = await fetch('https://v1.hitokoto.cn/?c=i');
-    const data = await res.json();
-    hitokoto.value = data.hitokoto || hitokoto.value;
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 async function fetchSummary() {
@@ -634,7 +581,6 @@ async function fetchRates() {
     applyRatesPayload(response.data);
   } catch (error) {
     console.error('获取汇率失败，使用默认汇率', error);
-    // 容错：使用默认汇率
     applyRatesPayload({});
   } finally {
     isLoading.value.rates = false;
@@ -660,6 +606,19 @@ async function fetchFilters() {
   }
 }
 
+async function fetchLinks() {
+  isLoadingLinks.value = true;
+  try {
+    const response = await apiClient.get('/links');
+    quickLinks.value = (response.data || []).slice(0, 8); // 最多显示8个
+  } catch (error) {
+    console.error('获取链接失败', error);
+    quickLinks.value = [];
+  } finally {
+    isLoadingLinks.value = false;
+  }
+}
+
 async function fetchManualRefreshQuota() {
   if (!isRateRefreshLimited.value) return;
   try {
@@ -680,7 +639,6 @@ async function handleManualRatesRefresh() {
     await fetchManualRefreshQuota();
   } catch (error: any) {
     manualRefreshStatus.value.error = error.response?.data?.error || '刷新失败，请稍后重试';
-    // 容错：保持使用当前汇率
   } finally {
     manualRefreshStatus.value.isRefreshing = false;
   }
@@ -703,34 +661,15 @@ function formatNumber(value: number) {
   return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 4 });
 }
 
-function formatInputAmount(value: number) {
-  return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
-}
-
-function toggleRateDirection(code: string) {
-  rateStates.value = {
-    ...rateStates.value,
-    [code]: { ...(rateStates.value[code] || { amount: 1, swapped: false }), swapped: !rateStates.value[code]?.swapped },
-  };
-}
-
-function toggleCalculationMode() {
-  isCalculationMode.value = !isCalculationMode.value;
-}
-
-function updateRateAmount(code: string, input: string) {
-  const num = Number(input);
-  rateStates.value = {
-    ...rateStates.value,
-    [code]: { ...(rateStates.value[code] || { amount: 1, swapped: false }), amount: Number.isFinite(num) ? num : 1 },
-  };
-}
-
 function swapExchangeCurrencies() {
   isExchangeSwapped.value = !isExchangeSwapped.value;
   if (convertedAmount.value > 0) {
     exchangeCalcAmount.value = convertedAmount.value;
   }
+}
+
+function goToLinksPage() {
+  router.push('/links');
 }
 
 function applyStoreFilter() {
@@ -748,6 +687,40 @@ watch(selectedCountryCode, () => applyCountryFilter());
 watch(selectedStoreId, () => applyStoreFilter());
 
 onMounted(async () => {
-  await Promise.all([fetchSummary(), fetchRates(), fetchFilters(), fetchHitokoto(), fetchManualRefreshQuota()]);
+  await Promise.all([fetchSummary(), fetchRates(), fetchFilters(), fetchLinks(), fetchManualRefreshQuota()]);
 });
 </script>
+
+<style scoped>
+/* 组件级样式补充 */
+.dashboard-container {
+  background: var(--dashboard-bg);
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* 白色透明背景工具类 */
+.bg-white-alpha-10 {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bg-white-alpha-20 {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.hover\:bg-white-alpha-20:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.hover\:bg-white-alpha-30:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+</style>

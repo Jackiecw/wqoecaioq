@@ -20,6 +20,7 @@ import {
   DataZoomComponent,
   ToolboxComponent,
 } from 'echarts/components';
+import { LegacyGridContainLabel } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 import { techBlueTheme } from '@/styles/echarts-theme';
 
@@ -36,6 +37,7 @@ echarts.use([
   LegendComponent,
   DataZoomComponent,
   ToolboxComponent,
+  LegacyGridContainLabel,
   CanvasRenderer,
 ]);
 

@@ -22,7 +22,7 @@
 
       <div class="flex flex-column gap-2">
         <label for="linkOrder" class="font-medium text-900">显示顺序 (数字越小越靠前)</label>
-        <InputNumber id="linkOrder" v-model="formData.displayOrder" :use-grouping="false" />
+        <InputNumber v-model="formData.displayOrder" :use-grouping="false" />
       </div>
 
       <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>

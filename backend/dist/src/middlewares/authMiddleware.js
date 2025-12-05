@@ -14,7 +14,8 @@ const authMiddleware = (req, res, next) => {
     }
     jsonwebtoken_1.default.verify(token, config_1.default.JWT_SECRET, (err, user) => {
         if (err) {
-            return res.status(403).json({ error: 'Authentication failed: Invalid or expired token' });
+            // 使用 401 以便前端自动退出并重新登录（403 会导致死循环请求）
+            return res.status(401).json({ error: 'Authentication failed: Invalid or expired token' });
         }
         req.user = user;
         next();

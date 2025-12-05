@@ -20,6 +20,7 @@ const FinancePage = () => import('../views/FinancePage.vue');
 const LogisticsPage = () => import('../views/LogisticsPage.vue');
 const CommonLinks = () => import('../components/dashboard/CommonLinks.vue');
 const StoreManagement = () => import('../components/admin/StoreManagement.vue');
+const CountryManagement = () => import('../components/admin/CountryManagement.vue');
 const UserManagement = () => import('../components/admin/UserManagement.vue');
 const ProfileManagement = () => import('../components/admin/ProfileManagement.vue');
 
@@ -60,6 +61,7 @@ const routes: RouteRecordRaw[] = [
             { path: 'links', component: CommonLinks },
 
             // Management
+            { path: 'admin/countries', component: CountryManagement },
             { path: 'admin/stores', component: StoreManagement },
             { path: 'admin/users', component: UserManagement },
 

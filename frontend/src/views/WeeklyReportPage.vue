@@ -1,54 +1,60 @@
 <template>
-  <div class="flex flex-column gap-6">
-    <!-- Header Section -->
-    <div class="flex flex-column gap-4 md:flex-row md:align-items-center md:justify-content-between">
-      <div>
-        <h1 class="text-3xl font-bold text-900 m-0">周报中心</h1>
-        <p class="text-500 mt-1 mb-0">回顾本周成果，制定下周计划，保持团队节奏。</p>
-      </div>
-      <div class="flex gap-3">
-        <Card class="shadow-sm border-round-xl p-0" style="border-left: 4px solid #3b82f6">
-          <template #content>
-            <div class="px-4 py-3">
-              <p class="text-xs font-semibold text-500 uppercase m-0 mb-1">本周周期</p>
-              <p class="text-lg font-bold text-900 m-0">{{ currentWeekRange }}</p>
+  <div class="weekly-report-page">
+    <!-- Hero Header -->
+    <div class="report-hero">
+      <div class="hero-content">
+        <div class="hero-text">
+          <h1>周报中心</h1>
+          <p>回顾本周成果，制定下周计划，保持团队节奏</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <div class="stat-icon stat-icon--blue">
+              <i class="pi pi-calendar"></i>
             </div>
-          </template>
-        </Card>
-        <Card class="shadow-sm border-round-xl p-0" style="border-left: 4px solid #10b981">
-          <template #content>
-            <div class="px-4 py-3">
-              <p class="text-xs font-semibold text-500 uppercase m-0 mb-1">建议提交日</p>
-              <p class="text-lg font-bold text-primary m-0">{{ reminderDate }}</p>
+            <div class="stat-info">
+              <span class="stat-label">本周周期</span>
+              <span class="stat-value">{{ currentWeekRange }}</span>
             </div>
-          </template>
-        </Card>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon--green">
+              <i class="pi pi-clock"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-label">建议提交</span>
+              <span class="stat-value">{{ reminderDate }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <Card class="shadow-sm border-round-2xl">
-      <template #content>
-        <div class="border-bottom-1 surface-border pb-4 mb-4">
-          <SelectButton
-            v-model="currentTab"
-            :options="tabOptions"
-            option-label="label"
-            option-value="value"
-            :allow-empty="false"
-          />
-        </div>
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+      <button
+        v-for="option in tabOptions"
+        :key="option.value"
+        class="tab-btn"
+        :class="{ 'tab-btn--active': currentTab === option.value }"
+        @click="currentTab = option.value"
+      >
+        <i :class="option.value === 'entry' ? 'pi pi-pencil' : 'pi pi-list'"></i>
+        {{ option.label }}
+      </button>
+    </div>
 
-        <Transition name="fade" mode="out-in">
-          <div v-if="currentTab === 'entry'" key="entry">
-            <WeeklyReportForm />
-          </div>
-          <div v-else key="management">
-            <ViewReports />
-          </div>
-        </Transition>
-      </template>
-    </Card>
+    <!-- Content Area -->
+    <div class="content-area">
+      <Transition name="fade" mode="out-in">
+        <div v-if="currentTab === 'entry'" key="entry">
+          <WeeklyReportForm />
+        </div>
+        <div v-else key="management">
+          <ViewReports />
+        </div>
+      </Transition>
+    </div>
   </div>
 </template>
 
@@ -57,8 +63,6 @@ import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import WeeklyReportForm from '@/components/reports/WeeklyReportForm.vue';
 import ViewReports from '@/components/reports/ViewReports.vue';
-import SelectButton from 'primevue/selectbutton';
-import Card from 'primevue/card';
 
 const authStore = useAuthStore();
 
@@ -94,10 +98,7 @@ const getWeekBoundaries = (baseDate: Date) => {
   workingDate.setHours(0, 0, 0, 0);
   const end = new Date(workingDate);
   end.setDate(workingDate.getDate() + 6);
-  return {
-    start: workingDate,
-    end,
-  };
+  return { start: workingDate, end };
 };
 
 const activeWeek = computed(() => getWeekBoundaries(new Date()));
@@ -114,6 +115,135 @@ const reminderDate = computed(() => {
 </script>
 
 <style scoped>
+.weekly-report-page {
+  min-height: 100%;
+}
+
+/* Hero Header */
+.report-hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 1.5rem;
+  padding: 2rem 2.5rem;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.hero-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.hero-text h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.hero-text p {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 1rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  padding: 0.875rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.stat-icon--blue {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.stat-icon--green {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Tab Navigation */
+.tab-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--surface-100);
+  padding: 0.375rem;
+  border-radius: 0.75rem;
+  width: fit-content;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: transparent;
+  color: var(--text-color-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text-color);
+}
+
+.tab-btn--active {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Content Area */
+.content-area {
+  background: white;
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
+  padding: 1.5rem;
+}
+
+/* Transitions */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;
@@ -122,5 +252,26 @@ const reminderDate = computed(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .report-hero {
+    padding: 1.5rem;
+  }
+
+  .hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-stats {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .stat-card {
+    width: 100%;
+  }
 }
 </style>

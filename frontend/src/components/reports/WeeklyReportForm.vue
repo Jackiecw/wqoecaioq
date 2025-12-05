@@ -1,114 +1,123 @@
 <template>
-  <section class="surface-card border-1 border-round-xl shadow-1 p-4 md:p-5">
-    <header class="flex flex-column gap-3 md:flex-row md:align-items-center md:justify-content-between">
-      <div class="flex flex-column gap-1">
-        <p class="text-xs text-primary font-semibold uppercase letter-spacing-3">Weekly Entry</p>
-        <h3 class="text-2xl font-bold m-0">填写周报</h3>
-        <p class="text-sm text-color-secondary m-0">用统一的结构记录本周成果、下周计划以及阻碍。</p>
+  <div class="report-form">
+    <!-- Form Header -->
+    <div class="form-header">
+      <div class="header-left">
+        <span class="form-badge">WEEKLY ENTRY</span>
+        <h2>填写周报</h2>
+        <p>用统一的结构记录本周成果、下周计划以及遇到的阻碍</p>
       </div>
-      <div class="border-1 border-primary-100 bg-primary-50 text-primary border-round-xl p-3 w-full md:w-auto">
-        <p class="text-xs font-semibold uppercase text-primary-400 mb-1">当前</p>
-        <p class="text-lg font-semibold m-0">第 {{ currentWeekIndex }} 周</p>
-        <p class="text-xs text-primary-600 m-0">{{ formattedWeekStart }}</p>
+      <div class="week-badge">
+        <div class="week-number">第 {{ currentWeekIndex }} 周</div>
+        <div class="week-date">{{ formattedWeekStart }}</div>
       </div>
-    </header>
+    </div>
 
-    <div class="grid mt-4 gap-3">
-      <div class="col-12 md:col-8">
-        <div class="field">
-          <label class="font-semibold text-sm mb-2 block" for="weekStartDate">开始日期</label>
-          <Calendar
-            input-id="weekStartDate"
-            v-model="formData.weekStartDate"
-            date-format="yy-mm-dd"
-            show-icon
-            class="w-full"
-            :manual-input="true"
+    <!-- Date Picker Row -->
+    <div class="date-row">
+      <div class="date-field">
+        <label for="weekStartDate">开始日期</label>
+        <Calendar
+          input-id="weekStartDate"
+          v-model="formData.weekStartDate"
+          date-format="yy-mm-dd"
+          show-icon
+          class="w-full"
+          :manual-input="true"
+        />
+        <small>系统默认选本周一，建议保持一致便于统计</small>
+      </div>
+      <div class="tips-card">
+        <div class="tips-header">
+          <i class="pi pi-lightbulb"></i>
+          <span>书写提示</span>
+        </div>
+        <ul>
+          <li>总结突出成就、关键数字和学习</li>
+          <li>计划拆分为 3-5 个可执行事项</li>
+          <li>遇到问题请写清阻碍与所需支持</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Form Grid -->
+    <div class="form-grid">
+      <!-- 左列 -->
+      <div class="form-column">
+        <div class="field-card field-card--green">
+          <label>
+            <i class="pi pi-check-circle"></i>
+            本周总结 <span class="required">*</span>
+          </label>
+          <Textarea
+            v-model="formData.summaryThisWeek"
+            rows="8"
+            auto-resize
+            placeholder="本周完成了哪些工作？有什么成果或亮点？"
           />
-          <small class="text-color-secondary">系统默认选本周一，建议保持一致便于统计。</small>
-        </div>
-      </div>
-      <div class="col-12 md:col-4">
-        <div class="border-1 border-dashed surface-border border-round-lg p-3">
-          <p class="font-semibold text-sm mb-2">书写提示</p>
-          <ul class="pl-3 text-sm text-color-secondary m-0">
-            <li>总结突出成就、关键数字和学习</li>
-            <li>计划拆分为 3-5 个可执行事项</li>
-            <li>遇到问题请写清阻碍与所需支持</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid mt-3 gap-4">
-      <div class="col-12 md:col-6">
-        <div class="surface-50 border-round-xl p-4 h-full">
-          <div class="field flex flex-column gap-2 mb-4">
-            <label class="font-semibold text-sm" for="summaryThisWeek">本周总结 *</label>
-            <Textarea
-              id="summaryThisWeek"
-              v-model="formData.summaryThisWeek"
-              rows="7"
-              auto-resize
-              class="w-full"
-              required
-            />
-            <small class="text-color-secondary">已输入 {{ summaryLength }} 字</small>
+          <div class="field-footer">
+            <span class="char-count">{{ summaryLength }} 字</span>
           </div>
+        </div>
 
-          <div class="field flex flex-column gap-2 m-0">
-            <label class="font-semibold text-sm" for="problemsEncountered">遇到的问题</label>
-            <Textarea
-              id="problemsEncountered"
-              v-model="formData.problemsEncountered"
-              rows="5"
-              auto-resize
-              class="w-full"
-            />
-          </div>
+        <div class="field-card field-card--orange">
+          <label>
+            <i class="pi pi-exclamation-triangle"></i>
+            遇到的问题
+          </label>
+          <Textarea
+            v-model="formData.problemsEncountered"
+            rows="5"
+            auto-resize
+            placeholder="遇到了什么困难？需要什么支持？"
+          />
         </div>
       </div>
 
-      <div class="col-12 md:col-6">
-        <div class="surface-50 border-round-xl p-4 h-full">
-          <div class="field flex flex-column gap-2 mb-4">
-            <label class="font-semibold text-sm" for="planNextWeek">下周计划 *</label>
-            <Textarea
-              id="planNextWeek"
-              v-model="formData.planNextWeek"
-              rows="7"
-              auto-resize
-              class="w-full"
-              required
-            />
-            <small class="text-color-secondary">已输入 {{ planLength }} 字</small>
+      <!-- 右列 -->
+      <div class="form-column">
+        <div class="field-card field-card--blue">
+          <label>
+            <i class="pi pi-flag"></i>
+            下周计划 <span class="required">*</span>
+          </label>
+          <Textarea
+            v-model="formData.planNextWeek"
+            rows="8"
+            auto-resize
+            placeholder="下周准备做什么？有哪些重点任务？"
+          />
+          <div class="field-footer">
+            <span class="char-count">{{ planLength }} 字</span>
           </div>
+        </div>
 
-          <div class="field flex flex-column gap-2 m-0">
-            <label class="font-semibold text-sm" for="other">其他</label>
-            <Textarea
-              id="other"
-              v-model="formData.other"
-              rows="5"
-              auto-resize
-              class="w-full"
-            />
-          </div>
+        <div class="field-card field-card--gray">
+          <label>
+            <i class="pi pi-comment"></i>
+            其他
+          </label>
+          <Textarea
+            v-model="formData.other"
+            rows="5"
+            auto-resize
+            placeholder="其他想说的..."
+          />
         </div>
       </div>
     </div>
 
-    <div class="flex flex-column gap-3 border-top-1 surface-border pt-4 md:flex-row md:align-items-center md:justify-content-between mt-4">
-      <p class="text-sm text-color-secondary m-0">提交后可在“周报查看”中回顾与导出记录。</p>
+    <!-- Submit Footer -->
+    <div class="form-footer">
+      <p>提交后可在"周报查看"中回顾与导出记录</p>
       <Button
-        type="button"
         label="提交周报"
-        icon="pi pi-check"
-        raised
+        icon="pi pi-send"
+        class="submit-btn"
         @click="handleSubmit"
       />
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -201,28 +210,245 @@ const handleSubmit = async () => {
     resetForm();
   } catch (error: any) {
     console.error('提交失败:', error);
-    const detail =
-      error?.response?.data?.error ||
-      '提交失败，请检查网络或联系管理员。';
+    const detail = error?.response?.data?.error || '提交失败，请检查网络或联系管理员。';
     toast.add({ severity: 'error', summary: '提交失败', detail, life: 3500 });
   }
 };
 </script>
 
 <style scoped>
-.letter-spacing-3 {
-  letter-spacing: 0.3em;
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.field :deep(.p-inputtextarea) {
-  width: 100%;
+/* Header */
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.border-round-xl {
+.header-left h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0 0.25rem 0;
+  color: var(--surface-900);
+}
+
+.header-left p {
+  font-size: 0.875rem;
+  color: var(--surface-500);
+  margin: 0;
+}
+
+.form-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--primary-color);
+  background: var(--primary-50);
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.25rem;
+}
+
+.week-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem 1.25rem;
   border-radius: 1rem;
+  text-align: center;
+  min-width: 120px;
 }
 
-.shadow-1 {
-  box-shadow: var(--shadow-2, 0 8px 30px -12px rgba(0, 0, 0, 0.18));
+.week-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.week-date {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  margin-top: 0.25rem;
+}
+
+/* Date Row */
+.date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.date-field label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--surface-700);
+}
+
+.date-field small {
+  font-size: 0.75rem;
+  color: var(--surface-500);
+}
+
+.tips-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  border-left: 4px solid #f59e0b;
+}
+
+.tips-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 0.5rem;
+}
+
+.tips-card ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.8rem;
+  color: #78350f;
+  line-height: 1.6;
+}
+
+/* Form Grid */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Field Cards */
+.field-card {
+  background: var(--surface-50);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border-left: 4px solid transparent;
+}
+
+.field-card--green {
+  border-left-color: #10b981;
+}
+
+.field-card--blue {
+  border-left-color: #3b82f6;
+}
+
+.field-card--orange {
+  border-left-color: #f59e0b;
+}
+
+.field-card--gray {
+  border-left-color: #9ca3af;
+}
+
+.field-card label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--surface-700);
+  margin-bottom: 0.75rem;
+}
+
+.field-card label i {
+  font-size: 1rem;
+}
+
+.field-card--green label i { color: #10b981; }
+.field-card--blue label i { color: #3b82f6; }
+.field-card--orange label i { color: #f59e0b; }
+.field-card--gray label i { color: #9ca3af; }
+
+.required {
+  color: #ef4444;
+}
+
+.field-card :deep(.p-inputtextarea) {
+  width: 100%;
+  border: 1px solid var(--surface-200);
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.field-card :deep(.p-inputtextarea:focus) {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+.field-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.char-count {
+  font-size: 0.75rem;
+  color: var(--surface-500);
+}
+
+/* Footer */
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--surface-200);
+}
+
+.form-footer p {
+  font-size: 0.8rem;
+  color: var(--surface-500);
+  margin: 0;
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+}
+
+.submit-btn:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .date-row,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-footer {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .submit-btn {
+    width: 100%;
+  }
 }
 </style>

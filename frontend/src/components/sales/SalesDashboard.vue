@@ -1,52 +1,74 @@
 <template>
-  <div class="flex flex-column gap-4">
-    <!-- Page Header -->
-    <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3">
-      <div>
-        <h1 class="text-3xl font-bold text-900 m-0">销售数据看板</h1>
-        <p class="text-500 mt-1 mb-0">实时监控关键业务指标与趋势</p>
+  <div class="sales-dashboard">
+    <!-- Hero Header with Filters -->
+    <div class="dashboard-hero">
+      <div class="hero-top">
+        <div class="hero-text">
+          <h1>销售数据看板</h1>
+          <p>实时监控关键业务指标与趋势</p>
+        </div>
+        <div class="hero-actions">
+          <span class="refresh-text"><i class="pi pi-sync"></i> {{ lastRefreshText }}</span>
+          <Button
+            :icon="isSnapshotMode ? 'pi pi-eye-slash' : 'pi pi-camera'"
+            :severity="isSnapshotMode ? 'danger' : 'secondary'"
+            text
+            rounded
+            @click="toggleSnapshotMode"
+          />
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2 align-items-center">
+      <div class="hero-filters">
         <Dropdown
           v-model="selectedCountry"
           :options="countryOptions"
           option-label="name"
           option-value="code"
-          class="w-10rem"
-          placeholder="选择国家"
+          placeholder="国家"
           :filter="countryOptions.length > 6"
+          class="hero-dropdown"
         />
-        <SelectButton
-          v-model="currentRange"
-          :options="dateRangeOptions"
-          option-label="label"
-          option-value="value"
-          :allow-empty="false"
-        />
-        <div v-if="currentRange === 'custom'" class="flex align-items-center gap-2">
-          <Calendar v-model="customStartDate" show-icon dateFormat="yy-mm-dd" placeholder="开始" class="w-8rem" />
-          <span class="text-500">-</span>
-          <Calendar v-model="customEndDate" show-icon dateFormat="yy-mm-dd" placeholder="结束" class="w-8rem" />
-          <Button icon="pi pi-check" @click="fetchStats" />
+        <div class="hero-tabs">
+          <button
+            v-for="opt in dateRangeOptions"
+            :key="opt.value"
+            class="hero-tab"
+            :class="{ 'hero-tab--active': currentRange === opt.value }"
+            @click="currentRange = opt.value"
+          >
+            {{ opt.label }}
+          </button>
         </div>
-        <Button
-          :icon="isSnapshotMode ? 'pi pi-eye-slash' : 'pi pi-camera'"
-          :severity="isSnapshotMode ? 'danger' : 'secondary'"
-          outlined
-          @click="toggleSnapshotMode"
-        />
+        <div v-if="currentRange === 'custom'" class="hero-custom">
+          <Calendar v-model="customStartDate" show-icon dateFormat="yy-mm-dd" placeholder="开始" class="hero-calendar" />
+          <span>→</span>
+          <Calendar v-model="customEndDate" show-icon dateFormat="yy-mm-dd" placeholder="结束" class="hero-calendar" />
+          <Button icon="pi pi-check" size="small" text @click="fetchStats" />
+        </div>
+        <div class="hero-compare">
+          <span>对比:</span>
+          <button
+            v-for="opt in compareModeOptions"
+            :key="opt.value"
+            class="compare-btn"
+            :class="{ 'compare-btn--active': compareMode === opt.value }"
+            @click="compareMode = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Snapshot Banner -->
-    <div v-if="isSnapshotMode" class="bg-blue-50 border-blue-100 border-1 border-round-xl p-4 flex align-items-center justify-content-between">
+    <div v-if="isSnapshotMode" class="snapshot-banner">
       <div>
-        <p class="text-xs font-bold text-blue-600 uppercase mb-1">Snapshot Mode</p>
-        <h3 class="text-xl font-bold text-blue-900 m-0">销售周报截屏视图</h3>
+        <span class="snapshot-badge">Snapshot Mode</span>
+        <h3>销售周报截屏视图</h3>
       </div>
-      <div class="text-right">
-        <p class="text-sm text-blue-600 mb-0">报告日期</p>
-        <p class="text-2xl font-bold text-blue-900 m-0">{{ todayText }}</p>
+      <div class="snapshot-date">
+        <span>报告日期</span>
+        <strong>{{ todayText }}</strong>
       </div>
     </div>
 
@@ -54,196 +76,252 @@
       {{ errorMessage }}
     </Message>
 
-    <!-- Stats Cards -->
-    <div class="grid gap-4">
-      <div class="col-12 md:col-4">
-        <Card class="shadow-lg border-round-3xl overflow-hidden h-full hover:shadow-xl transition-all transition-duration-300" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-          <template #content>
-            <div class="flex flex-column gap-3 text-white">
-              <div class="flex align-items-center gap-2">
-                <div class="bg-white-alpha-20 border-round-2xl p-3 backdrop-blur">
-                  <i class="pi pi-chart-line text-2xl"></i>
-                </div>
-                <span class="font-medium opacity-90">总销售额 (GMV)</span>
-              </div>
-              <div class="flex align-items-baseline gap-2">
-                <span class="text-5xl font-bold">{{ formatCurrency(stats.summary.totalGMV, stats.summary.currency).replace(/[^\d,.]/g, '') }}</span>
-                <span class="text-xl opacity-80">{{ stats.summary.currency }}</span>
-              </div>
-              <div class="flex justify-content-end">
-                <Tag :value="formatGrowth(stats.summary.gmvGrowth)" :severity="growthSeverity(stats.summary.gmvGrowth)" rounded class="font-bold px-3" />
-              </div>
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <!-- GMV Card -->
+      <div class="kpi-card kpi-card--gmv" :class="{ 'kpi-card--loading': isLoading }">
+        <template v-if="isLoading">
+          <div class="skeleton skeleton--icon"></div>
+          <div class="skeleton skeleton--text-lg"></div>
+          <div class="skeleton skeleton--text-sm"></div>
+        </template>
+        <template v-else-if="stats.summary.totalGMV > 0">
+          <div class="kpi-header">
+            <div class="kpi-icon">
+              <i class="pi pi-chart-line"></i>
             </div>
-          </template>
-        </Card>
+            <span>总销售额 (GMV)</span>
+          </div>
+          <div class="kpi-value">
+            <span class="kpi-number">{{ formatNumber(stats.summary.totalGMV) }}</span>
+            <span class="kpi-currency">{{ stats.summary.currency }}</span>
+          </div>
+          <div class="kpi-footer">
+            <Tag :value="formatGrowth(stats.summary.gmvGrowth)" :severity="growthSeverity(stats.summary.gmvGrowth)" rounded />
+            <span class="kpi-compare">{{ compareMode === 'wow' ? '环比' : '同比' }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="kpi-empty">
+            <i class="pi pi-inbox"></i>
+            <span>暂无数据</span>
+          </div>
+        </template>
       </div>
 
-      <div class="col-12 md:col-4">
-        <Card class="shadow-lg border-round-3xl overflow-hidden h-full hover:shadow-xl transition-all transition-duration-300" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-          <template #content>
-            <div class="flex flex-column gap-3 text-white">
-              <div class="flex align-items-center gap-2">
-                <div class="bg-white-alpha-20 border-round-2xl p-3 backdrop-blur">
-                  <i class="pi pi-shopping-cart text-2xl"></i>
-                </div>
-                <span class="font-medium opacity-90">总订单量</span>
-              </div>
-              <div class="flex align-items-baseline gap-2">
-                <span class="text-5xl font-bold">{{ stats.summary.totalOrders.toLocaleString() }}</span>
-                <span class="text-xl opacity-80">单</span>
-              </div>
-              <div class="flex justify-content-end">
-                <Tag :value="formatGrowth(stats.summary.ordersGrowth)" :severity="growthSeverity(stats.summary.ordersGrowth)" rounded class="font-bold px-3" />
-              </div>
+      <!-- Orders Card -->
+      <div class="kpi-card kpi-card--orders" :class="{ 'kpi-card--loading': isLoading }">
+        <template v-if="isLoading">
+          <div class="skeleton skeleton--icon"></div>
+          <div class="skeleton skeleton--text-lg"></div>
+          <div class="skeleton skeleton--text-sm"></div>
+        </template>
+        <template v-else-if="stats.summary.totalOrders > 0">
+          <div class="kpi-header">
+            <div class="kpi-icon">
+              <i class="pi pi-shopping-cart"></i>
             </div>
-          </template>
-        </Card>
+            <span>总订单量</span>
+          </div>
+          <div class="kpi-value">
+            <span class="kpi-number">{{ stats.summary.totalOrders.toLocaleString() }}</span>
+            <span class="kpi-currency">单</span>
+          </div>
+          <div class="kpi-footer">
+            <Tag :value="formatGrowth(stats.summary.ordersGrowth)" :severity="growthSeverity(stats.summary.ordersGrowth)" rounded />
+            <span class="kpi-compare">{{ compareMode === 'wow' ? '环比' : '同比' }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="kpi-empty">
+            <i class="pi pi-inbox"></i>
+            <span>暂无数据</span>
+          </div>
+        </template>
       </div>
 
-      <div class="col-12 md:col-4">
-        <Card class="shadow-lg border-round-3xl overflow-hidden h-full hover:shadow-xl transition-all transition-duration-300" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-          <template #content>
-            <div class="flex flex-column gap-3 text-white">
-              <div class="flex align-items-center gap-2">
-                <div class="bg-white-alpha-20 border-round-2xl p-3 backdrop-blur">
-                  <i class="pi pi-dollar text-2xl"></i>
-                </div>
-                <span class="font-medium opacity-90">平均客单价 (AOV)</span>
-              </div>
-              <div class="flex align-items-baseline gap-2">
-                <span class="text-5xl font-bold">{{ formatCurrency(stats.summary.aov, stats.summary.currency).replace(/[^\d,.]/g, '') }}</span>
-                <span class="text-xl opacity-80">{{ stats.summary.currency }}</span>
-              </div>
-              <div class="flex justify-content-end">
-                <Tag :value="formatGrowth(stats.summary.aovGrowth)" :severity="growthSeverity(stats.summary.aovGrowth)" rounded class="font-bold px-3" />
-              </div>
+      <!-- AOV Card -->
+      <div class="kpi-card kpi-card--aov" :class="{ 'kpi-card--loading': isLoading }">
+        <template v-if="isLoading">
+          <div class="skeleton skeleton--icon"></div>
+          <div class="skeleton skeleton--text-lg"></div>
+          <div class="skeleton skeleton--text-sm"></div>
+        </template>
+        <template v-else-if="stats.summary.aov > 0">
+          <div class="kpi-header">
+            <div class="kpi-icon">
+              <i class="pi pi-dollar"></i>
             </div>
-          </template>
-        </Card>
+            <span>平均客单价 (AOV)</span>
+          </div>
+          <div class="kpi-value">
+            <span class="kpi-number">{{ formatNumber(stats.summary.aov) }}</span>
+            <span class="kpi-currency">{{ stats.summary.currency }}</span>
+          </div>
+          <div class="kpi-footer">
+            <Tag :value="formatGrowth(stats.summary.aovGrowth)" :severity="growthSeverity(stats.summary.aovGrowth)" rounded />
+            <span class="kpi-compare">{{ compareMode === 'wow' ? '环比' : '同比' }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="kpi-empty">
+            <i class="pi pi-inbox"></i>
+            <span>暂无数据</span>
+          </div>
+        </template>
       </div>
     </div>
 
     <!-- Charts Row -->
-    <div class="grid gap-4">
-      <div class="col-12 lg:col-8">
-        <Card class="shadow-lg border-round-3xl h-full hover:shadow-xl transition-all transition-duration-300">
-          <template #title>
-            <div class="flex align-items-center gap-2">
-              <div class="bg-primary-50 text-primary border-round-2xl p-2">
-                <i class="pi pi-chart-line text-xl"></i>
-              </div>
-              <span class="text-xl font-bold text-900">销售趋势</span>
+    <div class="charts-grid">
+      <!-- Trend Chart -->
+      <div class="chart-card chart-card--main">
+        <div class="chart-header">
+          <div class="chart-title">
+            <div class="chart-icon chart-icon--blue">
+              <i class="pi pi-chart-line"></i>
+            </div>
+            <span>销售趋势</span>
+          </div>
+        </div>
+        <div class="chart-body">
+          <template v-if="isLoading">
+            <div class="skeleton-chart">
+              <div class="skeleton skeleton--bar" style="height: 60%"></div>
+              <div class="skeleton skeleton--bar" style="height: 80%"></div>
+              <div class="skeleton skeleton--bar" style="height: 45%"></div>
+              <div class="skeleton skeleton--bar" style="height: 90%"></div>
+              <div class="skeleton skeleton--bar" style="height: 55%"></div>
+              <div class="skeleton skeleton--bar" style="height: 70%"></div>
+              <div class="skeleton skeleton--bar" style="height: 85%"></div>
             </div>
           </template>
-          <template #content>
-            <div class="h-20rem w-full relative">
-              <div v-if="isLoading" class="absolute inset-0 flex align-items-center justify-content-center bg-white-alpha-50 z-1">
-                <i class="pi pi-spin pi-spinner text-4xl text-500"></i>
-              </div>
-              <BaseChart v-else-if="hasTrendData" :option="trendChartOption" height="100%" :loading="isLoading" />
-              <div v-else class="h-full flex align-items-center justify-content-center text-500">暂无趋势数据</div>
+          <BaseChart v-else-if="hasTrendData" :option="trendChartOption" height="100%" />
+          <div v-else class="empty-state">
+            <div class="empty-icon">
+              <i class="pi pi-chart-line"></i>
             </div>
-          </template>
-        </Card>
+            <p>暂无趋势数据</p>
+          </div>
+        </div>
       </div>
-      <div class="col-12 lg:col-4">
-        <Card class="shadow-lg border-round-3xl h-full hover:shadow-xl transition-all transition-duration-300">
-          <template #title>
-            <div class="flex align-items-center gap-2">
-              <div class="bg-primary-50 text-primary border-round-2xl p-2">
-                <i class="pi pi-chart-pie text-xl"></i>
-              </div>
-              <span class="text-xl font-bold text-900">平台占比</span>
+
+      <!-- Platform Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            <div class="chart-icon chart-icon--purple">
+              <i class="pi pi-chart-pie"></i>
             </div>
-          </template>
-          <template #content>
-            <div class="h-14rem w-full relative flex justify-content-center">
-               <BaseChart v-if="hasPlatformData" :option="platformChartOption" height="100%" />
-               <div v-else class="h-full flex align-items-center justify-content-center text-500">暂无数据</div>
-            </div>
-            <div class="flex flex-column gap-2 mt-4">
-              <div v-for="(item, index) in stats.byPlatform" :key="item.platform" class="flex align-items-center justify-content-between text-sm">
-                <div class="flex align-items-center gap-2">
-                  <span class="w-1rem h-1rem border-circle" :style="{ backgroundColor: chartPalette[index % chartPalette.length] }"></span>
-                  <span class="text-700 font-medium">{{ item.platform }}</span>
-                </div>
-                <span class="font-bold text-900">{{ formatCurrency(item.gmv, stats.summary.currency) }}</span>
-              </div>
-            </div>
-          </template>
-        </Card>
+            <span>平台占比</span>
+          </div>
+        </div>
+        <div class="chart-body chart-body--pie">
+          <BaseChart v-if="hasPlatformData" :option="platformChartOption" height="160px" />
+          <div v-else class="empty-state empty-state--sm">
+            <i class="pi pi-chart-pie"></i>
+            <span>暂无数据</span>
+          </div>
+        </div>
+        <div v-if="hasPlatformData" class="platform-legend">
+          <div v-for="(item, index) in stats.byPlatform" :key="item.platform" class="legend-item">
+            <span class="legend-dot" :style="{ backgroundColor: chartPalette[index % chartPalette.length] }"></span>
+            <span class="legend-name">{{ item.platform }}</span>
+            <span class="legend-value">{{ formatCurrency(item.gmv, stats.summary.currency) }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Bottom Row -->
-    <div class="grid">
-      <div class="col-12 lg:col-4">
-        <Card class="shadow-sm border-round-2xl h-full">
-          <template #title><span class="text-lg font-bold text-900">国家表现</span></template>
-          <template #content>
-            <div v-if="stats.byCountry.length" class="flex flex-column gap-3">
-              <div v-for="item in stats.byCountry" :key="item.code">
-                <div class="flex justify-content-between mb-1">
-                  <span class="text-sm font-medium text-700">{{ item.name || item.code }}</span>
-                  <span class="text-sm font-bold text-900">{{ formatCurrency(item.gmv, stats.summary.currency) }}</span>
-                </div>
-                <ProgressBar :value="getPercentage(item.gmv, stats.summary.totalGMV)" :show-value="false" style="height: 6px" />
+    <div class="bottom-grid">
+      <!-- Country Performance -->
+      <div class="list-card">
+        <div class="list-header">
+          <div class="list-icon list-icon--blue">
+            <i class="pi pi-globe"></i>
+          </div>
+          <span>国家表现</span>
+        </div>
+        <div class="list-body">
+          <template v-if="stats.byCountry.length">
+            <div v-for="item in stats.byCountry" :key="item.code" class="country-item">
+              <div class="country-info">
+                <span class="country-name">{{ item.name || item.code }}</span>
+                <span class="country-value">{{ formatCurrency(item.gmv, stats.summary.currency) }}</span>
               </div>
+              <ProgressBar :value="getPercentage(item.gmv, stats.summary.totalGMV)" :show-value="false" class="country-bar" />
             </div>
-            <div v-else class="text-center text-500 py-4">暂无数据</div>
           </template>
-        </Card>
+          <div v-else class="empty-state empty-state--sm">
+            <i class="pi pi-globe"></i>
+            <span>暂无数据</span>
+          </div>
+        </div>
       </div>
 
-      <div class="col-12 lg:col-4">
-        <Card class="shadow-sm border-round-2xl h-full">
-          <template #title><span class="text-lg font-bold text-900">Top 5 店铺</span></template>
-          <template #content>
-            <ul v-if="stats.topStores.length" class="list-none p-0 m-0 flex flex-column gap-3">
-              <li v-for="(store, index) in stats.topStores" :key="store.name" class="flex align-items-center justify-content-between">
-                <div class="flex align-items-center gap-3">
-                  <span class="flex align-items-center justify-content-center w-2rem h-2rem border-circle bg-gray-100 text-700 font-bold text-sm">{{ index + 1 }}</span>
-                  <div class="flex flex-column">
-                    <span class="text-sm font-medium text-900 text-overflow-ellipsis overflow-hidden white-space-nowrap" style="max-width: 120px" :title="store.name">{{ store.name }}</span>
-                    <span class="text-xs text-500">GMV</span>
-                  </div>
-                </div>
-                <span class="font-bold text-900">{{ formatCurrency(store.gmv, stats.summary.currency) }}</span>
-              </li>
-            </ul>
-            <div v-else class="text-center text-500 py-4">暂无数据</div>
+      <!-- Top Stores -->
+      <div class="list-card">
+        <div class="list-header">
+          <div class="list-icon list-icon--purple">
+            <i class="pi pi-shop"></i>
+          </div>
+          <span>Top 5 店铺</span>
+        </div>
+        <div class="list-body">
+          <template v-if="stats.topStores.length">
+            <div v-for="(store, index) in stats.topStores" :key="store.name" class="rank-item">
+              <div class="rank-badge" :class="{ 'rank-badge--gold': index === 0, 'rank-badge--silver': index === 1, 'rank-badge--bronze': index === 2 }">
+                {{ index + 1 }}
+              </div>
+              <div class="rank-info">
+                <span class="rank-name" :title="store.name">{{ store.name }}</span>
+                <span class="rank-label">GMV</span>
+              </div>
+              <span class="rank-value">{{ formatCurrency(store.gmv, stats.summary.currency) }}</span>
+            </div>
           </template>
-        </Card>
+          <div v-else class="empty-state empty-state--sm">
+            <i class="pi pi-shop"></i>
+            <span>暂无数据</span>
+          </div>
+        </div>
       </div>
 
-      <div class="col-12 lg:col-4">
-        <Card class="shadow-sm border-round-2xl h-full">
-          <template #title><span class="text-lg font-bold text-900">Top 5 热销 SKU</span></template>
-          <template #content>
-            <ul v-if="stats.topProducts.length" class="list-none p-0 m-0 flex flex-column gap-3">
-              <li v-for="(prod, index) in stats.topProducts" :key="prod.sku" class="flex align-items-center justify-content-between">
-                <div class="flex align-items-center gap-3">
-                  <span class="flex align-items-center justify-content-center w-2rem h-2rem border-circle bg-green-50 text-green-600 font-bold text-sm">{{ index + 1 }}</span>
-                  <div class="flex flex-column">
-                    <span class="text-sm font-medium text-900 text-overflow-ellipsis overflow-hidden white-space-nowrap" style="max-width: 120px" :title="prod.sku">{{ prod.sku }}</span>
-                    <span class="text-xs text-500">销量</span>
-                  </div>
-                </div>
-                <span class="font-bold text-green-600">{{ prod.volume.toLocaleString() }} 件</span>
-              </li>
-            </ul>
-            <div v-else class="text-center text-500 py-4">暂无数据</div>
+      <!-- Top Products -->
+      <div class="list-card">
+        <div class="list-header">
+          <div class="list-icon list-icon--green">
+            <i class="pi pi-box"></i>
+          </div>
+          <span>Top 5 热销 SKU</span>
+        </div>
+        <div class="list-body">
+          <template v-if="stats.topProducts.length">
+            <div v-for="(prod, index) in stats.topProducts" :key="prod.sku" class="rank-item">
+              <div class="rank-badge rank-badge--green" :class="{ 'rank-badge--gold': index === 0 }">
+                {{ index + 1 }}
+              </div>
+              <div class="rank-info">
+                <span class="rank-name" :title="prod.sku">{{ prod.sku }}</span>
+                <span class="rank-label">销量</span>
+              </div>
+              <span class="rank-value rank-value--green">{{ prod.volume.toLocaleString() }} 件</span>
+            </div>
           </template>
-        </Card>
+          <div v-else class="empty-state empty-state--sm">
+            <i class="pi pi-box"></i>
+            <span>暂无数据</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
-import Card from 'primevue/card';
 import SelectButton from 'primevue/selectbutton';
 import Dropdown from 'primevue/dropdown';
 import Calendar from 'primevue/calendar';
@@ -256,8 +334,7 @@ import apiClient from '@/services/apiClient';
 import { useAuthStore } from '@/stores/auth';
 
 type DateRangeValue = 'yesterday' | 'week' | 'month' | 'last_month' | 'custom';
-type DateRangeOption = { label: string; value: DateRangeValue };
-type CountryOption = { code: string; name: string };
+type CompareMode = 'wow' | 'yoy';
 
 type SummaryStats = {
   totalGMV: number;
@@ -303,12 +380,17 @@ const EMPTY_STATS: SalesStats = {
   topProducts: [],
 };
 
-const DATE_RANGE_OPTIONS: DateRangeOption[] = [
-  { label: '昨日', value: 'yesterday' },
-  { label: '本周', value: 'week' },
-  { label: '本月', value: 'month' },
-  { label: '上月', value: 'last_month' },
-  { label: '自定义', value: 'custom' },
+const DATE_RANGE_OPTIONS = [
+  { label: '昨日', value: 'yesterday' as DateRangeValue },
+  { label: '本周', value: 'week' as DateRangeValue },
+  { label: '本月', value: 'month' as DateRangeValue },
+  { label: '上月', value: 'last_month' as DateRangeValue },
+  { label: '自定义', value: 'custom' as DateRangeValue },
+];
+
+const COMPARE_MODE_OPTIONS = [
+  { label: '环比', value: 'wow' as CompareMode },
+  { label: '同比', value: 'yoy' as CompareMode },
 ];
 
 const FALLBACK_COUNTRY_CODES = ['ID', 'VN', 'TH', 'MY', 'PH', 'SG'];
@@ -320,88 +402,87 @@ const isSnapshotMode = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const currentRange = ref<DateRangeValue>('week');
+const compareMode = ref<CompareMode>('wow');
 const customStartDate = ref<Date | null>(new Date());
 const customEndDate = ref<Date | null>(new Date());
 const selectedCountry = ref<string>('ALL');
 const stats = ref<SalesStats>({ ...EMPTY_STATS });
+const lastRefreshTime = ref<Date | null>(null);
 
-const countryOptions = computed<CountryOption[]>(() => {
-  const options: CountryOption[] = [];
+const countryOptions = computed(() => {
+  const options: { code: string; name: string }[] = [];
   if (role.value === 'admin') {
     options.push({ code: 'ALL', name: '全部国家' });
-    const codes = new Set<string>([...supervisedCountries.value, ...FALLBACK_COUNTRY_CODES]);
+    const codes = new Set([...supervisedCountries.value, ...FALLBACK_COUNTRY_CODES]);
     codes.forEach((code) => options.push({ code, name: code }));
   } else {
-    const codes = new Set<string>(operatedCountries.value || []);
+    const codes = new Set(operatedCountries.value || []);
     codes.forEach((code) => options.push({ code, name: code }));
   }
   return options;
 });
 
 const dateRangeOptions = DATE_RANGE_OPTIONS;
+const compareModeOptions = COMPARE_MODE_OPTIONS;
 const todayText = computed(() => new Intl.DateTimeFormat('zh-CN').format(new Date()));
 
-const cssVar = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-const primaryColor = computed(() => cssVar('--primary-color', '#4f46e5'));
-const successColor = computed(() => cssVar('--green-500', '#22c55e'));
-const warnColor = computed(() => cssVar('--yellow-500', '#f59e0b'));
-const infoColor = computed(() => cssVar('--blue-500', '#2563eb'));
+const lastRefreshText = computed(() => {
+  if (!lastRefreshTime.value) return '尚未刷新';
+  const now = new Date();
+  const diff = Math.floor((now.getTime() - lastRefreshTime.value.getTime()) / 1000);
+  if (diff < 60) return '刚刚更新';
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前更新`;
+  return lastRefreshTime.value.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) + ' 更新';
+});
 
-const chartPalette = computed(() => [
-  primaryColor.value,
-  successColor.value,
-  warnColor.value,
-  infoColor.value,
-  '#8b5cf6',
-]);
+const chartPalette = ['#3b82f6', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444'];
 
-const hasTrendData = computed(() => !!stats.value.trend && stats.value.trend.length > 0);
-const hasPlatformData = computed(() => !!stats.value.byPlatform && stats.value.byPlatform.length > 0);
+const hasTrendData = computed(() => stats.value.trend && stats.value.trend.length > 0);
+const hasPlatformData = computed(() => stats.value.byPlatform && stats.value.byPlatform.length > 0);
 
-// ECharts配置 - 销售趋势折线图
 const trendChartOption = computed(() => {
   if (!stats.value.trend.length) return {};
   
   return {
     tooltip: {
       trigger: 'axis',
-      axisPointer: {
-        type: 'cross',
-      },
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: '#e5e7eb',
+      textStyle: { color: '#374151' },
     },
+    grid: { left: '3%', right: '4%', bottom: '10%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
       data: stats.value.trend.map((item) => item.date.slice(5)),
       boundaryGap: false,
+      axisLine: { lineStyle: { color: '#e5e7eb' } },
+      axisLabel: { color: '#9ca3af' },
     },
     yAxis: {
       type: 'value',
       axisLabel: {
-        formatter: (value: number) => formatCurrency(value, stats.value.summary.currency).replace(/\.\d+$/, ''),
+        color: '#9ca3af',
+        formatter: (value: number) => formatNumber(value),
       },
+      splitLine: { lineStyle: { color: '#f3f4f6', type: 'dashed' } },
     },
     series: [
       {
-        name: '销售额 (GMV)',
+        name: '销售额',
         type: 'line',
         data: stats.value.trend.map((item) => item.gmv),
         smooth: true,
         symbol: 'circle',
-        symbolSize: 8,
-        lineStyle: {
-          width: 3,
-        },
+        symbolSize: 6,
+        lineStyle: { width: 3, color: '#3b82f6' },
+        itemStyle: { color: '#3b82f6' },
         areaStyle: {
           color: {
             type: 'linear',
-            x: 0,
-            y: 0,
-            x2: 0,
-            y2: 1,
+            x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: 'rgba(37, 99, 235, 0.2)' },
-              { offset: 1, color: 'rgba(37, 99, 235, 0.02)' },
+              { offset: 0, color: 'rgba(59, 130, 246, 0.2)' },
+              { offset: 1, color: 'rgba(59, 130, 246, 0.02)' },
             ],
           },
         },
@@ -410,43 +491,31 @@ const trendChartOption = computed(() => {
   };
 });
 
-// ECharts配置 - 平台占比饼图
 const platformChartOption = computed(() => {
   if (!stats.value.byPlatform.length) return {};
   
   return {
     tooltip: {
       trigger: 'item',
-      formatter: (params: any) => {
-        const value = formatCurrency(params.value, stats.value.summary.currency);
-        return `${params.name}: ${value} (${params.percent}%)`;
-      },
+      formatter: (params: any) => `${params.name}: ${formatCurrency(params.value, stats.value.summary.currency)} (${params.percent}%)`,
     },
     series: [
       {
-        name: '平台销售额',
         type: 'pie',
-        radius: ['50%', '80%'],
+        radius: ['55%', '85%'],
         center: ['50%', '50%'],
         avoidLabelOverlap: false,
-        label: {
-          show: false,
-        },
-        labelLine: {
-          show: false,
-        },
+        label: { show: false },
+        labelLine: { show: false },
         data: stats.value.byPlatform.map((p, index) => ({
           name: p.platform,
           value: p.gmv,
-          itemStyle: {
-            color: chartPalette.value[index % chartPalette.value.length],
-          },
+          itemStyle: { color: chartPalette[index % chartPalette.length] },
         })),
       },
     ],
   };
 });
-
 
 const toggleSnapshotMode = () => {
   isSnapshotMode.value = !isSnapshotMode.value;
@@ -455,6 +524,12 @@ const toggleSnapshotMode = () => {
 const getPercentage = (val: number, total: number) => {
   if (!total) return 0;
   return Math.round((val / total) * 100);
+};
+
+const formatNumber = (val: number) => {
+  if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+  if (val >= 1000) return (val / 1000).toFixed(1) + 'K';
+  return val.toLocaleString();
 };
 
 const formatCurrency = (val: number, currency = 'CNY') => {
@@ -495,9 +570,11 @@ const fetchStats = async () => {
         startDate: range.startDate,
         endDate: range.endDate,
         countryCode: selectedCountry.value,
+        compareMode: compareMode.value,
       },
     });
     stats.value = normalizeStats(response.data);
+    lastRefreshTime.value = new Date();
   } catch (error) {
     console.error('Failed to fetch stats', error);
     errorMessage.value = '无法加载销售统计，请稍后重试。';
@@ -522,6 +599,10 @@ watch(currentRange, (range) => {
   if (range !== 'custom') {
     fetchStats();
   }
+});
+
+watch(compareMode, () => {
+  fetchStats();
 });
 
 watch(
@@ -601,16 +682,6 @@ const normalizeStats = (payload: Partial<SalesStats>): SalesStats => ({
   topProducts: payload.topProducts ?? [],
 });
 
-const withAlpha = (hex: string, alpha: number) => {
-  const normalizedHex = hex.replace('#', '');
-  const expanded = normalizedHex.length === 3 ? normalizedHex.split('').map((c) => c + c).join('') : normalizedHex;
-  const bigint = parseInt(expanded, 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
 const formatDate = (date: Date) => {
   const cloned = new Date(date);
   cloned.setHours(0, 0, 0, 0);
@@ -625,257 +696,706 @@ const formatDate = (date: Date) => {
   gap: 1.5rem;
 }
 
-.snapshot-mode {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  background: var(--surface-ground);
-  overflow: auto;
-  padding: 2rem;
+/* Hero Header */
+.dashboard-hero {
+  background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%);
+  border-radius: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  color: white;
 }
 
-.header {
+.hero-top {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  justify-content: space-between;
   align-items: flex-start;
+  margin-bottom: 1rem;
 }
 
-@media (min-width: 768px) {
-  .header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+.hero-text h1 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 0;
 }
 
-.header-text {
+.hero-text p {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin: 0.25rem 0 0;
+}
+
+.hero-actions {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.refresh-text {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
   gap: 0.25rem;
 }
 
-.title {
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 700;
+.refresh-text i {
+  font-size: 0.65rem;
 }
 
-.subtitle {
-  margin: 0;
-  color: var(--text-color-secondary);
-}
-
-.eyebrow {
-  margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-color-secondary);
-}
-
-.header-actions {
+/* Hero Filters */
+.hero-filters {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.75rem;
-  justify-content: flex-start;
 }
 
-.custom-range {
+.hero-dropdown {
+  min-width: 100px;
+}
+
+.hero-dropdown :deep(.p-dropdown) {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.hero-dropdown :deep(.p-dropdown-label) {
+  color: white;
+  font-size: 0.8rem;
+}
+
+.hero-dropdown :deep(.p-dropdown-trigger) {
+  color: white;
+}
+
+.hero-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+}
+
+.hero-tab {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hero-tab:hover {
+  color: white;
+}
+
+.hero-tab--active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.hero-custom {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.8rem;
 }
 
-.range-separator {
-  color: var(--text-color-secondary);
+.hero-calendar {
+  width: 110px;
 }
 
-.snapshot-banner {
-  margin-top: 1rem;
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.12), rgba(16, 185, 129, 0.08));
+.hero-calendar :deep(.p-inputtext) {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.5rem;
+}
+
+.hero-compare {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.375rem;
+  margin-left: auto;
 }
 
-.snapshot-title {
-  margin: 0.2rem 0 0;
-  font-size: 1.2rem;
+.hero-compare > span {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.compare-btn {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.compare-btn:hover {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.compare-btn--active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Snapshot Banner */
+.snapshot-banner {
+  background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%);
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.snapshot-badge {
+  font-size: 0.65rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.snapshot-banner h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.25rem 0 0;
 }
 
 .snapshot-date {
-  margin: 0.2rem 0 0;
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: var(--primary-color);
-}
-
-.snapshot-toggle {
-  min-width: 8rem;
-}
-
-.metric-card {
-  min-height: 160px;
-}
-
-.metric-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.metric-value {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.currency {
-  font-size: 0.9rem;
-  color: var(--text-color-secondary);
-}
-
-.muted {
-  margin: 0;
-  color: var(--text-color-secondary);
-}
-
-.chart-wrap {
-  min-height: 16rem;
-}
-
-.chart-wrap.small {
-  min-height: 12rem;
-}
-
-.platform-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.platform-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.platform-name {
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.platform-value {
-  font-weight: 600;
-  color: var(--primary-color);
   text-align: right;
 }
 
-.dot {
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 9999px;
-  display: inline-block;
+.snapshot-date span {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  display: block;
 }
 
-.country-row {
+.snapshot-date strong {
+  font-size: 1.5rem;
+}
+
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+/* KPI Card Base */
+.kpi-card {
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(30%, -30%);
+}
+
+/* KPI Card Variants */
+.kpi-card--gmv {
+  background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%);
+  box-shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.4);
+}
+
+.kpi-card--orders {
+  background: linear-gradient(135deg, #312e81 0%, #8b5cf6 100%);
+  box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.4);
+}
+
+.kpi-card--aov {
+  background: linear-gradient(135deg, #134e4a 0%, #14b8a6 100%);
+  box-shadow: 0 10px 40px -10px rgba(20, 184, 166, 0.4);
+}
+
+.kpi-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.kpi-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.kpi-header span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.kpi-value {
+  display: flex;
+  align-items: baseline;
   gap: 0.5rem;
 }
 
-.country-meta {
+.kpi-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.kpi-currency {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.kpi-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.kpi-compare {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.kpi-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  opacity: 0.6;
+  gap: 0.5rem;
+}
+
+.kpi-empty i {
+  font-size: 2rem;
+}
+
+/* Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}
+
+.skeleton--icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+}
+
+.skeleton--text-lg {
+  height: 2.5rem;
+  width: 60%;
+  margin-top: 1rem;
+}
+
+.skeleton--text-sm {
+  height: 1.5rem;
+  width: 40%;
+  margin-top: 0.5rem;
+}
+
+.skeleton--bar {
+  width: 12%;
+  border-radius: 0.25rem 0.25rem 0 0;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Charts Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.chart-header {
+  padding: 1.25rem 1.5rem 0;
+}
+
+.chart-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chart-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.chart-icon--blue {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.chart-icon--purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+}
+
+.chart-title span {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--surface-900);
+}
+
+.chart-body {
+  padding: 1rem 1.5rem 1.5rem;
+  height: 280px;
+}
+
+.chart-body--pie {
+  height: 180px;
+  display: flex;
+  justify-content: center;
+}
+
+.skeleton-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 100%;
+  padding: 1rem;
+}
+
+.skeleton-chart .skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+}
+
+.platform-legend {
+  padding: 0 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.legend-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+}
+
+.legend-name {
+  flex: 1;
+  color: var(--surface-700);
+  font-weight: 500;
+}
+
+.legend-value {
+  font-weight: 600;
+  color: var(--surface-900);
+}
+
+/* Bottom Grid */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.list-card {
+  background: white;
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--surface-100);
+}
+
+.list-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.list-icon--blue {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.list-icon--purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+}
+
+.list-icon--green {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.list-header span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--surface-900);
+}
+
+.list-body {
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* Country Item */
+.country-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.country-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .country-name {
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--surface-700);
 }
 
 .country-value {
-  font-weight: 600;
-  color: var(--primary-color);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--surface-900);
 }
 
-.progress {
-  height: 0.6rem;
-  border-radius: 9999px;
+.country-bar {
+  height: 6px;
 }
 
-.top-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.country-bar :deep(.p-progressbar-value) {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+/* Rank Item */
+.rank-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.top-list-item {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 0.75rem;
   align-items: center;
-  padding: 0.75rem;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--surface-50);
   border-radius: 0.75rem;
-  background: var(--surface-section);
-  border: 1px solid var(--surface-border);
+  transition: background 0.15s ease;
 }
 
-.rank {
-  width: 2rem;
-  height: 2rem;
-  display: inline-flex;
+.rank-item:hover {
+  background: var(--surface-100);
+}
+
+.rank-badge {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  background: var(--surface-card);
-  border: 1px solid var(--surface-border);
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--text-color-secondary);
+  background: var(--surface-200);
+  color: var(--surface-600);
 }
 
-.rank.success {
-  background: rgba(34, 197, 94, 0.08);
-  color: var(--green-600, #16a34a);
-  border-color: rgba(34, 197, 94, 0.2);
+.rank-badge--gold {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
 }
 
-.top-list-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+.rank-badge--silver {
+  background: linear-gradient(135deg, #d1d5db, #9ca3af);
+  color: white;
+}
+
+.rank-badge--bronze {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: white;
+}
+
+.rank-badge--green {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.rank-info {
+  flex: 1;
   min-width: 0;
 }
 
-.name {
-  margin: 0;
+.rank-name {
+  display: block;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--surface-900);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.value {
-  font-weight: 700;
-  color: var(--primary-color);
+.rank-label {
+  font-size: 0.65rem;
+  color: var(--surface-500);
 }
 
-.value.success {
-  color: var(--green-600, #16a34a);
+.rank-value {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--surface-900);
+}
+
+.rank-value--green {
+  color: #10b981;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--surface-400);
+  gap: 0.75rem;
+}
+
+.empty-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-icon i {
+  font-size: 1.25rem;
+  color: white;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.empty-state--sm {
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 2rem;
+}
+
+.empty-state--sm i {
+  font-size: 1rem;
+}
+
+.empty-state--sm span {
+  font-size: 0.8rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-right {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .header-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 </style>

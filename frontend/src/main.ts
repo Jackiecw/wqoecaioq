@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
+import Tooltip from 'primevue/tooltip';
 
 import { primeTheme } from './styles/prime-theme';
 import 'primeflex/primeflex.css';
@@ -10,6 +11,7 @@ import './fullcalendar-core.css';
 import './fullcalendar-daygrid.css';
 import './fullcalendar-timegrid.css';
 import './style.css';
+import './styles/dashboard-theme.css';
 import App from './App.vue';
 
 import router from './router';
@@ -22,6 +24,7 @@ app.use(PrimeVue, {
   theme: primeTheme,
 });
 app.use(ToastService);
+app.directive('tooltip', Tooltip);
 app.use(pinia);
 app.use(router);
 app.mount('#app');

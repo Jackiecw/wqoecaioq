@@ -1,7 +1,7 @@
 <template>
   <section 
     class="h-full flex flex-column gap-3" 
-    :class="compact ? 'p-0' : 'surface-card border-round-lg shadow-1 p-4'"
+    :class="compact ? 'p-0' : 'glass-card-solid p-4'"
   >
     <header v-if="!compact" class="flex align-items-center justify-content-between">
       <div>
