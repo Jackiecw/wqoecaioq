@@ -1,146 +1,57 @@
 <template>
 
-  <div class="space-y-8">
+  <div class="common-links-page">
 
-    <section class="rounded-3xl bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] p-6 text-white shadow-xl shadow-blue-900/20">
-
-      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-
-        <div>
-
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">Quick Access</p>
-
-          <h2 class="text-3xl font-semibold">常用链接</h2>
-
-          <p class="text-sm text-white/80">收藏常用的后台、文档与协作工具，快速跳转</p>
-
+    <!-- Page Header -->
+    <header class="page-header">
+      <div class="header-content">
+        <div class="header-text">
+          <span class="page-badge">QUICK ACCESS</span>
+          <h1 class="page-title">常用链接</h1>
+          <p class="page-subtitle">收藏常用的后台、文档与协作工具，快速跳转</p>
         </div>
-
         <button
-
           v-if="isAdmin"
-
           @click="handleCreate"
-
-          class="rounded-2xl bg-white/90 px-5 py-3 text-sm font-semibold text-[#3B82F6] shadow-lg shadow-blue-500/30 transition hover:bg-white"
-
+          class="create-btn"
         >
-
           <PlusIcon class="h-5 w-5 inline-block -mt-1 mr-1" />
-
           新建链接
-
         </button>
-
       </div>
+    </header>
 
-    </section>
+    <p v-if="isLoading" class="loading-text">正在加载链接列表...</p>
+    <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
 
-
-
-    <p v-if="isLoading" class="text-sm text-[#6B7280]">正在加载链接列表...</p>
-
-    <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
-
-
-
-    <div
-
-      v-if="!isLoading && links.length === 0 && !errorMessage"
-
-      class="rounded-3xl border border-[#E5E7EB] bg-white p-6 text-center text-[#6B7280]"
-
-    >
-
+    <div v-if="!isLoading && links.length === 0 && !errorMessage" class="empty-state">
       <p>
-
         目前还没有常用链接
         <span v-if="isAdmin">点击右上角按钮添加一个吧</span>
-
       </p>
-
     </div>
 
-
-
-    <div
-
-      v-if="!isLoading && links.length > 0"
-
-      class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6"
-
-    >
-
+    <div v-if="!isLoading && links.length > 0" class="links-grid">
       <div
-
         v-for="link in links"
-
         :key="link.id"
-
-        class="group relative rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-
+        class="link-card"
       >
-
-        <a :href="link.url" target="_blank" rel="noopener noreferrer" class="flex h-full flex-col justify-between">
-
-          <p class="text-lg font-semibold text-[#1F2937] break-words">
-
-            {{ link.title }}
-
-          </p>
-
-          <p class="mt-2 text-sm text-[#6B7280] break-words">
-
-            {{ link.description || '点击跳转' }}
-
-          </p>
-
+        <a :href="link.url" target="_blank" rel="noopener noreferrer" class="link-content">
+          <p class="link-title">{{ link.title }}</p>
+          <p class="link-desc">{{ link.description || '点击跳转' }}</p>
         </a>
 
-
-
-        <div
-
-          v-if="isAdmin"
-
-          class="absolute top-2 right-2 flex gap-1 opacity-0 transition group-hover:opacity-100"
-
-        >
-
-          <button
-
-            @click="handleEdit(link)"
-
-            title="编辑"
-
-            class="rounded-full bg-white p-1.5 text-[#64748B] shadow hover:text-[#3B82F6]"
-
-          >
-
+        <div v-if="isAdmin" class="link-actions">
+          <button @click="handleEdit(link)" title="编辑" class="action-btn">
             <PencilIcon class="h-4 w-4" />
-
           </button>
-
-          <button
-
-            @click="handleDelete(link)"
-
-            title="删除"
-
-            class="rounded-full bg-white p-1.5 text-[#64748B] shadow hover:text-red-600"
-
-          >
-
+          <button @click="handleDelete(link)" title="删除" class="action-btn action-btn--danger">
             <TrashIcon class="h-4 w-4" />
-
           </button>
-
         </div>
-
       </div>
-
     </div>
-
 
     <LinkModal
       :is-open="isModalOpen"
@@ -151,6 +62,171 @@
     />
   </div>
 </template>
+
+<style scoped>
+.common-links-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Page Header */
+.page-header {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.page-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.35em;
+  color: var(--color-accent);
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.create-btn {
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.create-btn:hover {
+  filter: brightness(0.95);
+  box-shadow: var(--shadow-md);
+}
+
+/* States */
+.loading-text {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.error-text {
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.empty-state {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+/* Links Grid */
+.links-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.link-card {
+  position: relative;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition-fast);
+}
+
+.link-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.link-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-decoration: none;
+}
+
+.link-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  word-break: break-word;
+}
+
+.link-desc {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  word-break: break-word;
+}
+
+.link-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.link-card:hover .link-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  background: var(--color-bg-card);
+  border: none;
+  border-radius: 50%;
+  padding: 0.375rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+  color: var(--color-accent);
+}
+
+.action-btn--danger:hover {
+  color: #dc2626;
+}
+</style>
+
 
 
 

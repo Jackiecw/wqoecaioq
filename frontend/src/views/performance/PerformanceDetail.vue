@@ -421,4 +421,17 @@ onMounted(() => {
     print-color-adjust: exact;
   }
 }
+
+/* Clean White Theme Overrides */
+.min-h-screen { background: var(--color-bg-page); }
+.bg-white {
+  background: var(--color-bg-card);
+  border-color: var(--color-border);
+}
+.text-gray-800, .text-gray-900 { color: var(--color-text-primary); }
+.text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
+.text-gray-400 { color: var(--color-text-muted); }
+.bg-blue-600 { background: var(--color-accent); }
+.text-blue-600, .text-blue-700 { color: var(--color-accent); }
+.rounded-xl, .rounded-2xl { border-radius: var(--radius-md); }
 </style>

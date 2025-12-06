@@ -214,3 +214,50 @@ const rollbackBatch = async (batch) => {
   }
 };
 </script>
+
+<style scoped>
+/* Clean White Theme Overrides */
+.space-y-6 {
+  background: var(--color-bg-page);
+}
+
+.bg-white {
+  background: var(--color-bg-card);
+}
+
+.text-gray-900 {
+  color: var(--color-text-primary);
+}
+
+.text-gray-500, .text-gray-700 {
+  color: var(--color-text-secondary);
+}
+
+.bg-indigo-600 {
+  background: var(--color-accent);
+}
+
+.focus\:border-indigo-500:focus {
+  border-color: var(--color-accent);
+}
+
+.focus\:ring-indigo-500:focus {
+  --tw-ring-color: var(--color-accent-soft);
+}
+
+.rounded-lg, .rounded-md {
+  border-radius: var(--radius-sm);
+}
+
+.shadow {
+  box-shadow: var(--shadow-sm);
+}
+
+.border-gray-200, .border-gray-300 {
+  border-color: var(--color-border);
+}
+
+.bg-gray-50 {
+  background: var(--color-bg-page);
+}
+</style>

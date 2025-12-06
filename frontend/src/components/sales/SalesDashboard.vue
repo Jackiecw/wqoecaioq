@@ -1,24 +1,25 @@
 <template>
   <div class="sales-dashboard">
-    <!-- Hero Header with Filters -->
-    <div class="dashboard-hero">
-      <div class="hero-top">
-        <div class="hero-text">
-          <h1>销售数据看板</h1>
-          <p>实时监控关键业务指标与趋势</p>
+    <!-- 页面头部 (Clean White Theme) -->
+    <header class="page-header">
+      <div class="header-top">
+        <div class="header-text">
+          <h1 class="page-title">销售数据看板</h1>
+          <p class="page-subtitle">实时监控关键业务指标与趋势</p>
         </div>
-        <div class="hero-actions">
-          <span class="refresh-text"><i class="pi pi-sync"></i> {{ lastRefreshText }}</span>
+        <div class="header-actions">
+          <span class="refresh-badge"><i class="pi pi-sync"></i> {{ lastRefreshText }}</span>
           <Button
             :icon="isSnapshotMode ? 'pi pi-eye-slash' : 'pi pi-camera'"
             :severity="isSnapshotMode ? 'danger' : 'secondary'"
             text
             rounded
+            size="small"
             @click="toggleSnapshotMode"
           />
         </div>
       </div>
-      <div class="hero-filters">
+      <div class="filter-bar">
         <Dropdown
           v-model="selectedCountry"
           :options="countryOptions"
@@ -26,26 +27,27 @@
           option-value="code"
           placeholder="国家"
           :filter="countryOptions.length > 6"
-          class="hero-dropdown"
+          class="filter-dropdown"
         />
-        <div class="hero-tabs">
+        <div class="filter-tabs">
           <button
             v-for="opt in dateRangeOptions"
             :key="opt.value"
-            class="hero-tab"
-            :class="{ 'hero-tab--active': currentRange === opt.value }"
+            class="filter-tab"
+            :class="{ 'filter-tab--active': currentRange === opt.value }"
             @click="currentRange = opt.value"
           >
             {{ opt.label }}
           </button>
         </div>
-        <div v-if="currentRange === 'custom'" class="hero-custom">
-          <Calendar v-model="customStartDate" show-icon dateFormat="yy-mm-dd" placeholder="开始" class="hero-calendar" />
+        <div v-if="currentRange === 'custom'" class="filter-custom">
+          <Calendar v-model="customStartDate" show-icon dateFormat="yy-mm-dd" placeholder="开始" class="filter-calendar" />
           <span>→</span>
-          <Calendar v-model="customEndDate" show-icon dateFormat="yy-mm-dd" placeholder="结束" class="hero-calendar" />
+          <Calendar v-model="customEndDate" show-icon dateFormat="yy-mm-dd" placeholder="结束" class="filter-calendar" />
           <Button icon="pi pi-check" size="small" text @click="fetchStats" />
         </div>
-        <div class="hero-compare">
+        <div class="filter-spacer"></div>
+        <div class="filter-compare">
           <span>对比:</span>
           <button
             v-for="opt in compareModeOptions"
@@ -58,7 +60,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </header>
 
     <!-- Snapshot Banner -->
     <div v-if="isSnapshotMode" class="snapshot-banner">
@@ -693,186 +695,208 @@ const formatDate = (date: Date) => {
 .sales-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  background: var(--color-bg-page);
 }
 
-/* Hero Header */
-.dashboard-hero {
-  background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%);
-  border-radius: 1.25rem;
+/* ========================================
+   页面头部 (Clean White Theme)
+   ======================================== */
+.page-header {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 1.25rem 1.5rem;
-  color: white;
+  box-shadow: var(--shadow-sm);
 }
 
-.hero-top {
+.header-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.hero-text h1 {
+.header-text {
+  flex: 1;
+}
+
+.page-title {
   font-size: 1.375rem;
   font-weight: 700;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
-.hero-text p {
+.page-subtitle {
   font-size: 0.8rem;
-  opacity: 0.8;
+  color: var(--color-text-secondary);
   margin: 0.25rem 0 0;
 }
 
-.hero-actions {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.refresh-text {
+.refresh-badge {
   font-size: 0.7rem;
-  opacity: 0.7;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  background: var(--color-bg-page);
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radius-sm);
 }
 
-.refresh-text i {
-  font-size: 0.65rem;
+.refresh-badge i {
+  font-size: 0.625rem;
 }
 
-/* Hero Filters */
-.hero-filters {
+/* ========================================
+   筛选栏
+   ======================================== */
+.filter-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
-.hero-dropdown {
+.filter-dropdown {
   min-width: 100px;
 }
 
-.hero-dropdown :deep(.p-dropdown) {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+.filter-dropdown :deep(.p-select),
+.filter-dropdown :deep(.p-dropdown) {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
-.hero-dropdown :deep(.p-dropdown-label) {
-  color: white;
-  font-size: 0.8rem;
-}
-
-.hero-dropdown :deep(.p-dropdown-trigger) {
-  color: white;
-}
-
-.hero-tabs {
-  display: flex;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem;
-  padding: 0.25rem;
-}
-
-.hero-tab {
-  padding: 0.4rem 0.75rem;
+.filter-dropdown :deep(.p-select-label),
+.filter-dropdown :deep(.p-dropdown-label) {
   font-size: 0.75rem;
+  color: var(--color-text-primary);
+}
+
+.filter-tabs {
+  display: flex;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.1875rem;
+}
+
+.filter-tab {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   background: transparent;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: calc(var(--radius-sm) - 2px);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
-.hero-tab:hover {
-  color: white;
+.filter-tab:hover {
+  color: var(--color-text-primary);
 }
 
-.hero-tab--active {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+.filter-tab--active {
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-xs);
 }
 
-.hero-custom {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
-}
-
-.hero-calendar {
-  width: 110px;
-}
-
-.hero-calendar :deep(.p-inputtext) {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 0.75rem;
-  padding: 0.4rem 0.5rem;
-}
-
-.hero-compare {
+.filter-custom {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
 }
 
-.hero-compare > span {
+.filter-calendar {
+  width: 100px;
+}
+
+.filter-calendar :deep(.p-inputtext) {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   font-size: 0.7rem;
-  opacity: 0.7;
+  padding: 0.375rem 0.5rem;
+}
+
+.filter-spacer {
+  flex: 1;
+}
+
+.filter-compare {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.filter-compare > span {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
 }
 
 .compare-btn {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.7rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.65rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .compare-btn:hover {
-  color: white;
-  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-primary);
+  border-color: var(--color-primary);
 }
 
 .compare-btn--active {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
-/* Snapshot Banner */
+/* ========================================
+   Snapshot Banner
+   ======================================== */
 .snapshot-banner {
-  background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%);
-  border-radius: 1rem;
-  padding: 1.25rem 1.5rem;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: white;
 }
 
 .snapshot-badge {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  opacity: 0.8;
+  color: var(--color-accent);
 }
 
 .snapshot-banner h3 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
   margin: 0.25rem 0 0;
+  color: var(--color-text-primary);
 }
 
 .snapshot-date {
@@ -880,107 +904,118 @@ const formatDate = (date: Date) => {
 }
 
 .snapshot-date span {
-  font-size: 0.75rem;
-  opacity: 0.8;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
   display: block;
 }
 
 .snapshot-date strong {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  color: var(--color-accent);
 }
 
-/* KPI Grid */
+/* ========================================
+   KPI Grid
+   ======================================== */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
-/* KPI Card Base */
+/* KPI Card - Clean White Theme */
 .kpi-card {
-  border-radius: 1.25rem;
-  padding: 1.5rem;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  min-height: 160px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  position: relative;
 }
 
 .kpi-card:hover {
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
 .kpi-card::before {
   content: '';
   position: absolute;
+  left: 0;
   top: 0;
-  right: 0;
-  width: 150px;
-  height: 150px;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  transform: translate(30%, -30%);
+  bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
 }
 
-/* KPI Card Variants */
-.kpi-card--gmv {
-  background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%);
-  box-shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.4);
+/* KPI Card Variants - Left Border Colors */
+.kpi-card--gmv::before {
+  background: var(--color-accent);
 }
 
-.kpi-card--orders {
-  background: linear-gradient(135deg, #312e81 0%, #8b5cf6 100%);
-  box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.4);
+.kpi-card--orders::before {
+  background: #8b5cf6;
 }
 
-.kpi-card--aov {
-  background: linear-gradient(135deg, #134e4a 0%, #14b8a6 100%);
-  box-shadow: 0 10px 40px -10px rgba(20, 184, 166, 0.4);
+.kpi-card--aov::before {
+  background: #14b8a6;
 }
 
 .kpi-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
 .kpi-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border-radius: 0.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 0.875rem;
+  color: var(--color-accent);
+}
+
+.kpi-card--orders .kpi-icon {
+  background: #f3e8ff;
+  color: #8b5cf6;
+}
+
+.kpi-card--aov .kpi-icon {
+  background: #ccfbf1;
+  color: #14b8a6;
 }
 
 .kpi-header span {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  opacity: 0.9;
+  color: var(--color-text-secondary);
 }
 
 .kpi-value {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
 .kpi-number {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--color-text-primary);
 }
 
 .kpi-currency {
-  font-size: 1rem;
-  opacity: 0.8;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
 }
 
 .kpi-footer {
@@ -991,8 +1026,8 @@ const formatDate = (date: Date) => {
 }
 
 .kpi-compare {
-  font-size: 0.7rem;
-  opacity: 0.7;
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
 }
 
 .kpi-empty {
@@ -1049,13 +1084,14 @@ const formatDate = (date: Date) => {
 .charts-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .chart-card {
-  background: white;
-  border-radius: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 

@@ -138,11 +138,11 @@ const handleLogin = async () => {
 
 <style scoped>
 .login-shell {
-  background: var(--surface-ground);
+  background: var(--color-bg-page);
 }
 
 .promo-panel {
-  background: linear-gradient(135deg, #1d4ed8, #2563eb 35%, #22c55e);
+  background: var(--color-accent);
   color: #ffffff;
   display: flex;
   align-items: center;

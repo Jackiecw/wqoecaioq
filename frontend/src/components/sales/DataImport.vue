@@ -1,126 +1,226 @@
 <template>
 
-  <div class="space-y-8">
+  <div class="data-import-page">
 
-    <section class="rounded-3xl bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] p-6 text-white shadow-xl shadow-blue-900/20">
-
-      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">Data Import Center</p>
-          <h2 class="text-3xl font-semibold">数据导入中心</h2>
-          <p class="text-sm text-white/80">批量导入平台报表，或手动录入单条销售数据，保持数据实时更新。</p>
+    <!-- Page Header -->
+    <header class="page-header">
+      <div class="header-content">
+        <div class="header-text">
+          <span class="page-badge">DATA IMPORT CENTER</span>
+          <h1 class="page-title">数据导入中心</h1>
+          <p class="page-subtitle">批量导入平台报表，或手动录入单条销售数据，保持数据实时更新。</p>
         </div>
-
-        <div class="rounded-2xl border border-white/30 bg-white/10 px-4 py-3 text-right backdrop-blur">
-          <p class="text-xs text-white/70">当前操作</p>
-          <p class="text-xl font-semibold">{{ currentTab }}</p>
+        <div class="stat-card">
+          <span class="stat-label">当前操作</span>
+          <span class="stat-value">{{ currentTab }}</span>
         </div>
-
       </div>
-
-    </section>
-
-
+    </header>
 
     <!-- Country Selection -->
-
-    <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm" v-if="currentTab !== '导入记录'">
-
-      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">选择国家</h3>
-
-      <div class="flex flex-wrap gap-3">
-
+    <section class="content-card" v-if="currentTab !== '导入记录'">
+      <h3 class="section-title">选择国家</h3>
+      <div class="country-buttons">
         <button
-
           v-for="country in availableCountries"
-
           :key="country.code"
-
           @click="selectedCountry = country.code"
-
-          :class="[
-
-            'px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 border',
-
-            selectedCountry === country.code
-
-              ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-105'
-
-              : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-
-          ]"
-
+          :class="['country-btn', { 'country-btn--active': selectedCountry === country.code }]"
         >
-
           {{ country.name }}
-
         </button>
-
-        <div v-if="availableCountries.length === 0 && !storesLoading" class="text-sm text-gray-500 py-2">
-
+        <div v-if="availableCountries.length === 0 && !storesLoading" class="empty-text">
           暂无可用国家数据
-
         </div>
-
       </div>
-
     </section>
 
-
-
-    <section class="rounded-3xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-
-      <nav class="flex flex-wrap gap-3">
-
+    <!-- Tab Navigation -->
+    <section class="content-card tab-section">
+      <nav class="tab-nav">
         <button
-
           v-for="tab in tabs"
-
           :key="tab.name"
-
           @click="currentTab = tab.name"
-
-          :class="[
-
-            'rounded-full px-5 py-2 text-sm font-semibold transition',
-
-            currentTab === tab.name
-
-              ? 'bg-[#3B82F6] text-white shadow'
-
-              : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
-
-          ]"
-
+          :class="['tab-btn', { 'tab-btn--active': currentTab === tab.name }]"
         >
-
           {{ tab.name }}
-
         </button>
-
       </nav>
-
     </section>
 
-
-
-    <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-
+    <!-- Tab Content -->
+    <section class="content-card">
       <component 
-
         :is="currentTabComponent" 
-
         :selectedCountry="selectedCountry"
-
       />
-
     </section>
 
   </div>
 
 </template>
 
+<style scoped>
+.data-import-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.page-header {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .header-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.page-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.35em;
+  color: var(--color-accent);
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.stat-card {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  text-align: right;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.content-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  margin-bottom: 1rem;
+}
+
+.country-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.country-btn {
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.country-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.country-btn--active {
+  background: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.empty-text {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  padding: 0.5rem 0;
+}
+
+.tab-section {
+  padding: 1rem 1.5rem;
+}
+
+.tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tab-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.tab-btn--active {
+  background: var(--color-accent);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+</style>
 
 
 <script setup lang="ts">

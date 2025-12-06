@@ -277,3 +277,41 @@ onMounted(() => {
   fetchData();
 });
 </script>
+
+<style scoped>
+/* Override Tailwind defaults with theme variables */
+.p-6 { background: var(--color-bg-page); }
+
+/* Page title */
+h1 { color: var(--color-text-primary); }
+
+/* Cards with cleaner theme */
+.bg-white {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+
+.rounded-xl, .rounded-2xl {
+  border-radius: var(--radius-md);
+}
+
+/* Buttons */
+.bg-blue-600 {
+  background: var(--color-accent);
+}
+
+.bg-blue-600:hover {
+  background: #2563eb;
+}
+
+/* Tab underline */
+.text-blue-600 {
+  color: var(--color-accent);
+}
+
+.bg-blue-600 {
+  background: var(--color-accent);
+}
+
+/* Status badges use semantic colors - keep as-is */
+</style>

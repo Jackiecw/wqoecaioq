@@ -1,67 +1,55 @@
 <template>
-  <div class="space-y-8">
-    <section class="rounded-3xl bg-gradient-to-r from-[#3B82F6] to-[#60A5FA] p-6 text-white shadow-xl shadow-blue-900/20">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">Finance Control</p>
-          <h2 class="text-3xl font-semibold">财务管理</h2>
-          <p class="text-sm text-white/80">统一录入与查询支出，支持批量导出与下载。</p>
+  <div class="finance-page">
+    <!-- 页面头部 (Clean White Theme) -->
+    <header class="page-header">
+      <div class="header-top">
+        <div class="header-text">
+          <h1 class="page-title">财务管理</h1>
+          <p class="page-subtitle">统一录入与查询支出，支持批量导出与下载</p>
         </div>
-        <div class="grid grid-cols-2 gap-3 text-sm">
-          <div class="rounded-2xl border border-white/30 bg-white/10 px-4 py-3 backdrop-blur">
-            <p class="text-white/70">可录入</p>
-            <p class="text-xl font-semibold">{{ canEntry ? '是' : '否' }}</p>
+        <div class="header-stats">
+          <div class="stat-card">
+            <span class="stat-label">可录入</span>
+            <span class="stat-value">{{ canEntry ? '是' : '否' }}</span>
           </div>
-          <div class="rounded-2xl border border-white/30 bg-white/10 px-4 py-3 backdrop-blur">
-            <p class="text-white/70">可导出</p>
-            <p class="text-xl font-semibold">{{ isAdmin || canExport ? '是' : '否' }}</p>
+          <div class="stat-card">
+            <span class="stat-label">可导出</span>
+            <span class="stat-value">{{ isAdmin || canExport ? '是' : '否' }}</span>
           </div>
         </div>
       </div>
-    </section>
+    </header>
 
-    <section class="rounded-3xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-      <nav class="flex flex-wrap gap-3">
-        <button
-          v-if="canEntry"
-          @click="currentTab = 'entry'"
-          :class="[
-            'rounded-full px-5 py-2 text-sm font-semibold transition',
-            currentTab === 'entry'
-              ? 'bg-[#3B82F6] text-white shadow'
-              : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
-          ]"
-        >
-          支出录入
-        </button>
-        <button
-          v-if="canView"
-          @click="currentTab = 'management'"
-          :class="[
-            'rounded-full px-5 py-2 text-sm font-semibold transition',
-            currentTab === 'management'
-              ? 'bg-[#3B82F6] text-white shadow'
-              : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
-          ]"
-        >
-          支出查询
-        </button>
-        <button
-          v-if="isAdmin || canExport"
-          @click="currentTab = 'batch'"
-          :class="[
-            'rounded-full px-5 py-2 text-sm font-semibold transition',
-            currentTab === 'batch'
-              ? 'bg-[#3B82F6] text-white shadow'
-              : 'bg-[#F3F4F6] text-[#6B7280] hover:text-[#1F2937]'
-          ]"
-        >
-          批量操作
-        </button>
-      </nav>
-    </section>
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+      <button
+        v-if="canEntry"
+        class="tab-btn"
+        :class="{ 'tab-btn--active': currentTab === 'entry' }"
+        @click="currentTab = 'entry'"
+      >
+        支出录入
+      </button>
+      <button
+        v-if="canView"
+        class="tab-btn"
+        :class="{ 'tab-btn--active': currentTab === 'management' }"
+        @click="currentTab = 'management'"
+      >
+        支出查询
+      </button>
+      <button
+        v-if="isAdmin || canExport"
+        class="tab-btn"
+        :class="{ 'tab-btn--active': currentTab === 'batch' }"
+        @click="currentTab = 'batch'"
+      >
+        批量操作
+      </button>
+    </nav>
 
-    <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+    <!-- Content Area -->
+    <section class="content-area">
       <div v-if="currentTab === 'entry'">
         <FinanceForm />
       </div>
@@ -103,3 +91,118 @@ const getDefaultTab = (): FinanceTab => {
 
 const currentTab = ref<FinanceTab>(getDefaultTab());
 </script>
+
+<style scoped>
+.finance-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--color-bg-page);
+}
+
+/* 页面头部 */
+.page-header {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-text {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.header-stats {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 1rem;
+  min-width: 80px;
+}
+
+.stat-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Tab Navigation */
+.tab-nav {
+  display: flex;
+  gap: 0.375rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem;
+  width: fit-content;
+}
+
+.tab-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.tab-btn--active {
+  background: var(--color-accent);
+  color: white;
+  box-shadow: var(--shadow-xs);
+}
+
+/* Content Area */
+.content-area {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
+}
+</style>

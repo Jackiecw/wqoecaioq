@@ -321,24 +321,36 @@ const handleSubmit = async () => {
 .form-label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
-  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.8rem;
 }
 
 .form-input {
   display: block;
   width: 100%;
-  border-radius: 0.375rem;
-  border: 1px solid #d4d4d4;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  padding: 0.75rem;
-  font-size: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-xs);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  background: var(--color-bg-card);
+  transition: all var(--transition-fast);
 }
 
 .form-input:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
   outline: none;
 }
+
+button[type="submit"] {
+  background: var(--color-accent);
+  border-radius: var(--radius-sm);
+}
+
+button[type="submit"]:hover {
+  filter: brightness(0.95);
+}
 </style>
+

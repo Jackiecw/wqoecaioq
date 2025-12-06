@@ -117,15 +117,19 @@ const reminderDate = computed(() => {
 <style scoped>
 .weekly-report-page {
   min-height: 100%;
+  background: var(--color-bg-page);
 }
 
-/* Hero Header */
+/* ========================================
+   页面头部 (Clean White Theme)
+   ======================================== */
 .report-hero {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 1.5rem;
-  padding: 2rem 2.5rem;
-  margin-bottom: 1.5rem;
-  color: white;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .hero-content {
@@ -133,53 +137,55 @@ const reminderDate = computed(() => {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .hero-text h1 {
-  font-size: 1.75rem;
+  font-size: 1.375rem;
   font-weight: 700;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.25rem 0;
+  color: var(--color-text-primary);
 }
 
 .hero-text p {
-  font-size: 0.9rem;
-  opacity: 0.9;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .hero-stats {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border-radius: 1rem;
-  padding: 0.875rem 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  gap: 0.625rem;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
 }
 
 .stat-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 0.875rem;
 }
 
 .stat-icon--blue {
-  background: rgba(59, 130, 246, 0.3);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 
 .stat-icon--green {
-  background: rgba(16, 185, 129, 0.3);
+  background: #d1fae5;
+  color: #10b981;
 }
 
 .stat-info {
@@ -188,59 +194,66 @@ const reminderDate = computed(() => {
 }
 
 .stat-label {
-  font-size: 0.7rem;
+  font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  opacity: 0.8;
+  color: var(--color-text-muted);
 }
 
 .stat-value {
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-/* Tab Navigation */
+/* ========================================
+   Tab Navigation
+   ======================================== */
 .tab-nav {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  background: var(--surface-100);
-  padding: 0.375rem;
-  border-radius: 0.75rem;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
   width: fit-content;
 }
 
 .tab-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
   border: none;
   background: transparent;
-  color: var(--text-color-secondary);
-  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
   font-weight: 500;
-  border-radius: 0.5rem;
+  border-radius: calc(var(--radius-sm) - 2px);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .tab-btn:hover {
-  color: var(--text-color);
+  color: var(--color-text-primary);
 }
 
 .tab-btn--active {
-  background: white;
-  color: var(--primary-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: var(--color-bg-card);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-xs);
 }
 
-/* Content Area */
+/* ========================================
+   Content Area
+   ======================================== */
 .content-area {
-  background: white;
-  border-radius: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
-  padding: 1.5rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
 }
 
 /* Transitions */

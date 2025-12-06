@@ -365,29 +365,48 @@ const formatDate = (dateString) => {
 }
 .input-group label {
   margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
-  font-size: 0.875rem; 
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.8rem; 
 }
 .form-input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  background: var(--color-bg-card);
+  transition: all var(--transition-fast);
+}
+.form-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+  outline: none;
 }
 .table-th {
   padding: 0.75rem 1.5rem; 
   text-align: left;
-  font-size: 0.75rem; 
-  font-weight: 500;
-  color: #6b7280; 
+  font-size: 0.7rem; 
+  font-weight: 600;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 .table-td {
-  padding: 1rem 1.5rem; 
+  padding: 0.75rem 1.5rem; 
   white-space: nowrap;
-  font-size: 0.875rem; 
-  color: #374151; 
+  font-size: 0.8rem;
+  color: var(--color-text-primary);
 }
+
+/* Override Tailwind hardcoded colors */
+.bg-indigo-600 { background: var(--color-accent); }
+.text-indigo-600 { color: var(--color-accent); }
+.hover\:bg-indigo-700:hover { background: var(--color-accent); filter: brightness(0.95); }
+.focus\:ring-indigo-600:focus { --tw-ring-color: var(--color-accent-soft); }
+.bg-stone-50 { background: var(--color-bg-page); }
+.border-stone-300, .border-stone-200, .border-stone-100 { border-color: var(--color-border); }
+.text-stone-700, .text-stone-600 { color: var(--color-text-primary); }
+.text-stone-500, .text-stone-400 { color: var(--color-text-secondary); }
+.rounded-lg, .rounded-md { border-radius: var(--radius-sm); }
+.shadow { box-shadow: var(--shadow-sm); }
 </style>

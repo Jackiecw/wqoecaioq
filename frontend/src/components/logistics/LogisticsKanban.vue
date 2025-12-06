@@ -178,8 +178,8 @@ const onCardClick = (batch: Batch) => {
   gap: 1rem;
   overflow-x: auto;
   padding: 1rem;
-  background-color: #f9fafb;
-  border-radius: 1rem;
+  background-color: var(--color-bg-page);
+  border-radius: var(--radius-md);
   min-height: 540px;
 }
 .kanban-board--empty {
@@ -188,45 +188,44 @@ const onCardClick = (batch: Batch) => {
 .kanban-column {
   width: 300px;
   min-width: 280px;
-  border-radius: 1rem;
-  border: 1px solid #e5e7eb;
-  background: linear-gradient(180deg, #fff, #f8fafc);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
   position: relative;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 10px 25px -20px rgba(15, 23, 42, 0.4);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 .kanban-column::before {
   content: '';
   position: absolute;
   inset: 0;
   width: 6px;
-  border-radius: 1rem 0 0 1rem;
-  background: var(--accent, #d1d5db);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--accent, var(--color-text-muted));
 }
 .kanban-column.drag-over {
-  border-color: #2563eb;
-  box-shadow: 0 15px 35px -15px rgba(37, 99, 235, 0.5);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-md);
 }
 .column-header {
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
-  backdrop-filter: blur(6px);
+  background: var(--color-bg-card);
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
   padding: 1rem;
-  border-bottom: 1px solid #eef2ff;
-  border-top-right-radius: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  border-top-right-radius: var(--radius-md);
 }
 .column-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 .column-subtitle {
   font-size: 0.8rem;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 .column-metrics {
   display: flex;
@@ -234,7 +233,7 @@ const onCardClick = (batch: Batch) => {
   gap: 0.5rem;
 }
 .column-count {
-  background: #1d4ed8;
+  background: var(--color-accent);
   color: #fff;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
@@ -243,7 +242,7 @@ const onCardClick = (batch: Batch) => {
 }
 .column-amount {
   font-size: 0.85rem;
-  color: #0f172a;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 .column-body {
@@ -253,10 +252,10 @@ const onCardClick = (batch: Batch) => {
 .column-empty {
   text-align: center;
   padding: 1.5rem 0.5rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
-  border: 1px dashed #e2e8f0;
-  border-radius: 0.75rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
 }
 .column-empty .muted {
   font-size: 0.8rem;

@@ -257,10 +257,10 @@ const handleSubmit = async () => {
 }
 
 .week-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-accent);
   color: white;
   padding: 1rem 1.25rem;
-  border-radius: 1rem;
+  border-radius: var(--radius-md);
   text-align: center;
   min-width: 120px;
 }
@@ -292,17 +292,17 @@ const handleSubmit = async () => {
 .date-field label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--surface-700);
+  color: var(--color-text-primary);
 }
 
 .date-field small {
   font-size: 0.75rem;
-  color: var(--surface-500);
+  color: var(--color-text-secondary);
 }
 
 .tips-card {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 1rem;
+  background: #fef3c7;
+  border-radius: var(--radius-md);
   padding: 1rem 1.25rem;
   border-left: 4px solid #f59e0b;
 }
@@ -339,8 +339,8 @@ const handleSubmit = async () => {
 
 /* Field Cards */
 .field-card {
-  background: var(--surface-50);
-  border-radius: 1rem;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-md);
   padding: 1.25rem;
   border-left: 4px solid transparent;
 }
@@ -350,7 +350,7 @@ const handleSubmit = async () => {
 }
 
 .field-card--blue {
-  border-left-color: #3b82f6;
+  border-left-color: var(--color-accent);
 }
 
 .field-card--orange {
@@ -358,7 +358,7 @@ const handleSubmit = async () => {
 }
 
 .field-card--gray {
-  border-left-color: #9ca3af;
+  border-left-color: var(--color-text-muted);
 }
 
 .field-card label {
@@ -367,7 +367,7 @@ const handleSubmit = async () => {
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--surface-700);
+  color: var(--color-text-primary);
   margin-bottom: 0.75rem;
 }
 
@@ -376,9 +376,9 @@ const handleSubmit = async () => {
 }
 
 .field-card--green label i { color: #10b981; }
-.field-card--blue label i { color: #3b82f6; }
+.field-card--blue label i { color: var(--color-accent); }
 .field-card--orange label i { color: #f59e0b; }
-.field-card--gray label i { color: #9ca3af; }
+.field-card--gray label i { color: var(--color-text-muted); }
 
 .required {
   color: #ef4444;
@@ -386,14 +386,14 @@ const handleSubmit = async () => {
 
 .field-card :deep(.p-inputtextarea) {
   width: 100%;
-  border: 1px solid var(--surface-200);
-  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
 }
 
 .field-card :deep(.p-inputtextarea:focus) {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px var(--primary-100);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 
 .field-footer {
@@ -404,7 +404,7 @@ const handleSubmit = async () => {
 
 .char-count {
   font-size: 0.75rem;
-  color: var(--surface-500);
+  color: var(--color-text-secondary);
 }
 
 /* Footer */
@@ -413,25 +413,25 @@ const handleSubmit = async () => {
   justify-content: space-between;
   align-items: center;
   padding-top: 1rem;
-  border-top: 1px solid var(--surface-200);
+  border-top: 1px solid var(--color-border);
 }
 
 .form-footer p {
   font-size: 0.8rem;
-  color: var(--surface-500);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--color-accent);
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.75rem;
+  border-radius: var(--radius-sm);
   font-weight: 600;
 }
 
 .submit-btn:hover {
-  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  filter: brightness(0.95);
 }
 
 /* Responsive */

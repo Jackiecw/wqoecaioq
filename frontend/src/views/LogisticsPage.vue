@@ -1,229 +1,273 @@
 ﻿<template>
-  <div class="space-y-6">
-    <!-- 头部数据概览 -->
-    <section class="rounded-xl bg-sky-600 p-6 text-white shadow">
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p class="text-xs uppercase tracking-[0.25em] text-white/70">Production & Logistics</p>
-          <h2 class="text-2xl font-semibold">生产与物流管理</h2>
-          <p class="text-sm text-white/80">订单状态全链路追踪与控制中心。</p>
+  <div class="logistics-page">
+    <!-- 页面头部区域 (Clean White Theme) -->
+    <header class="page-header">
+      <div class="header-top">
+        <div class="header-text">
+          <h1 class="page-title">生产与物流管理</h1>
+          <p class="page-subtitle">订单状态全链路追踪与控制中心</p>
         </div>
-        <div class="flex flex-wrap gap-4">
-          <div class="rounded-lg bg-white/15 px-4 py-2">
-            <p class="text-xs text-white/70">进行中订单</p>
-            <p class="text-xl font-bold">{{ summary.totalQuantity }}</p>
+        <div class="header-stats">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="pi pi-box"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">进行中订单</span>
+              <span class="stat-value">{{ summary.totalQuantity }}</span>
+            </div>
           </div>
-          <div class="rounded-lg bg-white/15 px-4 py-2">
-            <p class="text-xs text-white/70">在途货值</p>
-            <p class="text-xl font-bold">¥{{ formatNumber(summary.totalPrice) }}</p>
+          <div class="stat-card stat-card--accent">
+            <div class="stat-icon stat-icon--accent">
+              <i class="pi pi-wallet"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">在途货值</span>
+              <span class="stat-value">¥{{ formatNumber(summary.totalPrice) }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- 筛选与操作栏 -->
-    <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-4">
-      <div class="flex flex-wrap items-end gap-4">
-        <div class="input-group">
-          <label class="text-xs font-semibold text-gray-500">视图</label>
-          <div class="flex rounded-md bg-gray-100 p-1">
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              @click="changeTab(tab.key)"
-              :class="['px-4 py-1.5 text-sm font-medium rounded-md transition', filter.view === tab.key ? 'bg-white text-sky-600 shadow' : 'text-gray-500 hover:text-gray-700']"
-            >
-              {{ tab.label }}
-            </button>
-          </div>
+      
+      <!-- 筛选器 -->
+      <div class="filter-bar">
+        <!-- 视图切换 Tab -->
+        <div class="filter-tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab.key"
+            class="filter-tab"
+            :class="{ 'filter-tab--active': filter.view === tab.key }"
+            @click="filter.view = tab.key"
+          >
+            {{ tab.label }}
+          </button>
         </div>
-
-        <div class="input-group">
-          <label class="text-xs font-semibold text-gray-500">搜索</label>
-          <input 
-            v-model="filter.keyword" 
-            placeholder="SKU / 订单号 / 批次号" 
-            class="form-input h-9 w-48 text-sm"
+        
+        <!-- 搜索框 -->
+        <div class="filter-search">
+          <i class="pi pi-search"></i>
+          <input
+            v-model="filter.keyword"
+            type="text"
+            placeholder="SKU / 订单号 / 批次号"
             @keyup.enter="fetchData(1)"
           />
         </div>
-
-        <div class="input-group">
-          <label class="text-xs font-semibold text-gray-500">国家</label>
-          <select v-model="filter.countryCode" class="form-input h-9 text-sm" @change="fetchData(1)">
-            <option value="">全部</option>
-            <option v-for="c in countryOptions" :key="c.code" :value="c.code">{{ c.name }}</option>
-          </select>
-        </div>
-
-        <div class="flex-1"></div>
-
-        <div class="flex gap-2">
-          <button 
-            @click="fetchData(1)" 
-            class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            <ArrowPathIcon class="h-4 w-4" /> 刷新
-          </button>
-          <button 
-            v-if="isAdmin"
-            @click="handleExport" 
-            class="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            <ArrowDownTrayIcon class="h-4 w-4" /> 导出
-          </button>
-          <button
-            v-if="isAdmin"
-            @click="isCreateModalOpen = true"
-            class="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
-          >
-            <PlusIcon class="h-4 w-4" /> 新建批次
-          </button>
+        
+        <!-- 国家筛选 -->
+        <Dropdown
+          v-model="filter.countryCode"
+          :options="countryOptionsWithAll"
+          optionLabel="name"
+          optionValue="code"
+          placeholder="全部国家"
+          class="filter-dropdown"
+        />
+        
+        <div class="filter-spacer"></div>
+        
+        <!-- 操作按钮 -->
+        <div class="filter-actions">
+          <Button label="刷新" icon="pi pi-refresh" severity="secondary" outlined size="small" @click="fetchData(1)" />
+          <Button v-if="isAdmin" label="导出" icon="pi pi-download" severity="secondary" outlined size="small" @click="handleExport" />
+          <Button v-if="isAdmin" label="新建批次" icon="pi pi-plus" size="small" @click="isCreateModalOpen = true" />
         </div>
       </div>
+    </header>
 
-      <!-- 批量操作栏 -->
-      <div v-if="selectedOrderIds.length > 0 && isAdmin" class="flex items-center justify-between rounded-lg bg-indigo-50 px-4 py-2 border border-indigo-100">
-        <span class="text-sm text-indigo-700 font-medium">已选择 {{ selectedOrderIds.length }} 个订单</span>
-        <div class="flex gap-2">
-          <select v-model="batchActionStatus" class="form-select text-sm border-indigo-200 rounded">
-            <option value="" disabled>选择更新状态...</option>
-            <option v-for="s in statusSteps" :key="s.key" :value="s.key">{{ s.label }}</option>
-          </select>
-          <button 
-            @click="executeBatchUpdate" 
-            :disabled="!batchActionStatus"
-            class="rounded bg-indigo-600 px-3 py-1 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
-          >
-            批量更新
-          </button>
-          <button @click="selectedOrderIds = []" class="text-xs text-gray-500 hover:text-gray-700 ml-2">取消选择</button>
-        </div>
+    <!-- 批量操作栏 (仅在选中时显示) -->
+    <section v-if="selectedOrderIds.length > 0 && isAdmin" class="batch-section">
+      <div class="batch-info">
+        <i class="pi pi-check-square"></i>
+        <span>已选择 <strong>{{ selectedOrderIds.length }}</strong> 个订单</span>
+      </div>
+      <div class="batch-actions">
+        <Dropdown
+          v-model="batchActionStatus"
+          :options="statusSteps"
+          optionLabel="label"
+          optionValue="key"
+          placeholder="选择更新状态..."
+          class="batch-dropdown"
+        />
+        <Button
+          label="批量更新"
+          icon="pi pi-sync"
+          size="small"
+          :disabled="!batchActionStatus"
+          @click="executeBatchUpdate"
+        />
+        <Button
+          label="取消"
+          text
+          size="small"
+          severity="secondary"
+          @click="selectedRows = []"
+        />
       </div>
     </section>
 
     <!-- 订单列表表格 -->
-    <section class="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-          <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
-            <tr>
-              <th v-if="isAdmin" class="px-4 py-3 w-10">
-                <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected" class="rounded border-gray-300" />
-              </th>
-              <th class="px-4 py-3 text-left">批次/编号</th>
-              <th class="px-4 py-3 text-left">SKU / 名称</th>
-              <th class="px-4 py-3 text-left">规格 / 地区</th>
-              <th class="px-4 py-3 text-left">当前状态</th>
-              <th class="px-4 py-3 text-left">数量</th>
-              <th class="px-4 py-3 text-left">总价</th>
-              <th class="px-4 py-3 text-left">物流费用</th>
-              <th class="px-4 py-3 text-left">物流信息</th>
-              <th class="px-4 py-3 text-left">操作</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr v-if="isLoading" class="animate-pulse">
-              <td colspan="10" class="p-8 text-center text-gray-400">加载数据中...</td>
-            </tr>
-            <tr v-else-if="orders.length === 0">
-              <td colspan="10" class="p-8 text-center text-gray-400">暂无数据</td>
-            </tr>
-            <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50 transition-colors">
-              <td v-if="isAdmin" class="px-4 py-3">
-                <input type="checkbox" v-model="selectedOrderIds" :value="order.id" class="rounded border-gray-300" />
-              </td>
-              <td class="px-4 py-3">
-                <div class="font-medium text-gray-900">{{ order.orderCode }}</div>
-                <div class="text-xs text-gray-500">批次: {{ order.batchCode }}</div>
-                <div class="text-xs text-gray-400">{{ formatDate(order.orderDate) }}</div>
-              </td>
-              <td class="px-4 py-3">
-                <div class="font-medium text-gray-900">{{ order.skuName }}</div>
-                <div class="text-xs text-gray-500">{{ order.productName }}</div>
-              </td>
-              <td class="px-4 py-3">
-                <div class="text-gray-900">{{ order.productColor }}</div>
-                <div class="text-xs text-gray-500">{{ order.productSpec }} · {{ order.plugSpec }}</div>
-                <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 mt-1">
-                  {{ order.salesRegion }}
-                </span>
-              </td>
-              <td class="px-4 py-3">
-                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', getStatusColor(order.status)]">
-                  {{ statusLabel(order.status) }}
-                </span>
-                <div v-if="order.statusDate" class="text-xs text-gray-400 mt-1">
-                  {{ formatDate(order.statusDate) }}
-                </div>
-              </td>
-              <td class="px-4 py-3 font-medium text-gray-900">{{ order.quantity }}</td>
-              <td class="px-4 py-3 text-gray-900">
-                {{ formatCurrency(order.totalPrice) }}
-                <div class="text-xs text-gray-400">@ {{ order.unitPrice }}</div>
-              </td>
-              <td class="px-4 py-3 text-gray-900 font-medium">
-                {{ order.logisticsFee ? formatCurrency(order.logisticsFee) : '-' }}
-              </td>
-              <td class="px-4 py-3 text-xs text-gray-500">
-                <div v-if="order.logisticsProvider">物流: {{ order.logisticsProvider }}</div>
-                <div v-if="order.cartonCount">箱数: {{ order.cartonCount }}</div>
-                <div v-if="order.totalCbm">Vol: {{ order.totalCbm }} m³</div>
-              </td>
-              <td class="px-4 py-3">
-                <button @click="openDetail(order)" class="text-indigo-600 hover:text-indigo-900 text-xs font-medium mr-2">详情</button>
-                <button v-if="isAdmin" @click="handleDelete(order.id)" class="text-red-500 hover:text-red-700 text-xs">删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      
-      <!-- 分页器 -->
-      <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-        <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-          <div>
-            <p class="text-sm text-gray-700">
-              显示第 <span class="font-medium">{{ (pagination.page - 1) * pagination.pageSize + 1 }}</span> 至 <span class="font-medium">{{ Math.min(pagination.page * pagination.pageSize, pagination.total) }}</span> 条，共 <span class="font-medium">{{ pagination.total }}</span> 条
-            </p>
+    <section class="table-section">
+      <DataTable
+        v-model:selection="selectedRows"
+        :value="orders"
+        :loading="isLoading"
+        :paginator="true"
+        :rows="pagination.pageSize"
+        :totalRecords="pagination.total"
+        :lazy="true"
+        :rowsPerPageOptions="[10, 20, 50]"
+        dataKey="id"
+        stripedRows
+        showGridlines
+        class="orders-table"
+        @page="onPageChange"
+      >
+        <!-- 多选列 -->
+        <Column v-if="isAdmin" selectionMode="multiple" headerStyle="width: 3rem" />
+
+        <!-- 批次/编号 -->
+        <Column field="orderCode" header="批次/编号" style="min-width: 160px">
+          <template #body="{ data }">
+            <div class="cell-primary">{{ data.orderCode }}</div>
+            <div class="cell-secondary">批次: {{ data.batchCode }}</div>
+            <div class="cell-tertiary">{{ formatDate(data.orderDate) }}</div>
+          </template>
+        </Column>
+
+        <!-- SKU / 名称 -->
+        <Column field="skuName" header="SKU / 名称" style="min-width: 180px">
+          <template #body="{ data }">
+            <div class="cell-primary">{{ data.skuName }}</div>
+            <div class="cell-secondary">{{ data.productName }}</div>
+          </template>
+        </Column>
+
+        <!-- 规格 / 地区 -->
+        <Column field="productSpec" header="规格 / 地区" style="min-width: 160px">
+          <template #body="{ data }">
+            <div class="cell-primary">{{ data.productColor }}</div>
+            <div class="cell-secondary">{{ data.productSpec }} · {{ data.plugSpec }}</div>
+            <Tag :value="data.salesRegion" severity="secondary" class="mt-1" />
+          </template>
+        </Column>
+
+        <!-- 当前状态 -->
+        <Column field="status" header="当前状态" style="min-width: 120px">
+          <template #body="{ data }">
+            <Tag :value="statusLabel(data.status)" :severity="getStatusSeverity(data.status)" />
+            <div v-if="data.statusDate" class="cell-tertiary mt-1">
+              {{ formatDate(data.statusDate) }}
+            </div>
+          </template>
+        </Column>
+
+        <!-- 数量 -->
+        <Column field="quantity" header="数量" style="min-width: 80px">
+          <template #body="{ data }">
+            <span class="cell-primary">{{ data.quantity }}</span>
+          </template>
+        </Column>
+
+        <!-- 总价 -->
+        <Column field="totalPrice" header="总价" style="min-width: 120px">
+          <template #body="{ data }">
+            <div class="cell-primary">{{ formatCurrency(data.totalPrice) }}</div>
+            <div class="cell-tertiary">@ {{ data.unitPrice }}</div>
+          </template>
+        </Column>
+
+        <!-- 物流费用 -->
+        <Column field="logisticsFee" header="物流费用" style="min-width: 100px">
+          <template #body="{ data }">
+            <span class="cell-primary">
+              {{ data.logisticsFee ? formatCurrency(data.logisticsFee) : '-' }}
+            </span>
+          </template>
+        </Column>
+
+        <!-- 物流信息 -->
+        <Column field="logisticsProvider" header="物流信息" style="min-width: 140px">
+          <template #body="{ data }">
+            <div v-if="data.logisticsProvider" class="cell-secondary">物流: {{ data.logisticsProvider }}</div>
+            <div v-if="data.cartonCount" class="cell-secondary">箱数: {{ data.cartonCount }}</div>
+            <div v-if="data.totalCbm" class="cell-secondary">Vol: {{ data.totalCbm }} m³</div>
+            <span v-if="!data.logisticsProvider && !data.cartonCount && !data.totalCbm" class="cell-tertiary">-</span>
+          </template>
+        </Column>
+
+        <!-- 操作 -->
+        <Column header="操作" style="min-width: 120px" frozen alignFrozen="right">
+          <template #body="{ data }">
+            <div class="action-cell">
+              <Button
+                label="详情"
+                text
+                size="small"
+                @click="openDetail(data)"
+              />
+              <Button
+                v-if="isAdmin"
+                icon="pi pi-trash"
+                text
+                size="small"
+                severity="danger"
+                @click="handleDelete(data.id)"
+              />
+            </div>
+          </template>
+        </Column>
+
+        <!-- 空状态 -->
+        <template #empty>
+          <div class="empty-state">
+            <i class="pi pi-inbox empty-icon"></i>
+            <p>暂无数据</p>
           </div>
-          <div>
-            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-              <button @click="changePage(pagination.page - 1)" :disabled="pagination.page <= 1" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
-                <ChevronLeftIcon class="h-5 w-5" aria-hidden="true" />
-              </button>
-              <button @click="changePage(pagination.page + 1)" :disabled="pagination.page * pagination.pageSize >= pagination.total" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50">
-                <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
-              </button>
-            </nav>
+        </template>
+
+        <!-- 加载状态 -->
+        <template #loading>
+          <div class="loading-state">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>加载数据中...</span>
           </div>
-        </div>
-      </div>
+        </template>
+      </DataTable>
     </section>
 
     <!-- 详情弹窗 -->
-    <LogisticsDetailModal 
-      v-if="detailModalOpen" 
-      :order-id="selectedDetailId" 
+    <LogisticsDetailModal
+      v-if="detailModalOpen"
+      :order-id="selectedDetailId"
       :is-open="detailModalOpen"
       @close="closeDetail"
     />
 
-    <LogisticsBatchFormModal 
-      :is-open="isCreateModalOpen" 
-      @close="isCreateModalOpen = false" 
+    <!-- 新建批次弹窗 -->
+    <LogisticsBatchFormModal
+      :is-open="isCreateModalOpen"
+      @close="isCreateModalOpen = false"
       @batch-created="fetchData(1)"
     />
   </div>
 </template>
 
-
-
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '@/stores/auth';
-import { ArrowPathIcon, ArrowDownTrayIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
+
+// PrimeVue Components
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Button from 'primevue/button';
+import Dropdown from 'primevue/dropdown';
+import Tag from 'primevue/tag';
+
+// Local Components
 import LogisticsBatchFormModal from '../components/logistics/LogisticsBatchFormModal.vue';
 import LogisticsDetailModal from '../components/logistics/LogisticsDetailModal.vue';
 
@@ -317,6 +361,7 @@ const countryOptions = ref<CountryOption[]>([]);
 
 const isCreateModalOpen = ref(false);
 const selectedOrderIds = ref<OrderId[]>([]);
+const selectedRows = ref<OrderRecord[]>([]);
 const batchActionStatus = ref<StatusKey | ''>('');
 
 const detailModalOpen = ref(false);
@@ -334,6 +379,25 @@ const statusSteps: Array<{ key: StatusKey; label: string }> = [
   { key: 'WAREHOUSED', label: '已入仓' },
 ];
 
+// 带"全部"选项的国家列表
+const countryOptionsWithAll = computed(() => [
+  { code: '', name: '全部' },
+  ...countryOptions.value,
+]);
+
+// 同步 selectedRows 与 selectedOrderIds
+watch(selectedRows, (newRows) => {
+  selectedOrderIds.value = newRows.map((r) => r.id);
+});
+
+// 监听筛选器变化以触发数据刷新
+watch(
+  () => [filter.value.view, filter.value.countryCode],
+  () => {
+    fetchData(1);
+  }
+);
+
 const fetchOptions = async () => {
   try {
     const res = await apiClient.get<CountryOption[]>('/admin/countries');
@@ -345,7 +409,7 @@ const fetchOptions = async () => {
 
 const fetchData = async (page = 1) => {
   isLoading.value = true;
-  selectedOrderIds.value = [];
+  selectedRows.value = [];
   try {
     const params = {
       page,
@@ -369,13 +433,10 @@ const fetchData = async (page = 1) => {
   }
 };
 
-const changeTab = (key: TabKey) => {
-  filter.value.view = key;
-  fetchData(1);
-};
-
-const changePage = (newPage: number) => {
-  fetchData(newPage);
+const onPageChange = (event: { page: number; rows: number }) => {
+  pagination.value.page = event.page + 1;
+  pagination.value.pageSize = event.rows;
+  fetchData(pagination.value.page);
 };
 
 const handleExport = async () => {
@@ -403,7 +464,7 @@ const handleExport = async () => {
 
 const executeBatchUpdate = async () => {
   if (!batchActionStatus.value) return;
-  if (!confirm(`确定将选中的 ${selectedOrderIds.value.length} 个订单更新为“${statusLabel(batchActionStatus.value)}”吗？`)) return;
+  if (!confirm(`确定将选中的 ${selectedOrderIds.value.length} 个订单更新为"${statusLabel(batchActionStatus.value)}"吗？`)) return;
 
   try {
     await apiClient.post('/admin/production/orders/batch-status', {
@@ -412,7 +473,7 @@ const executeBatchUpdate = async () => {
       occurredAt: new Date().toISOString(),
     });
     alert('批量更新成功');
-    selectedOrderIds.value = [];
+    selectedRows.value = [];
     batchActionStatus.value = '';
     fetchData(pagination.value.page);
   } catch (error: any) {
@@ -430,25 +491,16 @@ const handleDelete = async (id: OrderId) => {
   }
 };
 
-const isAllSelected = computed(() => orders.value.length > 0 && selectedOrderIds.value.length === orders.value.length);
-
-const toggleSelectAll = (e: Event) => {
-  const target = e.target as HTMLInputElement | null;
-  if (target?.checked) {
-    selectedOrderIds.value = orders.value.map((o) => o.id);
-  } else {
-    selectedOrderIds.value = [];
-  }
-};
-
 const formatNumber = (v?: number) => (v ?? 0).toLocaleString();
 const formatCurrency = (v?: number) => (v ? `￥${v.toLocaleString()}` : '-');
 const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '-');
 const statusLabel = (s: StatusKey | string) => statusSteps.find((step) => step.key === s)?.label || s;
-const getStatusColor = (s: StatusKey | string) => {
-  if (s === 'WAREHOUSED') return 'bg-green-100 text-green-800';
-  if (s === 'IN_PRODUCTION') return 'bg-yellow-100 text-yellow-800';
-  return 'bg-blue-100 text-blue-800';
+
+const getStatusSeverity = (s: StatusKey | string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined => {
+  if (s === 'WAREHOUSED') return 'success';
+  if (s === 'IN_PRODUCTION') return 'warn';
+  if (s === 'IN_TRANSIT' || s === 'DELIVERING') return 'info';
+  return 'secondary';
 };
 
 const openDetail = (order: OrderRecord) => {
@@ -467,17 +519,429 @@ onMounted(() => {
 });
 </script>
 
-
-
 <style scoped>
-.input-group {
+/* ========================================
+   Design Tokens (继承全局)
+   ======================================== */
+.logistics-page {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+  background: var(--color-bg-page);
+}
+
+/* ========================================
+   页面头部 (Clean White Theme)
+   ======================================== */
+.page-header {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.page-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+/* 统计卡片 */
+.header-stats {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.875rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 140px;
+  transition: all var(--transition-fast);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.stat-card--accent {
+  border-left: 3px solid var(--color-accent);
+}
+
+.stat-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.stat-icon--accent {
+  background: var(--color-accent-soft);
+  border-color: transparent;
+  color: var(--color-accent);
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.625rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.125rem;
+}
+
+.stat-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* ========================================
+   筛选栏
+   ======================================== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+}
+
+/* Tab 切换 */
+.filter-tabs {
+  display: flex;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.1875rem;
+}
+
+.filter-tab {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.filter-tab:hover {
+  color: var(--color-text-primary);
+}
+
+.filter-tab--active {
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+/* 搜索框 */
+.filter-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0 0.75rem;
+  transition: all var(--transition-fast);
+}
+
+.filter-search:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+.filter-search i {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.filter-search input {
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 0.75rem;
+  padding: 0.5rem 0;
+  width: 160px;
+  outline: none;
+}
+
+.filter-search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* 下拉框 */
+.filter-dropdown {
+  min-width: 110px;
+}
+
+.filter-dropdown :deep(.p-select),
+.filter-dropdown :deep(.p-dropdown) {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.filter-dropdown :deep(.p-select-label),
+.filter-dropdown :deep(.p-dropdown-label) {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-text-primary);
+}
+
+.filter-spacer {
+  flex: 1;
+}
+
+/* 操作按钮 */
+.filter-actions {
+  display: flex;
+  gap: 0.375rem;
+}
+
+/* ========================================
+   批量操作栏
+   ======================================== */
+.batch-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-accent);
+}
+
+.batch-info i {
+  font-size: 1rem;
+}
+
+.batch-info strong {
+  font-weight: 700;
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.batch-dropdown {
+  min-width: 150px;
+}
+
+/* ========================================
+   表格区域
+   ======================================== */
+.table-section {
+  background: white;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+}
+
+.orders-table {
+  border: none;
+}
+
+.orders-table :deep(.p-datatable-header) {
+  background: transparent;
+  border: none;
+}
+
+.orders-table :deep(.p-datatable-thead > tr > th) {
+  background: var(--surface-50, #f8fafc);
+  border-color: var(--surface-200, #e2e8f0);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--surface-500, #64748b);
+}
+
+.orders-table :deep(.p-datatable-tbody > tr) {
+  transition: background-color 0.15s ease;
+}
+
+.orders-table :deep(.p-datatable-tbody > tr:hover) {
+  background: var(--surface-50, #f8fafc);
+}
+
+.orders-table :deep(.p-paginator) {
+  border: none;
+  background: transparent;
+  padding: 1rem;
+}
+
+/* 表格单元格样式 */
+.cell-primary {
+  font-weight: 600;
+  color: var(--surface-900, #0f172a);
+}
+
+.cell-secondary {
+  font-size: 0.8rem;
+  color: var(--surface-500, #64748b);
+}
+
+.cell-tertiary {
+  font-size: 0.75rem;
+  color: var(--surface-400, #94a3b8);
+}
+
+.action-cell {
+  display: flex;
   gap: 0.25rem;
 }
-.form-input {
-  border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  padding: 0 0.75rem;
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: var(--surface-400, #94a3b8);
+}
+
+.empty-icon {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  border-radius: 1rem;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: var(--surface-500, #64748b);
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--surface-500, #64748b);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 4rem;
+  color: var(--color-primary, #0ea5e9);
+}
+
+.loading-state i {
+  font-size: 2rem;
+}
+
+.loading-state span {
+  font-size: 0.875rem;
+  color: var(--surface-500, #64748b);
+}
+
+/* ========================================
+   响应式
+   ======================================== */
+@media (max-width: 768px) {
+  .hero-section {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem;
+  }
+
+  .hero-stats {
+    width: 100%;
+  }
+
+  .hero-stat-card {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-spacer {
+    display: none;
+  }
+
+  .action-buttons {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .batch-action-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  .batch-actions {
+    flex-wrap: wrap;
+  }
 }
 </style>

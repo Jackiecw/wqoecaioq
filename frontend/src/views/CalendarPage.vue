@@ -780,22 +780,22 @@ function onClickEventById(eventId: string) {
 /* ===== Calendar Page Base Styles ===== */
 .calendar-page {
   padding: 1.5rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--color-bg-page);
 }
 
 /* ===== Sync Button Override ===== */
 .sync-btn.p-button {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  background: var(--color-accent);
   border: none;
   border-radius: 9999px;
   font-weight: 500;
   font-size: 0.75rem;
   padding: 0.5rem 1rem;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
-  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
 }
 .sync-btn.p-button:hover {
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 

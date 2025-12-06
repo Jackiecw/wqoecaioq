@@ -331,3 +331,71 @@ const handleDeleteModule = async (moduleId: string) => {
   }
 };
 </script>
+
+<style scoped>
+/* Clean White Theme */
+.bg-white {
+  background: var(--color-bg-card);
+}
+
+.bg-stone-100 {
+  background: var(--color-bg-page);
+}
+
+.text-stone-500 {
+  color: var(--color-text-secondary);
+}
+
+.text-indigo-600 {
+  color: var(--color-accent);
+}
+
+.bg-indigo-600 {
+  background: var(--color-accent);
+}
+
+.bg-indigo-600:hover {
+  filter: brightness(0.95);
+}
+
+.rounded-lg {
+  border-radius: var(--radius-md);
+}
+
+.shadow {
+  box-shadow: var(--shadow-sm);
+}
+
+table {
+  border-color: var(--color-border);
+}
+
+.table-th {
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table-td, .table-td-module {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  vertical-align: top;
+}
+
+.table-td-module {
+  background: var(--color-bg-page);
+  font-weight: 500;
+}
+
+.border-stone-200 {
+  border-color: var(--color-border);
+}
+
+.border-stone-300 {
+  border-color: var(--color-border);
+}
+</style>

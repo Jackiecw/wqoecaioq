@@ -539,3 +539,27 @@ function formatCnyPrice(listing?: Listing | null) {
   return amount / rate;
 }
 </script>
+
+<style scoped>
+/* Clean White Theme Overrides */
+.space-y-8 { background: var(--color-bg-page); }
+
+/* Cards */
+.bg-white, .rounded-3xl {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+}
+
+/* Headers and text colors */
+h2 { color: var(--color-text-primary); }
+
+/* Buttons */
+button[class*="bg-[#3B82F6]"] {
+  background: var(--color-accent);
+}
+
+/* Borders */
+section[class*="border-[#E5E7EB]"] {
+  border-color: var(--color-border);
+}
+</style>

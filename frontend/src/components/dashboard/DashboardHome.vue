@@ -93,14 +93,14 @@
 
       <!-- 右侧 (1/3 宽度)：工具栏 -->
       <div class="col-12 lg:col-4 flex flex-column gap-4">
-        <!-- 卡片 A: 极简汇率计算器 -->
-        <div class="gradient-card p-5">
+        <!-- 卡片 A: 汇率计算器 (Clean White Theme) -->
+        <div class="exchange-card">
           <!-- 标题 -->
-          <div class="flex align-items-center justify-content-between mb-5">
+          <div class="flex align-items-center justify-content-between mb-4">
             <div>
-              <h3 class="text-lg font-bold m-0 mb-1">汇率计算器</h3>
-              <div class="text-xs opacity-80 flex align-items-center gap-2">
-                <span v-if="isUsingFallbackRates" class="inline-flex align-items-center gap-1 bg-white-alpha-20 px-2 py-1 border-round">
+              <h3 class="text-base font-semibold m-0" style="color: var(--color-text-primary)">汇率计算器</h3>
+              <div class="text-xs mt-1" style="color: var(--color-text-secondary)">
+                <span v-if="isUsingFallbackRates" class="inline-flex align-items-center gap-1">
                   <i class="pi pi-info-circle text-xs"></i>
                   离线汇率
                 </span>
@@ -116,61 +116,52 @@
               text
               rounded
               size="small"
-              class="text-white hover:bg-white-alpha-20"
               @click="handleManualRatesRefresh"
             />
           </div>
 
           <!-- 汇率计算区 -->
           <div v-if="isLoading.rates" class="text-center py-6">
-            <i class="pi pi-spin pi-spinner text-3xl opacity-50"></i>
+            <i class="pi pi-spin pi-spinner text-2xl" style="color: var(--color-text-muted)"></i>
           </div>
           <div v-else class="flex flex-column gap-3">
             <!-- CNY 输入 -->
-            <div class="bg-white-alpha-10 border-round-xl p-4">
-              <div class="text-xs opacity-80 mb-2 font-semibold">人民币 (CNY)</div>
+            <div class="exchange-input-box">
+              <div class="text-xs font-medium mb-2" style="color: var(--color-text-secondary)">人民币 (CNY)</div>
               <input
                 v-model.number="exchangeCalcAmount"
                 type="number"
                 :min="0"
-                class="w-full bg-transparent border-none text-white text-4xl font-bold outline-none"
-                style="font-variant-numeric: tabular-nums"
+                class="exchange-input"
                 placeholder="100.00"
               />
             </div>
 
             <!-- 交换按钮 -->
-            <div class="flex justify-content-center" style="margin: -0.5rem 0">
-              <button
-                class="w-3rem h-3rem border-round-3xl bg-white-alpha-20 hover:bg-white-alpha-30 border-none cursor-pointer flex align-items-center justify-content-center text-white transition-colors transition-duration-200"
-                @click="swapExchangeCurrencies"
-              >
-                <i class="pi pi-arrow-down-up text-lg"></i>
+            <div class="flex justify-content-center" style="margin: -0.25rem 0">
+              <button class="exchange-swap-btn" @click="swapExchangeCurrencies">
+                <i class="pi pi-arrow-down-up"></i>
               </button>
             </div>
 
             <!-- 目标货币和结果 -->
-            <div class="bg-white-alpha-10 border-round-xl p-4">
+            <div class="exchange-input-box">
               <div class="flex align-items-center justify-content-between mb-2">
-                <div class="text-xs opacity-80 font-semibold">目标货币</div>
+                <div class="text-xs font-medium" style="color: var(--color-text-secondary)">目标货币</div>
                 <Select
                   v-model="targetCurrency"
                   :options="supportedRateCodes"
                   placeholder="选择货币"
-                  class="bg-white-alpha-20 border-none border-round-lg text-white"
-                  style="min-width: 100px"
-                  :pt="{
-                    label: { class: 'text-white font-semibold' }
-                  }"
+                  class="exchange-currency-select"
                 />
               </div>
-              <div class="text-4xl font-bold" style="font-variant-numeric: tabular-nums">
+              <div class="exchange-result">
                 {{ formatNumber(convertedAmount) }}
               </div>
             </div>
 
             <!-- 汇率比例 -->
-            <div class="text-xs opacity-80 text-center bg-white-alpha-10 py-2 border-round-lg">
+            <div class="exchange-rate-info">
               1 CNY = {{ formatNumber(currentRate) }} {{ targetCurrency }}
             </div>
           </div>
@@ -692,11 +683,99 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 组件级样式补充 */
+/* 组件级样式 - Clean Premium White Theme */
 .dashboard-container {
-  background: var(--dashboard-bg);
+  background: var(--color-bg-page);
 }
 
+/* ========================================
+   汇率计算器卡片
+   ======================================== */
+.exchange-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.exchange-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.exchange-input-box {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.875rem;
+}
+
+.exchange-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  outline: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.exchange-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.exchange-swap-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+  transition: all var(--transition-fast);
+}
+
+.exchange-swap-btn:hover {
+  background: var(--color-accent);
+  color: white;
+  transform: scale(1.05);
+}
+
+.exchange-result {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.exchange-currency-select {
+  min-width: 90px;
+}
+
+.exchange-currency-select :deep(.p-select) {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.exchange-rate-info {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  text-align: center;
+  background: var(--color-accent-soft);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+/* ========================================
+   数字输入框样式
+   ======================================== */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -705,22 +784,5 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
-}
-
-/* 白色透明背景工具类 */
-.bg-white-alpha-10 {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.bg-white-alpha-20 {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.hover\:bg-white-alpha-20:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.hover\:bg-white-alpha-30:hover {
-  background: rgba(255, 255, 255, 0.3);
 }
 </style>

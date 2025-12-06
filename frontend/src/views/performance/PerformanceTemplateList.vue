@@ -265,3 +265,18 @@ const submitTemplate = async () => {
 
 onMounted(fetchTemplates);
 </script>
+
+<style scoped>
+/* Clean White Theme Overrides */
+.p-6 { background: var(--color-bg-page); }
+h1 { color: var(--color-text-primary); }
+.bg-white {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+.text-gray-800, .text-gray-900 { color: var(--color-text-primary); }
+.text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
+.bg-blue-600 { background: var(--color-accent); }
+.rounded-xl, .rounded-2xl { border-radius: var(--radius-md); }
+</style>
+```
