@@ -1,25 +1,58 @@
 <template>
-  <div class="space-y-4">
-    <Card class="shadow-1 border-round-2xl">
-      <template #title>员工配置与管理</template>
-      <template #content>
-        <p class="m-0 text-sm text-color-secondary">统一配置账号、角色与国家分配，保持权限一致。</p>
-      </template>
-    </Card>
+  <div class="page-shell">
+    <PageHeader 
+      title="员工配置与管理" 
+      subtitle="统一配置账号、角色与国家分配，保持权限一致。"
+    />
 
-    <Message v-if="errorMessage" severity="error" :closable="false">
-      {{ errorMessage }}
-    </Message>
+    <!-- Tabs -->
+    <div class="pill-tab-group mb-6">
+      <button
+        class="pill-tab"
+        :class="{ 'is-active': activeTab === 0 }"
+        @click="activeTab = 0"
+      >
+        用户管理
+      </button>
+      <button
+        class="pill-tab"
+        :class="{ 'is-active': activeTab === 1 }"
+        @click="activeTab = 1"
+      >
+        角色与权限
+      </button>
+      <button
+        class="pill-tab"
+        :class="{ 'is-active': activeTab === 2 }"
+        @click="activeTab = 2"
+      >
+        国家管理
+      </button>
+    </div>
 
-    <TabView v-model:activeIndex="activeIndex">
-      <TabPanel header="用户管理" :value="0">
-        <div class="flex justify-end mb-3">
-          <Button label="新建用户" icon="pi pi-plus" @click="openModal" />
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <Message v-if="errorMessage" severity="error" :closable="false" class="mb-4">
+        {{ errorMessage }}
+      </Message>
+
+      <!-- Users Tab -->
+      <ContentCard v-if="activeTab === 0">
+        <div class="flex justify-end mb-4">
+          <button 
+            @click="openModal"
+            class="bg-[#2463EB] hover:bg-[#1d4ed8] text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <i class="pi pi-plus text-xs"></i>
+            <span>新建用户</span>
+          </button>
         </div>
+        
         <DataTable
           :value="users"
           data-key="id"
-          class="shadow-1 border-round-2xl"
+          class="p-datatable-sm"
+          scrollable
         >
           <Column field="nickname" header="昵称" style="min-width: 8rem" />
           <Column field="username" header="用户名" style="min-width: 8rem" />
@@ -33,7 +66,7 @@
               <span v-if="data.operatedCountries?.length">
                 {{ data.operatedCountries.map((c: any) => c.code).join(', ') }}
               </span>
-              <span v-else class="text-color-secondary">--</span>
+              <span v-else class="text-[var(--color-text-muted)]">--</span>
             </template>
           </Column>
           <Column header="操作" style="min-width: 12rem">
@@ -41,7 +74,7 @@
               <div class="flex gap-2 flex-wrap">
                 <Button label="编辑" size="small" text @click="handleEdit(data)" />
                 <Button
-                  label="重置密码"
+                  label="重置"
                   size="small"
                   text
                   severity="warning"
@@ -61,16 +94,24 @@
             </template>
           </Column>
         </DataTable>
-      </TabPanel>
+      </ContentCard>
 
-      <TabPanel header="角色与权限" :value="1">
-        <div class="flex justify-end mb-3">
-          <Button label="新建角色" icon="pi pi-plus" @click="openRoleModal" />
+      <!-- Roles Tab -->
+      <ContentCard v-if="activeTab === 1">
+        <div class="flex justify-end mb-4">
+          <button 
+            @click="openRoleModal"
+            class="bg-[#2463EB] hover:bg-[#1d4ed8] text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <i class="pi pi-plus text-xs"></i>
+            <span>新建角色</span>
+          </button>
         </div>
         <DataTable
           :value="rolesList"
           data-key="id"
-          class="shadow-1 border-round-2xl"
+          class="p-datatable-sm"
+          scrollable
         >
           <Column field="description" header="角色描述" />
           <Column field="name" header="角色 Key" />
@@ -86,12 +127,13 @@
             </template>
           </Column>
         </DataTable>
-      </TabPanel>
+      </ContentCard>
 
-      <TabPanel header="国家管理" :value="2">
+      <!-- Countries Tab -->
+      <div v-if="activeTab === 2">
         <CountryManagement />
-      </TabPanel>
-    </TabView>
+      </div>
+    </div>
 
     <UserFormModal
       :is-open="isModalOpen"
@@ -115,18 +157,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import Message from 'primevue/message';
-import TabPanel from 'primevue/tabpanel';
-import TabView from 'primevue/tabview';
 import Tag from 'primevue/tag';
 import apiClient from '@/services/apiClient';
 import UserFormModal from './UserFormModal.vue';
 import RoleFormModal from './RoleFormModal.vue';
 import CountryManagement from './CountryManagement.vue';
 import { useAuthStore } from '@/stores/auth';
+import PageHeader from '@/components/common/PageHeader.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
 
 type UserRow = {
   id: string;
@@ -145,7 +186,7 @@ type EditableUser = UserRow & {
 
 type RoleRow = { id: string; name: string; description: string };
 
-const activeIndex = ref(0);
+const activeTab = ref(0);
 const users = ref<UserRow[]>([]);
 const rolesList = ref<RoleRow[]>([]);
 const errorMessage = ref('');
@@ -273,3 +314,7 @@ const handleRoleUpdated = () => {
   fetchRoles();
 };
 </script>
+
+<style scoped>
+/* No specific styles needed using standard primitives */
+</style>

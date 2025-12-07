@@ -1,217 +1,182 @@
 <template>
-  <div class="space-y-8">
-    <section class="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[#94A3B8]">Product Ops</p>
-          <h2 class="text-3xl font-semibold text-[#1F2937]">店铺在售 (Listings)</h2>
-          <p class="text-sm text-[#6B7280]">集中管理全渠道在售商品、售价、链接与销量数据。</p>
-        </div>
-        <div class="flex gap-3">
-          <div class="rounded-2xl bg-[#F9FAFB] px-4 py-3 text-right">
-            <p class="text-xs text-[#94A3B8]">在售清单总数</p>
-            <p class="text-xl font-semibold text-[#1F2937]">{{ totalItems }}</p>
+  <div class="page-shell on-sale-page">
+    <PageHeader
+      title="店铺在售"
+      subtitle="集中管理全渠道在售商品、售价、链接与销量数据"
+    >
+      <template #actions>
+        <button class="btn-subtle btn-primary" @click="openCreateModal">
+          <i class="pi pi-plus"></i>
+          上新商品
+        </button>
+      </template>
+    </PageHeader>
+
+    <ContentCard>
+      <FilterBar>
+        <template #start>
+          <div class="surface-input search-input">
+            <i class="pi pi-search"></i>
+            <input
+              v-model="searchKeyword"
+              type="text"
+              placeholder="搜索商品名称 / SKU / 店铺"
+            />
           </div>
-          <button
-            @click="openCreateModal"
-            class="rounded-2xl bg-[#3B82F6] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-[#2563EB]"
-          >
-            + 上架新商品
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="rounded-3xl border border-[#E5E7EB] bg-white p-0 shadow-sm">
-      <div v-if="isLoading" class="p-6 text-sm text-[#6B7280]">正在加载在售列表...</div>
-      <div v-else>
-        <p v-if="errorMessage" class="px-6 pt-6 text-sm text-red-600">{{ errorMessage }}</p>
-
-        <div class="flex flex-col gap-3 px-6 pt-6 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center">
-            <div class="flex flex-1 items-center rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2 shadow-sm">
-              <input
-                v-model="searchKeyword"
-                type="text"
-                placeholder="搜索商品名称 / SKU / 店铺"
-                class="w-full border-none bg-transparent text-sm text-[#1F2937] placeholder:text-[#94A3B8] focus:outline-none"
-              />
-            </div>
-            <div class="flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#475569] shadow-sm">
-              <span>国家 / 区域</span>
-              <select
-                v-model="selectedCountry"
-                class="rounded-xl border border-[#E2E8F0] bg-white px-3 py-1 text-sm text-[#1F2937] focus:border-[#2563EB] focus:outline-none"
+          <div class="surface-input country-select">
+            <span class="label">国家 / 区域</span>
+            <select v-model="selectedCountry">
+              <option value="ALL">全部</option>
+              <option
+                v-for="country in countryOptions"
+                :key="country.code"
+                :value="country.code"
               >
-                <option value="ALL">全部</option>
-                <option
-                  v-for="country in countryOptions"
-                  :key="country.code"
-                  :value="country.code"
-                >
-                  {{ country.name }}
-                </option>
-              </select>
-            </div>
+                {{ country.name }}
+              </option>
+            </select>
           </div>
-          <div class="flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm shadow-sm">
+        </template>
+        <template #end>
+          <div class="pill-tab-group">
             <button
-              class="rounded-xl px-3 py-1 text-sm font-medium transition"
-              :class="sortMode === 'recent' ? 'bg-[#2563EB]/10 text-[#2563EB]' : 'text-[#64748B]'"
+              class="pill-tab"
+              :class="{ 'is-active': sortMode === 'recent' }"
               @click="sortMode = 'recent'"
             >
               最新
             </button>
             <button
-              class="rounded-xl px-3 py-1 text-sm font-medium transition"
-              :class="sortMode === 'priceDesc' ? 'bg-[#2563EB]/10 text-[#2563EB]' : 'text-[#64748B]'"
+              class="pill-tab"
+              :class="{ 'is-active': sortMode === 'priceDesc' }"
               @click="sortMode = 'priceDesc'"
             >
               价格高到低
             </button>
             <button
-              class="rounded-xl px-3 py-1 text-sm font-medium transition"
-              :class="sortMode === 'priceAsc' ? 'bg-[#2563EB]/10 text-[#2563EB]' : 'text-[#64748B]'"
+              class="pill-tab"
+              :class="{ 'is-active': sortMode === 'priceAsc' }"
               @click="sortMode = 'priceAsc'"
             >
               价格低到高
             </button>
           </div>
-        </div>
-        
-        <div
-          v-if="filteredListings.length === 0 && listings.length === 0 && !errorMessage"
-          class="px-6 pb-6 text-sm text-[#6B7280]"
-        >
-          当前还没有在售商品，点击右上角「上架新商品」即可快速创建。
-        </div>
-        <div
-          v-else-if="filteredListings.length === 0"
-          class="px-6 pb-6 text-sm text-[#6B7280]"
-        >
-          没有符合筛选条件的在售商品，尝试调整搜索或筛选条件。
-        </div>
-        
-        <div v-else class="flex flex-col gap-6 px-6 pb-6 lg:flex-row">
-          <aside class="lg:w-5/12 xl:w-1/3 flex flex-col gap-3">
-            <div class="flex-1 rounded-3xl border border-[#E2E8F0] bg-[#F8FAFF] p-3 shadow-inner flex flex-col">
-              <p class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">在售清单 (本)</p>
-              
-              <div class="flex-1 overflow-y-auto pr-1 min-h-[50vh] space-y-3">
-                <button
-                  v-for="listing in filteredListings"
-                  :key="listing.id"
-                  class="w-full rounded-2xl border bg-white px-4 py-3 text-left transition"
-                  :class="
-                    selectedListingId === listing.id
-                      ? 'border-[#2563EB] shadow-lg shadow-blue-100'
-                      : 'border-transparent hover:border-[#CBD5F5] hover:shadow'
-                  "
-                  @click="selectListing(listing.id)"
-                >
-                  <div class="flex items-start gap-4">
-                    <img
-                      :src="getListingImageUrl(listing.storeImageUrl)"
-                      alt="listing cover"
-                      class="h-16 w-16 flex-shrink-0 rounded-xl border border-[#E5E7EB] object-cover shadow"
-                    />
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-semibold text-[#1F2937] line-clamp-2">
-                        {{ listing.storeTitle || '未命名商品' }}
-                      </p>
-                      <p class="mt-1 text-xs text-[#64748B]">
-                        代码：{{ listing.productCode || '未设置' }}
-                      </p>
-                      <p class="text-xs text-[#94A3B8] truncate">
-                        {{ listing.store?.country?.name }} · {{ listing.store?.name }}
-                      </p>
-                      <p class="mt-2 text-sm font-semibold text-[#2563EB]">
-                        {{ formatLocalPrice(listing.currentPrice, getCurrencyCode(listing)) }}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              </div>
+        </template>
+      </FilterBar>
 
-              <div class="mt-3 flex items-center justify-between border-t border-[#E2E8F0] pt-3 px-2">
-                <button 
-                  @click="changePage(currentPage - 1)" 
-                  :disabled="currentPage <= 1"
-                  class="text-xs font-semibold text-[#64748B] hover:text-[#3B82F6] disabled:text-[#CBD5E1] disabled:cursor-not-allowed"
-                >
-                  ← 上一
-                </button>
-                <span class="text-xs text-[#94A3B8]">
-                  {{ currentPage }} / {{ totalPages }}
-                </span>
-                <button 
-                  @click="changePage(currentPage + 1)" 
-                  :disabled="currentPage >= totalPages"
-                  class="text-xs font-semibold text-[#64748B] hover:text-[#3B82F6] disabled:text-[#CBD5E1] disabled:cursor-not-allowed"
-                >
-                  下一 →
-                </button>
-              </div>
+      <div v-if="isLoading" class="state-text">正在加载在售列表...</div>
+      <div v-else>
+        <p v-if="errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+        <EmptyState
+          v-if="filteredListings.length === 0 && listings.length === 0 && !errorMessage"
+          icon="pi pi-inbox"
+          title="暂无在售商品"
+          description="点击右上角「上新商品」即可快速创建。"
+        />
+        <EmptyState
+          v-else-if="filteredListings.length === 0"
+          icon="pi pi-filter"
+          title="无匹配结果"
+          description="没有符合筛选条件的在售商品，尝试调整搜索或筛选条件。"
+        />
+
+        <div v-else class="listing-grid">
+          <aside class="listing-panel">
+            <div class="panel-header">在售清单 (筛选后)</div>
+            <div class="listing-scroll">
+              <button
+                v-for="listing in filteredListings"
+                :key="listing.id"
+                class="listing-item"
+                :class="{ active: selectedListingId === listing.id }"
+                @click="selectListing(listing.id)"
+              >
+                <div class="listing-item__media">
+                  <img
+                    :src="getListingImageUrl(listing.storeImageUrl)"
+                    alt="listing cover"
+                  />
+                </div>
+                <div class="listing-item__info">
+                  <p class="title line-clamp-2">
+                    {{ listing.storeTitle || '未命名商品' }}
+                  </p>
+                  <p class="meta">代码：{{ listing.productCode || '未设置' }}</p>
+                  <p class="meta subtle">
+                    {{ listing.store?.country?.name }} · {{ listing.store?.name }}
+                  </p>
+                  <p class="price">
+                    {{ formatLocalPrice(listing.currentPrice, getCurrencyCode(listing)) }}
+                  </p>
+                </div>
+              </button>
+            </div>
+            <div class="panel-footer">
+              <button
+                @click="changePage(currentPage - 1)"
+                :disabled="currentPage <= 1"
+              >
+                ← 上一
+              </button>
+              <span>{{ currentPage }} / {{ totalPages }}</span>
+              <button
+                @click="changePage(currentPage + 1)"
+                :disabled="currentPage >= totalPages"
+              >
+                下一 →
+              </button>
             </div>
           </aside>
 
-          <article
-            v-if="selectedListing"
-            class="flex-1 rounded-3xl border border-[#E5E7EB] bg-white p-8 shadow-lg shadow-blue-50 h-fit"
-          >
-            <div class="flex flex-col gap-6 lg:flex-row">
-              <div class="flex-shrink-0">
+          <ContentCard v-if="selectedListing" :customClass="'detail-card'">
+            <div class="detail">
+              <div class="detail__media">
                 <img
                   :src="getListingImageUrl(selectedListing.storeImageUrl)"
                   alt="listing main"
-                  class="h-48 w-48 rounded-3xl border border-[#E2E8F0] object-cover shadow-lg"
                 />
               </div>
-              <div class="flex-1 space-y-3">
-                <div class="flex items-center gap-2 text-sm text-[#64748B]">
-                  <span class="rounded-full bg-[#EEF2FF] px-3 py-1 font-semibold text-[#4338CA]">
+              <div class="detail__info">
+                <div class="badge-row">
+                  <span class="country-pill">
                     {{ selectedListing.store?.country?.code }}
                   </span>
-                  <span>{{ selectedListing.store?.name }}</span>
+                  <span class="muted">{{ selectedListing.store?.name }}</span>
                 </div>
-                <h3 class="text-2xl font-semibold text-[#111827]">
+                <h3 class="detail__title">
                   {{ selectedListing.storeTitle || '未命名商品' }}
                 </h3>
-                <p class="text-sm text-[#6B7280]">
+                <p class="muted">
                   对应产品：{{ selectedListing.product.publicName || selectedListing.product.name }}
                   (SKU: {{ selectedListing.product.sku }})
                 </p>
-                <p class="text-sm text-[#6B7280]">
+                <p class="muted">
                   商品代码：
-                  <span class="font-semibold text-[#111827]">
+                  <span class="strong">
                     {{ selectedListing.productCode || '未设置' }}
                   </span>
                 </p>
                 <div>
-                  <p class="text-xs uppercase tracking-wide text-[#94A3B8]">售价</p>
-                  <p class="text-3xl font-semibold text-[#111827]">
+                  <p class="label">售价</p>
+                  <p class="price-lg">
                     {{ formatLocalPrice(selectedListing.currentPrice, getCurrencyCode(selectedListing)) }}
-                    <span class="ml-3 text-base font-medium text-[#059669]">
-                      ≈ ¥ {{ formatCnyPrice(selectedListing).toFixed(2) }}
-                    </span>
+                    <span class="price-cny">≈¥ {{ formatCnyPrice(selectedListing).toFixed(2) }}</span>
                   </p>
                 </div>
-                <div class="flex flex-wrap gap-4 text-sm text-[#6B7280]">
-                  <span>上销量：<strong class="text-[#111827]">{{ selectedListing.lastWeekSales }}</strong></span>
-                  <span>本月销量：<strong class="text-[#111827]">{{ selectedListing.thisMonthSales }}</strong></span>
-                  <span>总销量：<strong class="text-[#111827]">{{ selectedListing.totalSales }}</strong></span>
+                <div class="stats-row">
+                  <span>上销量：<strong class="strong">{{ selectedListing.lastWeekSales }}</strong></span>
+                  <span>本月销量：<strong class="strong">{{ selectedListing.thisMonthSales }}</strong></span>
+                  <span>总销量：<strong class="strong">{{ selectedListing.totalSales }}</strong></span>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 pt-4">
-                  <button
-                    @click="openEditModal(selectedListing)"
-                    class="rounded-2xl bg-[#EEF2FF] px-4 py-2 text-sm font-semibold text-[#4338CA] hover:bg-[#E0E7FF]"
-                  >
+                <div class="action-row">
+                  <button class="btn-subtle btn-primary" @click="openEditModal(selectedListing)">
                     编辑
                   </button>
                   <button
                     v-if="isAdmin"
+                    class="btn-subtle danger"
                     @click="handleDelete(selectedListing)"
-                    class="rounded-2xl border border-[#FEE2E2] bg-[#FFF5F5] px-4 py-2 text-sm font-semibold text-[#DC2626] hover:bg-[#FFE4E6]"
                   >
                     删除
                   </button>
@@ -220,24 +185,24 @@
                     :href="selectedListing.platformUrl"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-sm font-semibold text-[#2563EB] hover:underline"
+                    class="link"
                   >
                     查看商品链接
                   </a>
-                  <span v-else class="text-sm text-[#94A3B8]">暂无商品链接</span>
+                  <span v-else class="muted">暂无商品链接</span>
                 </div>
               </div>
             </div>
-          </article>
-          <article
+          </ContentCard>
+          <EmptyState
             v-else
-            class="flex-1 rounded-3xl border border-dashed border-[#CBD5F5] bg-[#F8FAFF] p-6 text-center text-[#64748B]"
-          >
-            请选择左侧的商品以查看详细信息。
-          </article>
+            icon="pi pi-list"
+            title="请选择左侧商品"
+            description="点击列表查看在售详情。"
+          />
         </div>
       </div>
-    </section>
+    </ContentCard>
 
     <StoreListingFormModal
       :is-open="isModalOpen"
@@ -253,6 +218,10 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import apiClient from '@/services/apiClient';
+import PageHeader from '@/components/common/PageHeader.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
+import FilterBar from '@/components/common/FilterBar.vue';
+import EmptyState from '@/components/common/EmptyState.vue';
 import StoreListingFormModal from '../components/admin/StoreListingFormModal.vue';
 
 type CurrencyCode = 'IDR' | 'VND' | 'THB' | 'MYR' | 'PHP' | 'SGD' | string;
@@ -383,7 +352,6 @@ watch(filteredListings, (items) => {
   }
 });
 
-// 支持分参数
 async function fetchListings(focusId: string | null = null) {
   isLoading.value = true;
   errorMessage.value = '';
@@ -395,8 +363,6 @@ async function fetchListings(focusId: string | null = null) {
       }
     });
     
-    // 适配后端新的返回结构: { data, total, page, pageSize }
-    // 兼容旧结构(如果后端没更新): response.data 可能直接是数组
     if (Array.isArray(response.data)) {
       listings.value = response.data as Listing[];
       totalItems.value = response.data.length;
@@ -405,16 +371,14 @@ async function fetchListings(focusId: string | null = null) {
       totalItems.value = response.data.total || 0;
     }
 
-    // 选中逻辑
     if (listings.value.length === 0) {
       selectedListingId.value = null;
     } else if (focusId && listings.value.some((item) => item.id === focusId)) {
       selectedListingId.value = focusId;
     } else if (!selectedListingId.value || !listings.value.some((item) => item.id === selectedListingId.value)) {
-      // 如果之前选中的不在当前，默认选中第一个
       selectedListingId.value = listings.value[0]?.id || null;
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取店铺在售列表失败:', error);
     errorMessage.value = error.response?.data?.error || '获取店铺在售列表失败';
   } finally {
@@ -422,7 +386,6 @@ async function fetchListings(focusId: string | null = null) {
   }
 }
 
-// 翻逻辑
 function changePage(page: number) {
   if (page < 1 || page > totalPages.value) return;
   currentPage.value = page;
@@ -463,7 +426,6 @@ function selectListing(id: string) {
 }
 
 async function handleListingCreated(newListing: Listing) {
-  // 创建后回到第一查看
   currentPage.value = 1;
   await fetchListings(newListing.id);
   closeModal();
@@ -487,7 +449,7 @@ async function handleDelete(listing: Listing) {
   try {
     await apiClient.delete(`/admin/store-listings/${listing.id}`);
     await fetchListings();
-  } catch (error) {
+  } catch (error: any) {
     console.error('删除失败:', error);
     errorMessage.value = error.response?.data?.error || '删除失败，请重试';
   }
@@ -500,7 +462,7 @@ function getListingImageUrl(imageUrl?: string) {
 
 function getCurrencyCode(listing?: Listing | null) {
   if (!listing) return null;
-  return listing.currencyCode || currencyFallbackMap[listing.store?.country?.code] || null;
+  return listing.currencyCode || currencyFallbackMap[listing.store?.country?.code || ''] || null;
 }
 
 function getRateForCurrency(currencyCode: CurrencyCode | null) {
@@ -541,25 +503,286 @@ function formatCnyPrice(listing?: Listing | null) {
 </script>
 
 <style scoped>
-/* Clean White Theme Overrides */
-.space-y-8 { background: var(--color-bg-page); }
+.on-sale-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--color-bg-page);
+}
 
-/* Cards */
-.bg-white, .rounded-3xl {
+.state-text {
+  padding: var(--space-4);
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.state-text.error {
+  color: #dc2626;
+}
+
+.search-input,
+.country-select {
+  min-width: 220px;
+}
+
+.country-select select {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
   background: var(--color-bg-card);
+  color: var(--color-text-primary);
+}
+
+.country-select .label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.listing-grid {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.listing-panel {
+  width: 32%;
+  min-width: 280px;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-/* Headers and text colors */
-h2 { color: var(--color-text-primary); }
-
-/* Buttons */
-button[class*="bg-[#3B82F6]"] {
-  background: var(--color-accent);
+.panel-header {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  padding: 0 var(--space-1);
 }
 
-/* Borders */
-section[class*="border-[#E5E7EB]"] {
+.listing-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.listing-item {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-xs);
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.listing-item:hover {
   border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.listing-item.active {
+  border-color: var(--color-accent);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.12);
+}
+
+.listing-item__media img {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  object-fit: cover;
+}
+
+.listing-item__info .title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.listing-item__info .meta {
+  margin: 0.15rem 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.listing-item__info .meta.subtle {
+  color: var(--color-text-muted);
+}
+
+.listing-item__info .price {
+  margin-top: 0.25rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.panel-footer button {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: color var(--transition-fast);
+}
+
+.panel-footer button:hover:not(:disabled) {
+  color: var(--color-accent);
+}
+
+.panel-footer button:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.detail-card {
+  flex: 1;
+}
+
+.detail {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.detail__media img {
+  width: 180px;
+  height: 180px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  object-fit: cover;
+}
+
+.detail__info {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+}
+
+.country-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.detail__title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.muted {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.strong {
+  color: var(--color-text-primary);
+}
+
+.label {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.price-lg {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.price-cny {
+  margin-left: 0.5rem;
+  font-size: 1rem;
+  color: #059669;
+  font-weight: 600;
+}
+
+.stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.btn-subtle.danger {
+  border-color: #fecdd3;
+  color: #dc2626;
+  background: #fff1f2;
+}
+
+.link {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1024px) {
+  .listing-grid {
+    flex-direction: column;
+  }
+
+  .listing-panel {
+    width: 100%;
+  }
+
+  .detail {
+    flex-direction: column;
+  }
 }
 </style>

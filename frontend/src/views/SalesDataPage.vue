@@ -1,28 +1,24 @@
 <template>
-  <div class="sales-data-page">
-    <!-- 页面头部 -->
-    <header class="page-header">
-      <div class="header-top">
-        <div class="header-text">
-          <h1 class="page-title">销售数据</h1>
-          <p class="page-subtitle">查看与录入各大渠道的销售指标，保持数据同步</p>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">当前模式</span>
-          <span class="stat-value">{{ currentTab === 'management' ? '数据管理' : '数据录入' }}</span>
-        </div>
-      </div>
-    </header>
+  <div class="page-shell sales-data-page">
+    <PageHeader
+      title="销售数据"
+      subtitle="查看与录入各大渠道的销售指标，保持数据同步"
+    >
+      <template #actions>
+        <span class="pill">当前模式：<strong>{{ currentTab === 'management' ? '数据管理' : '数据录入' }}</strong></span>
+      </template>
+    </PageHeader>
 
-    <!-- 内容区 -->
-    <section class="content-area">
+    <ContentCard>
       <SalesDataManagement />
-    </section>
+    </ContentCard>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import PageHeader from '@/components/common/PageHeader.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
 import SalesDataManagement from '../components/sales/SalesDataManagement.vue';
 
 type SalesTab = 'management' | 'entry';
@@ -34,68 +30,23 @@ const currentTab = ref<SalesTab>('management');
 .sales-data-page {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
   background: var(--color-bg-page);
 }
 
-.page-header {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1.25rem 1.5rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.header-top {
-  display: flex;
-  justify-content: space-between;
+.pill {
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.header-text { flex: 1; }
-
-.page-title {
-  font-size: 1.375rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0 0 0.25rem;
-}
-
-.page-subtitle {
-  font-size: 0.8rem;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-card);
   color: var(--color-text-secondary);
-  margin: 0;
+  font-size: 0.85rem;
 }
 
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: var(--color-bg-page);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.625rem 1rem;
-}
-
-.stat-label {
-  font-size: 0.625rem;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.stat-value {
-  font-size: 0.875rem;
-  font-weight: 600;
+.pill strong {
   color: var(--color-text-primary);
-}
-
-.content-area {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  padding: 1.25rem;
 }
 </style>

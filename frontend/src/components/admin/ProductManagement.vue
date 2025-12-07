@@ -1,22 +1,21 @@
 <template>
-  <div class="space-y-4">
-    <Card class="shadow-1 border-round-2xl">
-      <template #title>产品管理</template>
-      <template #content>
-        <div class="flex flex-wrap gap-2 items-center">
-          <InputText v-model="searchKeyword" placeholder="搜索产品名称 / SKU" class="w-20rem max-w-full" />
-          <Dropdown
-            v-model="selectedCategory"
-            :options="['ALL', ...categoryOptions]"
-            placeholder="全部分类"
-            class="w-12rem"
-          />
-          <span class="text-sm text-color-secondary">共 {{ filteredProducts.length }} 条</span>
-          <div class="flex-1"></div>
-          <Button label="新建产品" icon="pi pi-plus" @click="openModal" />
-        </div>
-      </template>
-    </Card>
+  <div class="admin-page">
+    <header class="page-header">
+      <div class="header-text">
+        <h1 class="page-title">产品管理</h1>
+        <p class="page-subtitle">共 {{ filteredProducts.length }} 条产品记录</p>
+      </div>
+      <div class="header-actions">
+        <InputText v-model="searchKeyword" placeholder="搜索产品名称 / SKU" class="w-12rem" />
+        <Dropdown
+          v-model="selectedCategory"
+          :options="['ALL', ...categoryOptions]"
+          placeholder="全部分类"
+          class="w-8rem"
+        />
+        <Button label="新建产品" icon="pi pi-plus" @click="openModal" />
+      </div>
+    </header>
 
     <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
 
@@ -93,7 +92,6 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, onMounted, ref } from 'vue';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import Dropdown from 'primevue/dropdown';
@@ -236,3 +234,45 @@ onMounted(() => {
   fetchProducts();
 });
 </script>
+
+<style scoped>
+/* Admin Page - Clean Premium White Theme */
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--color-bg-page);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 0.5rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0.25rem 0 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+</style>

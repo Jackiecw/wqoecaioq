@@ -1,47 +1,37 @@
 <template>
-  <aside class="sidebar h-screen sticky top-0 flex-shrink-0 bg-white border-r border-slate-200 hidden lg:flex flex-col" style="width: 260px">
+  <aside class="sidebar">
     <!-- Logo 区域 -->
-    <div class="brand p-4 border-b border-slate-100">
-      <div class="flex items-center gap-2">
-        <div class="bg-indigo-50 text-indigo-600 rounded-lg p-2 flex items-center justify-center">
-          <i class="pi pi-globe text-xl"></i>
-        </div>
-        <div>
-          <h1 class="text-lg font-bold text-slate-900 m-0">Overseas Ops</h1>
-          <p class="text-xs text-slate-500 m-0">控制中心</p>
-        </div>
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="pi pi-globe"></i>
+      </div>
+      <div>
+        <h1 class="brand-title">Overseas Ops</h1>
+        <p class="brand-subtitle">控制中心</p>
       </div>
     </div>
 
     <!-- 导航菜单 -->
-    <nav class="flex-1 overflow-y-auto custom-scrollbar px-3 py-4">
-      <div class="flex flex-col gap-4">
+    <nav class="nav-menu custom-scrollbar">
+      <div class="nav-groups">
         <section v-for="group in visibleMenuGroups" :key="group.key" class="nav-group">
           <!-- 分组标题 -->
-          <div class="px-3 mb-2">
-            <p class="text-xs font-semibold text-slate-500 uppercase m-0">{{ group.title }}</p>
+          <div class="nav-group-title">
+            <p>{{ group.title }}</p>
           </div>
           
           <!-- 菜单项 -->
-          <div class="flex flex-col gap-1">
+          <div class="nav-items">
             <router-link
               v-for="item in group.items"
               :key="item.key"
               :to="item.path"
-              class="
-                flex items-center gap-3 px-3 py-2 rounded-lg
-                text-sm font-medium
-                transition-all duration-200
-              "
-              :class="[
-                isActive(item)
-                  ? 'bg-indigo-50 text-indigo-600 font-semibold border-l-4 border-indigo-600 -ml-3 pl-3'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              ]"
+              class="nav-item"
+              :class="{ 'nav-item--active': isActive(item) }"
             >
-              <i :class="item.icon" class="text-lg"></i>
-              <span class="flex-1">{{ item.name }}</span>
-              <span v-if="item.badge" class="text-xs px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded-full">
+              <i :class="item.icon" class="nav-item-icon"></i>
+              <span class="nav-item-label">{{ item.name }}</span>
+              <span v-if="item.badge" class="nav-item-badge">
                 {{ item.badge }}
               </span>
             </router-link>
@@ -50,24 +40,32 @@
       </div>
     </nav>
 
-    <!-- 底部用户区域 -->
-    <div class="p-3 border-t border-slate-100">
-      <Button
-        label="个人中心"
-        icon="pi pi-user"
-        severity="secondary"
-        text
-        class="w-full justify-start text-sm mb-1"
-        @click="goProfile"
-      />
-      <Button
-        label="退出登录"
-        icon="pi pi-sign-out"
-        severity="danger"
-        text
-        class="w-full justify-start text-sm"
-        @click="handleLogout"
-      />
+    <!-- 底部用户区域 (Refactored User Card) -->
+    <div class="sidebar-footer">
+      <div class="user-profile-card">
+        <div class="user-info-area" @click="goProfile">
+           <Avatar 
+            :image="userAvatar" 
+            :label="!userAvatar ? userInitials : undefined"
+            shape="circle" 
+            class="user-avatar"
+            style="background-color: var(--color-accent); color: #ffffff"
+          />
+          <div class="user-details">
+            <span class="user-nickname text-ellipsis">{{ authStore.nickname || 'User' }}</span>
+            <span class="user-role">{{ authStore.role === 'admin' ? '管理员' : '运营人员' }}</span>
+          </div>
+        </div>
+        <Button
+          icon="pi pi-sign-out"
+          severity="secondary"
+          text
+          rounded
+          v-tooltip.top="'退出登录'"
+          @click="handleLogout"
+          class="logout-btn"
+        />
+      </div>
     </div>
   </aside>
 </template>
@@ -77,11 +75,23 @@ import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import Button from 'primevue/button';
+import Avatar from 'primevue/avatar';
 import { MENU_GROUPS, type NavItem, type NavGroup } from './menuConfig';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
+
+const userAvatar = computed(() => {
+  if (!authStore.avatarUrl) return undefined;
+  return authStore.avatarUrl.startsWith('http') ? authStore.avatarUrl : `${apiBaseUrl}${authStore.avatarUrl}`;
+});
+
+const userInitials = computed(() => {
+  return (authStore.nickname || 'U').substring(0, 1).toUpperCase();
+});
 
 /**
  * 根据权限过滤可见菜单组
@@ -125,18 +135,228 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
-/* 自定义滚动条 */
+/* ========================================
+   Sidebar - Clean Premium White Theme
+   ======================================== */
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+  background: var(--color-bg-card);
+  border-right: 1px solid var(--color-border);
+  display: none;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    display: flex;
+  }
+}
+
+/* Brand / Logo */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-radius: var(--radius-md);
+  font-size: 1.125rem;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
+}
+
+.brand-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Navigation */
+.nav-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0.75rem;
+}
+
+.nav-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.nav-group-title {
+  padding: 0 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.nav-group-title p {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-item:hover {
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+}
+
+.nav-item--active {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.nav-item-icon {
+  font-size: 1.125rem;
+  transition: transform 0.2s;
+}
+
+.nav-item:hover .nav-item-icon {
+  transform: scale(1.1);
+}
+
+.nav-item-label {
+  flex: 1;
+}
+
+.nav-item-badge {
+  font-size: 0.7rem;
+  padding: 0.125rem 0.5rem;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+/* Footer (User Card) */
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+}
+
+.user-profile-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  padding-left: 0.5rem;
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s;
+  border: 1px solid transparent;
+}
+
+.user-profile-card:hover {
+  background-color: var(--color-bg-page);
+  border-color: var(--color-border);
+}
+
+.user-info-area {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  cursor: pointer;
+  min-width: 0; /* for text ellipsis */
+}
+
+.user-avatar {
+  width: 2.25rem; /* 36px */
+  height: 2.25rem;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-nickname {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.logout-btn {
+  color: var(--color-text-muted) !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  color: #ef4444 !important; /* Red-500 */
+  background: #fef2f2 !important; /* Red-50 */
+}
+
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgb(203 213 225);
+  background-color: transparent;
   border-radius: 4px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(148 163 184);
+
+.nav-menu:hover .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
 }
 </style>

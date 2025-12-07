@@ -1,115 +1,126 @@
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">绩效考核中心</h1>
-      <div class="flex gap-3">
-        <router-link
-          to="/performance/templates"
-          class="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          管理模板
-        </router-link>
-        <button
-          @click="openAssignModal"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <span>+ 发起考核</span>
-        </button>
-      </div>
-    </div>
+  <div class="page-shell">
+    <PageHeader title="绩效考核中心">
+      <template #actions>
+        <div class="flex gap-3">
+          <router-link
+            to="/performance/templates"
+            class="btn-subtle"
+          >
+            管理模板
+          </router-link>
+          <button
+            @click="openAssignModal"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-medium"
+          >
+            <span>+ 发起考核</span>
+          </button>
+        </div>
+      </template>
+    </PageHeader>
 
-    <div class="flex border-b border-gray-200 mb-6">
+    <div class="pill-tab-group mb-6">
       <button
         @click="activeTab = 'my'"
-        :class="['px-6 py-3 font-medium text-sm transition-colors relative', activeTab === 'my' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700']"
+        :class="['pill-tab', activeTab === 'my' ? 'is-active' : '']"
       >
         我的绩效
-        <div v-if="activeTab === 'my'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
       </button>
       <button
         @click="activeTab = 'pending'"
-        :class="['px-6 py-3 font-medium text-sm transition-colors relative', activeTab === 'pending' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700']"
+        :class="['pill-tab', activeTab === 'pending' ? 'is-active' : '']"
+        class="flex items-center gap-2"
       >
         待办考核
-        <span v-if="pendingReviews.length > 0" class="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{{ pendingReviews.length }}</span>
-        <div v-if="activeTab === 'pending'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
+        <span v-if="pendingReviews.length > 0" class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full leading-none">{{ pendingReviews.length }}</span>
       </button>
     </div>
 
-    <div v-if="loading" class="text-center py-12 text-gray-500">
+    <div v-if="loading" class="text-center py-12 text-[var(--color-text-secondary)]">
       加载中...
     </div>
 
     <div v-else>
       <div v-if="activeTab === 'my'" class="space-y-4">
-        <div v-if="myReviews.length === 0" class="text-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-          暂无考核记录
-        </div>
+        <EmptyState
+          v-if="myReviews.length === 0"
+          title="暂无考核记录"
+          description="你还没有参与过任何绩效考核"
+          icon="pi pi-file"
+        />
         <div
           v-for="review in myReviews"
           :key="review.id"
-          class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
-          @click="$router.push(`/performance/reviews/${review.id}`)"
+          class="cursor-pointer group"
+          @click="router.push(`/performance/reviews/${review.id}`)"
         >
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-lg">
-              {{ new Date(review.month).getMonth() + 1 }}月
+          <ContentCard class="flex items-center justify-between hover:shadow-md transition-shadow py-4">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-full bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)] font-bold text-lg">
+                {{ new Date(review.month).getMonth() + 1 }}月
+              </div>
+              <div>
+                <h3 class="font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{{ review.template.name }}</h3>
+                <p class="text-sm text-[var(--color-text-secondary)]">
+                  考核月份: {{ formatMonth(review.month) }} | 主管: {{ review.manager.nickname }}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 class="font-semibold text-gray-900">{{ review.template.name }}</h3>
-              <p class="text-sm text-gray-500">
-                考核月份: {{ formatMonth(review.month) }} | 主管: {{ review.manager.nickname }}
-              </p>
+            <div class="flex items-center gap-4">
+              <span :class="getStatusBadgeClass(review.status)" class="px-3 py-1 rounded-full text-xs font-medium">
+                {{ getStatusLabel(review.status) }}
+              </span>
+              <div class="text-right">
+                <div class="text-sm text-[var(--color-text-secondary)]">最终得分</div>
+                <div class="font-bold text-lg text-[var(--color-text-primary)]">{{ review.finalScore || '-' }}</div>
+              </div>
+              <i class="pi pi-chevron-right text-[var(--color-text-secondary)]"></i>
             </div>
-          </div>
-          <div class="flex items-center gap-4">
-            <span :class="getStatusBadgeClass(review.status)" class="px-3 py-1 rounded-full text-xs font-medium">
-              {{ getStatusLabel(review.status) }}
-            </span>
-            <div class="text-right">
-              <div class="text-sm text-gray-500">最终得分</div>
-              <div class="font-bold text-lg text-gray-800">{{ review.finalScore || '-' }}</div>
-            </div>
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-          </div>
+          </ContentCard>
         </div>
       </div>
 
       <div v-if="activeTab === 'pending'" class="space-y-4">
-        <div v-if="pendingReviews.length === 0" class="text-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-          暂无待办考核
-        </div>
+        <EmptyState
+          v-if="pendingReviews.length === 0"
+          title="暂无待办考核"
+          description="当前没有需要你处理的考核任务"
+          icon="pi pi-check-circle"
+        />
         <div
           v-for="review in pendingReviews"
           :key="review.id"
-          class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-yellow-400"
-          @click="$router.push(`/performance/reviews/${review.id}`)"
+          class="cursor-pointer group"
+          @click="router.push(`/performance/reviews/${review.id}`)"
         >
-          <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
-              {{ review.employee.nickname[0] }}
+          <ContentCard class="flex items-center justify-between hover:shadow-md transition-shadow py-4 border-l-4 border-l-yellow-400">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
+                {{ review.employee.nickname[0] }}
+              </div>
+              <div>
+                <h3 class="font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{{ review.employee.nickname }} 的考核</h3>
+                <p class="text-sm text-[var(--color-text-secondary)]">
+                  {{ review.template.name }} | {{ formatMonth(review.month) }}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 class="font-semibold text-gray-900">{{ review.employee.nickname }} 的考核</h3>
-              <p class="text-sm text-gray-500">
-                {{ review.template.name }} | {{ formatMonth(review.month) }}
-              </p>
+            <div class="flex items-center gap-4">
+              <span :class="getStatusBadgeClass(review.status)" class="px-3 py-1 rounded-full text-xs font-medium">
+                {{ getStatusLabel(review.status) }}
+              </span>
+              <button class="bg-[var(--color-accent)] text-white px-4 py-1.5 rounded text-sm hover:opacity-90 transition-opacity">
+                去处理
+              </button>
             </div>
-          </div>
-          <div class="flex items-center gap-4">
-            <span :class="getStatusBadgeClass(review.status)" class="px-3 py-1 rounded-full text-xs font-medium">
-              {{ getStatusLabel(review.status) }}
-            </span>
-            <button class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm hover:bg-blue-700 transition-colors">
-              去处理
-            </button>
-          </div>
+          </ContentCard>
         </div>
       </div>
     </div>
 
+    <!-- Modal Layout Preserved but style tweaked via scoped css or kept as is if acceptable -->
     <div v-if="showAssignModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 animate-fade-in-up">
         <h2 class="text-xl font-bold text-gray-800 mb-6">发起绩效考核</h2>
 
         <div class="space-y-4">
@@ -167,6 +178,9 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import performanceService, { PerformanceReview, PerformanceUser, PerformanceTemplate } from '@/services/performanceService';
+import PageHeader from '@/components/common/PageHeader.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
+import EmptyState from '@/components/common/EmptyState.vue';
 
 type TabKey = 'my' | 'pending';
 
@@ -279,39 +293,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Override Tailwind defaults with theme variables */
-.p-6 { background: var(--color-bg-page); }
+/* Page transition animation */
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
 
-/* Page title */
-h1 { color: var(--color-text-primary); }
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-/* Cards with cleaner theme */
+/* Modal specific overrides if needed, generic ones are fine */
 .bg-white {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
 }
-
-.rounded-xl, .rounded-2xl {
-  border-radius: var(--radius-md);
-}
-
-/* Buttons */
-.bg-blue-600 {
-  background: var(--color-accent);
-}
-
-.bg-blue-600:hover {
-  background: #2563eb;
-}
-
-/* Tab underline */
-.text-blue-600 {
-  color: var(--color-accent);
-}
-
-.bg-blue-600 {
-  background: var(--color-accent);
-}
-
-/* Status badges use semantic colors - keep as-is */
 </style>

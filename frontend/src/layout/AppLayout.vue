@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen bg-slate-50">
+  <div class="app-layout">
     <!-- 移动端侧边栏 -->
     <Drawer
       v-model:visible="mobileMenuOpen"
@@ -8,44 +8,41 @@
       :modal="true"
       :block-scroll="true"
     >
-      <div class="sidebar-mobile-content flex flex-col h-full">
+      <div class="sidebar-mobile-content">
         <!-- Logo -->
-        <div class="brand px-3 pb-4 border-b border-slate-200">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-globe text-2xl text-indigo-600"></i>
-            <h1 class="text-xl text-slate-900 font-bold">Overseas Ops</h1>
+        <div class="brand-mobile">
+          <div class="brand-icon">
+            <i class="pi pi-globe"></i>
           </div>
-          <p class="text-sm text-slate-500 mt-1">海外电商控制中心</p>
+          <div>
+            <h1 class="brand-title">Overseas Ops</h1>
+            <p class="brand-subtitle">海外电商控制中心</p>
+          </div>
         </div>
 
         <!-- 移动端导航菜单 -->
-        <nav class="flex-1 overflow-y-auto mt-4 px-3">
-          <div class="flex flex-col gap-4">
-            <section v-for="group in visibleMenuGroups" :key="group.key" class="nav-group">
-              <div class="px-2 mb-2">
-                <p class="text-xs font-semibold text-slate-500 uppercase">{{ group.title }}</p>
-              </div>
-              <div class="flex flex-col gap-1">
-                <Button
-                  v-for="item in group.items"
-                  :key="item.key"
-                  :label="item.name"
-                  :icon="item.icon"
-                  class="w-full text-left justify-start px-3 py-2 text-sm"
-                  :class="{ 
-                    'bg-indigo-50 text-indigo-600 font-medium': isActive(item), 
-                    'text-slate-700 hover:bg-slate-50': !isActive(item) 
-                  }"
-                  text
-                  @click="() => { handleNav(item); mobileMenuOpen = false; }"
-                />
-              </div>
-            </section>
-          </div>
+        <nav class="mobile-nav">
+          <section v-for="group in visibleMenuGroups" :key="group.key" class="nav-group">
+            <div class="nav-group-title">
+              <p>{{ group.title }}</p>
+            </div>
+            <div class="nav-items">
+              <Button
+                v-for="item in group.items"
+                :key="item.key"
+                :label="item.name"
+                :icon="item.icon"
+                class="nav-item"
+                :class="{ 'nav-item--active': isActive(item) }"
+                text
+                @click="() => { handleNav(item); mobileMenuOpen = false; }"
+              />
+            </div>
+          </section>
         </nav>
 
         <!-- 移动端底部按钮 -->
-        <div class="mt-auto px-3 pb-3 border-t border-slate-200 pt-3">
+        <div class="mobile-footer">
           <Button 
             label="个人中心" 
             icon="pi pi-user" 
@@ -70,12 +67,18 @@
     <AppSidebar />
 
     <!-- 右侧主内容区域 -->
-    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-      <!-- 顶部导航栏 -->
-      <AppTopbar @toggle-mobile-menu="mobileMenuOpen = true" />
+    <div class="main-content">
+      <!-- 移动端菜单按钮 -->
+      <button 
+        class="mobile-menu-btn lg:hidden"
+        aria-label="打开导航"
+        @click="mobileMenuOpen = true"
+      >
+        <i class="pi pi-bars"></i>
+      </button>
 
       <!-- 主要内容区域 -->
-      <main class="flex-1 overflow-y-auto w-full min-w-0">
+      <main class="content-area">
         <router-view v-slot="{ Component }">
           <KeepAlive>
             <component :is="Component" />
@@ -91,7 +94,6 @@ import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import AppSidebar from './AppSidebar.vue';
-import AppTopbar from './AppTopbar.vue';
 import Drawer from 'primevue/drawer';
 import Button from 'primevue/button';
 import { MENU_GROUPS, type NavItem, type NavGroup } from './menuConfig';
@@ -149,3 +151,161 @@ const handleLogout = () => {
   router.push('/login');
 };
 </script>
+
+<style scoped>
+/* ========================================
+   App Layout - Clean Premium White Theme
+   ======================================== */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ========================================
+   Mobile Menu Button
+   ======================================== */
+.mobile-menu-btn {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 40;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.mobile-menu-btn:hover {
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-md);
+}
+
+@media (min-width: 1024px) {
+  .mobile-menu-btn {
+    display: none;
+  }
+}
+
+/* ========================================
+   Mobile Sidebar
+   ======================================== */
+.sidebar-mobile-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.brand-mobile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brand-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-size: 1.25rem;
+}
+
+.brand-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin: 0.125rem 0 0;
+}
+
+.mobile-nav {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 1rem;
+  padding: 0 0.75rem;
+}
+
+.nav-group {
+  margin-bottom: 1rem;
+}
+
+.nav-group-title {
+  padding: 0 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.nav-group-title p {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav-item {
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+}
+
+.nav-item:hover {
+  background: var(--color-bg-page);
+}
+
+.nav-item--active {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.mobile-footer {
+  margin-top: auto;
+  padding: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+</style>

@@ -1,58 +1,66 @@
 <template>
-  <div class="space-y-4">
-    <Card class="shadow-1 border-round-2xl">
-      <template #title>店铺管理</template>
-      <template #content>
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <span class="text-sm text-color-secondary">管理跨平台店铺的基础信息与状态。</span>
-          <Button label="新建店铺" icon="pi pi-plus" @click="openModal" />
-        </div>
-      </template>
-    </Card>
-
-    <Message v-if="errorMessage" severity="error" :closable="false">
-      {{ errorMessage }}
-    </Message>
-
-    <DataTable
-      :value="stores"
-      data-key="id"
-      :loading="isLoading"
-      class="shadow-1 border-round-2xl"
+  <div class="page-shell">
+    <PageHeader 
+      title="店铺管理" 
+      subtitle="管理跨平台店铺的基础信息与状态。"
     >
-      <Column field="name" header="店铺名称" style="min-width: 10rem" />
-      <Column field="platform" header="平台" style="min-width: 6rem" />
-      <Column header="国家 (Code)" style="min-width: 8rem">
-        <template #body="{ data }">
-          {{ data.country?.name }} ({{ data.countryCode }})
-        </template>
-      </Column>
-      <Column field="status" header="状态" style="min-width: 6rem">
-        <template #body="{ data }">
-          <Tag :value="data.status" :severity="statusSeverity(data.status)" />
-        </template>
-      </Column>
-      <Column header="注册日期" style="min-width: 8rem">
-        <template #body="{ data }">
-          {{ formatDate(data.registeredAt) }}
-        </template>
-      </Column>
-      <Column header="操作" style="min-width: 10rem">
-        <template #body="{ data }">
-          <div class="flex gap-2 flex-wrap">
-            <Button label="编辑" size="small" text @click="handleEdit(data)" />
-            <Button
-              v-if="isAdmin"
-              label="删除"
-              size="small"
-              text
-              severity="danger"
-              @click="handleDelete(data)"
-            />
-          </div>
-        </template>
-      </Column>
-    </DataTable>
+      <template #actions>
+        <button 
+          @click="openModal"
+          class="bg-[#2463EB] hover:bg-[#1d4ed8] text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+        >
+          <i class="pi pi-plus text-xs"></i>
+          <span>新建店铺</span>
+        </button>
+      </template>
+    </PageHeader>
+
+    <ContentCard>
+      <Message v-if="errorMessage" severity="error" :closable="false" class="mb-4">
+        {{ errorMessage }}
+      </Message>
+
+      <DataTable
+        :value="stores"
+        data-key="id"
+        :loading="isLoading"
+        class="p-datatable-sm"
+        scrollable
+      >
+        <Column field="name" header="店铺名称" style="min-width: 10rem" />
+        <Column field="platform" header="平台" style="min-width: 6rem" />
+        <Column header="国家 (Code)" style="min-width: 8rem">
+          <template #body="{ data }">
+            {{ data.country?.name }} ({{ data.countryCode }})
+          </template>
+        </Column>
+        <Column field="status" header="状态" style="min-width: 6rem">
+          <template #body="{ data }">
+            <Tag :value="data.status" :severity="statusSeverity(data.status)" />
+          </template>
+        </Column>
+        <Column header="注册日期" style="min-width: 8rem">
+          <template #body="{ data }">
+            {{ formatDate(data.registeredAt) }}
+          </template>
+        </Column>
+        <Column header="操作" style="min-width: 10rem">
+          <template #body="{ data }">
+            <div class="flex gap-2 flex-wrap">
+              <Button label="编辑" size="small" text @click="handleEdit(data)" />
+              <Button
+                v-if="isAdmin"
+                label="删除"
+                size="small"
+                text
+                severity="danger"
+                @click="handleDelete(data)"
+              />
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </ContentCard>
 
     <StoreFormModal
       :is-open="isModalOpen"
@@ -67,7 +75,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import Button from 'primevue/button';
-import Card from 'primevue/card';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import Message from 'primevue/message';
@@ -75,6 +82,8 @@ import Tag from 'primevue/tag';
 import apiClient from '@/services/apiClient';
 import StoreFormModal from './StoreFormModal.vue';
 import { useAuthStore } from '@/stores/auth';
+import PageHeader from '@/components/common/PageHeader.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
 
 type CountryOption = { code: string; name: string };
 type StoreResponse = {
@@ -168,3 +177,7 @@ onMounted(() => {
   fetchStores();
 });
 </script>
+
+<style scoped>
+/* Scoped styles removed in favor of PageHeader, ContentCard, and standard styling */
+</style>

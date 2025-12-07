@@ -1,57 +1,60 @@
 <template>
-  <div class="min-h-screen bg-gray-50 pb-12 print:bg-white print:pb-0">
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-10 print:hidden">
-      <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center gap-4">
-          <button @click="$router.back()" class="text-gray-500 hover:text-gray-700">
-            &larr; 返回
-          </button>
-          <h1 class="text-lg font-bold text-gray-800">
-            {{ review?.template?.name }} - {{ review ? formatMonth(review.month) : '' }}
-          </h1>
-          <span v-if="review" :class="getStatusBadgeClass(review.status)" class="px-2 py-0.5 rounded text-xs">
-            {{ getStatusLabel(review.status) }}
-          </span>
-        </div>
-        <div class="flex gap-3">
-          <button @click="printReview" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-            打印 / 导出PDF
-          </button>
-          <button
-            v-if="canReject"
-            @click="rejectReview"
-            class="px-4 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
-          >
-            驳回 / 退回修订
-          </button>
-          <button
-            v-if="canSubmit"
-            @click="submitReview"
-            class="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors shadow-sm"
-          >
-            提交 / 确认
-          </button>
-        </div>
-      </div>
-    </div>
+  <div class="page-shell">
+    <!-- Header -->
+    <PageHeader 
+      :title="review?.template?.name || 'Loading...'" 
+      :subtitle="review ? formatMonth(review.month) : ''"
+    >
+      <template #meta>
+        <button @click="router.back()" class="flex items-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors text-sm mr-4">
+          <i class="pi pi-arrow-left mr-1"></i>
+          返回
+        </button>
+        <span v-if="review" :class="getStatusBadgeClass(review.status)" class="px-2 py-0.5 rounded-md text-xs font-medium">
+          {{ getStatusLabel(review.status) }}
+        </span>
+      </template>
+      <template #actions>
+        <button @click="printReview" class="btn-secondary flex items-center gap-2">
+          <i class="pi pi-print"></i>
+          打印 / 导出PDF
+        </button>
+        <button
+          v-if="canReject"
+          @click="rejectReview"
+          class="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors text-sm font-medium border border-red-200"
+        >
+          驳回 / 退回修订
+        </button>
+        <button
+          v-if="canSubmit"
+          @click="submitReview"
+          class="btn-primary shadow-sm"
+        >
+          提交 / 确认
+        </button>
+      </template>
+    </PageHeader>
 
-    <div v-if="review" class="max-w-5xl mx-auto mt-6 print:mt-0 print:w-full print:max-w-none">
-      <div class="mb-8 print:hidden">
-        <div class="flex items-center justify-between relative">
-          <div class="absolute left-0 top-1/2 w-full h-1 bg-gray-200 -z-10"></div>
-          <div v-for="(step, index) in steps" :key="step.key" class="flex flex-col items-center bg-white px-2">
+    <div v-if="review" class="max-w-5xl mx-auto w-full mt-6 space-y-6 print:mt-0 print:w-full print:max-w-none">
+      
+      <!-- Stepper (Hidden on Print) -->
+      <div class="print:hidden">
+        <div class="flex items-center justify-between relative px-4">
+          <div class="absolute left-0 top-1/2 w-full h-[1px] bg-[var(--color-border)] -z-10"></div>
+          <div v-for="(step, index) in steps" :key="step.key" class="flex flex-col items-center bg-[var(--color-bg-page)] px-4">
             <div
-              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors duration-300"
               :class="getStepClass(step.key)"
             >
               {{ index + 1 }}
             </div>
-            <span class="text-xs mt-1 font-medium text-gray-600">{{ step.label }}</span>
+            <span class="text-xs mt-2 font-medium text-[var(--color-text-secondary)]">{{ step.label }}</span>
           </div>
         </div>
       </div>
 
+      <!-- Print Only Header -->
       <div class="hidden print:block text-center mb-8 pt-8">
         <h1 class="text-2xl font-bold text-black mb-2">{{ review.template.name }}</h1>
         <div class="flex justify-center gap-8 text-sm text-gray-600">
@@ -61,127 +64,132 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 print:hidden">
-        <div class="grid grid-cols-3 gap-6 text-sm">
+      <!-- Info Card -->
+      <ContentCard class="print:shadow-none print:border-black">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
           <div>
-            <span class="text-gray-500 block mb-1">被考核人</span>
-            <span class="font-medium text-gray-900">{{ review.employee.nickname }} ({{ review.employee.username }})</span>
+            <span class="text-[var(--color-text-secondary)] block mb-1">被考核人</span>
+            <span class="font-medium text-[var(--color-text-primary)]">{{ review.employee.nickname }} ({{ review.employee.username }})</span>
           </div>
           <div>
-            <span class="text-gray-500 block mb-1">直属主管</span>
-            <span class="font-medium text-gray-900">{{ review.manager.nickname }}</span>
+            <span class="text-[var(--color-text-secondary)] block mb-1">直属主管</span>
+            <span class="font-medium text-[var(--color-text-primary)]">{{ review.manager.nickname }}</span>
           </div>
           <div>
-            <span class="text-gray-500 block mb-1">上级主管</span>
-            <span class="font-medium text-gray-900">{{ review.director?.nickname || '-' }}</span>
+            <span class="text-[var(--color-text-secondary)] block mb-1">上级主管</span>
+            <span class="font-medium text-[var(--color-text-primary)]">{{ review.director?.nickname || '-' }}</span>
           </div>
         </div>
-      </div>
+      </ContentCard>
 
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden print:shadow-none print:border-black">
+      <!-- Evaluation Table -->
+      <ContentCard class="p-0 overflow-hidden print:shadow-none print:border-black">
         <table class="w-full text-sm text-left">
-          <thead class="bg-gray-50 text-gray-700 font-semibold print:bg-gray-100 print:text-black border-b border-gray-200 print:border-black">
+          <thead class="bg-[var(--color-bg-page)] text-[var(--color-text-secondary)] font-semibold border-b border-[var(--color-border)] print:bg-gray-100 print:text-black print:border-black">
             <tr>
-              <th class="px-4 py-3 w-24 border-r border-gray-200 print:border-black">维度</th>
-              <th class="px-4 py-3 w-48 border-r border-gray-200 print:border-black">指标名称</th>
-              <th class="px-4 py-3 border-r border-gray-200 print:border-black">评分标准</th>
-              <th class="px-4 py-3 w-16 text-center border-r border-gray-200 print:border-black">权重</th>
-              <th class="px-4 py-3 w-24 text-center border-r border-gray-200 print:border-black bg-blue-50 print:bg-transparent">自评</th>
-              <th class="px-4 py-3 w-24 text-center border-r border-gray-200 print:border-black bg-yellow-50 print:bg-transparent">主管评</th>
-              <th v-if="review.directorId" class="px-4 py-3 w-24 text-center bg-purple-50 print:bg-transparent">终评</th>
+              <th class="px-4 py-3 w-24 border-r border-[var(--color-border)] print:border-black font-medium">维度</th>
+              <th class="px-4 py-3 w-48 border-r border-[var(--color-border)] print:border-black font-medium">指标名称</th>
+              <th class="px-4 py-3 border-r border-[var(--color-border)] print:border-black font-medium">评分标准</th>
+              <th class="px-4 py-3 w-16 text-center border-r border-[var(--color-border)] print:border-black font-medium">权重</th>
+              <th class="px-4 py-3 w-24 text-center border-r border-[var(--color-border)] print:border-black bg-blue-50/50 print:bg-transparent font-medium text-blue-700">自评</th>
+              <th class="px-4 py-3 w-32 text-center border-r border-[var(--color-border)] print:border-black bg-yellow-50/50 print:bg-transparent font-medium text-yellow-700">主管评</th>
+              <th v-if="review.directorId" class="px-4 py-3 w-32 text-center bg-purple-50/50 print:bg-transparent font-medium text-purple-700">终评</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200 print:divide-black">
-            <tr v-for="item in review.items" :key="item.id">
-              <td class="px-4 py-3 font-medium border-r border-gray-200 print:border-black">{{ item.category }}</td>
-              <td class="px-4 py-3 border-r border-gray-200 print:border-black">
-                <div class="font-medium">{{ item.kpiName }}</div>
+          <tbody class="divide-y divide-[var(--color-border)] print:divide-black">
+            <tr v-for="item in review.items" :key="item.id" class="hover:bg-[var(--color-bg-page)] transition-colors">
+              <td class="px-4 py-3 font-medium text-[var(--color-text-primary)] border-r border-[var(--color-border)] print:border-black">{{ item.category }}</td>
+              <td class="px-4 py-3 border-r border-[var(--color-border)] print:border-black">
+                <div class="font-medium text-[var(--color-text-primary)]">{{ item.kpiName }}</div>
               </td>
-              <td class="px-4 py-3 text-gray-600 border-r border-gray-200 print:border-black whitespace-pre-wrap">{{ item.description }}</td>
-              <td class="px-4 py-3 text-center border-r border-gray-200 print:border-black">{{ item.weight }}%</td>
+              <td class="px-4 py-3 text-[var(--color-text-secondary)] border-r border-[var(--color-border)] print:border-black whitespace-pre-wrap">{{ item.description }}</td>
+              <td class="px-4 py-3 text-center text-[var(--color-text-secondary)] border-r border-[var(--color-border)] print:border-black">{{ item.weight }}%</td>
 
-              <td class="px-2 py-2 border-r border-gray-200 print:border-black bg-blue-50/30 print:bg-transparent align-top text-center">
+              <!-- Self Score -->
+              <td class="px-2 py-2 border-r border-[var(--color-border)] print:border-black bg-blue-50/20 print:bg-transparent align-top text-center">
                 <div v-if="canEditSelf">
-                  <input v-model.number="item.selfScore" type="number" min="0" max="100" class="w-full border border-blue-200 rounded px-1 py-1 text-center focus:ring-1 focus:ring-blue-500 outline-none" placeholder="分数">
+                  <input v-model.number="item.selfScore" type="number" min="0" max="100" class="score-input focus:ring-blue-500" placeholder="分数">
                 </div>
-                <div v-else class="font-bold">
+                <div v-else class="font-bold text-blue-700 py-1">
                   {{ item.selfScore }}
                 </div>
               </td>
 
-              <td class="px-2 py-2 border-r border-gray-200 print:border-black bg-yellow-50/30 print:bg-transparent align-top">
+              <!-- Manager Score -->
+              <td class="px-2 py-2 border-r border-[var(--color-border)] print:border-black bg-yellow-50/20 print:bg-transparent align-top">
                 <div v-if="canEditManager">
-                  <input v-model.number="item.managerScore" type="number" min="0" max="100" class="w-full border border-yellow-200 rounded px-1 py-1 text-center mb-1 focus:ring-1 focus:ring-yellow-500 outline-none" placeholder="分数">
-                  <textarea v-model="item.managerComment" rows="2" class="w-full border border-yellow-200 rounded px-1 py-1 text-xs resize-none focus:ring-1 focus:ring-yellow-500 outline-none" placeholder="评语"></textarea>
+                  <input v-model.number="item.managerScore" type="number" min="0" max="100" class="score-input focus:ring-yellow-500 mb-1" placeholder="分数">
+                  <textarea v-model="item.managerComment" rows="2" class="comment-input focus:ring-yellow-500" placeholder="评语"></textarea>
                 </div>
                 <div v-else class="text-center">
-                  <div class="font-bold">{{ item.managerScore }}</div>
-                  <div class="text-xs text-gray-500 text-left mt-1">{{ item.managerComment }}</div>
+                  <div class="font-bold text-yellow-700">{{ item.managerScore }}</div>
+                  <div class="text-xs text-[var(--color-text-secondary)] text-left mt-1 bg-white/50 p-1 rounded">{{ item.managerComment }}</div>
                 </div>
               </td>
 
-              <td v-if="review.directorId" class="px-2 py-2 bg-purple-50/30 print:bg-transparent align-top">
+              <!-- Director Score -->
+              <td v-if="review.directorId" class="px-2 py-2 bg-purple-50/20 print:bg-transparent align-top">
                 <div v-if="canEditDirector">
-                  <input v-model.number="item.directorScore" type="number" min="0" max="100" class="w-full border border-purple-200 rounded px-1 py-1 text-center mb-1 focus:ring-1 focus:ring-purple-500 outline-none" placeholder="分数">
-                  <textarea v-model="item.directorComment" rows="2" class="w-full border border-purple-200 rounded px-1 py-1 text-xs resize-none focus:ring-1 focus:ring-purple-500 outline-none" placeholder="评语"></textarea>
+                  <input v-model.number="item.directorScore" type="number" min="0" max="100" class="score-input focus:ring-purple-500 mb-1" placeholder="分数">
+                  <textarea v-model="item.directorComment" rows="2" class="comment-input focus:ring-purple-500" placeholder="评语"></textarea>
                 </div>
                 <div v-else class="text-center">
-                  <div class="font-bold">{{ item.directorScore }}</div>
-                  <div class="text-xs text-gray-500 text-left mt-1">{{ item.directorComment }}</div>
+                  <div class="font-bold text-purple-700">{{ item.directorScore }}</div>
+                  <div class="text-xs text-[var(--color-text-secondary)] text-left mt-1 bg-white/50 p-1 rounded">{{ item.directorComment }}</div>
                 </div>
               </td>
             </tr>
           </tbody>
-          <tfoot class="bg-gray-50 font-bold text-gray-900 border-t border-gray-200 print:border-black print:bg-white">
+          <tfoot class="bg-[var(--color-bg-page)] font-bold text-[var(--color-text-primary)] border-t border-[var(--color-border)] print:border-black print:bg-white">
             <tr>
-              <td colspan="4" class="px-4 py-3 text-right border-r border-gray-200 print:border-black">加权总分:</td>
-              <td class="px-4 py-3 text-center border-r border-gray-200 print:border-black text-blue-700">{{ calculatedTotals.self }}</td>
-              <td class="px-4 py-3 text-center border-r border-gray-200 print:border-black text-yellow-700">{{ calculatedTotals.manager }}</td>
+              <td colspan="4" class="px-4 py-3 text-right border-r border-[var(--color-border)] print:border-black">加权总分:</td>
+              <td class="px-4 py-3 text-center border-r border-[var(--color-border)] print:border-black text-blue-700">{{ calculatedTotals.self }}</td>
+              <td class="px-4 py-3 text-center border-r border-[var(--color-border)] print:border-black text-yellow-700">{{ calculatedTotals.manager }}</td>
               <td v-if="review.directorId" class="px-4 py-3 text-center text-purple-700">{{ calculatedTotals.director }}</td>
             </tr>
           </tfoot>
         </table>
-      </div>
+      </ContentCard>
 
-      <div class="mt-8 space-y-6 print:space-y-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:shadow-none print:border-black print:p-0">
-          <h3 class="font-bold text-gray-800 mb-3 print:text-black">本月工作总结（存在的问题、计划改进方法）</h3>
-          <textarea
-            v-if="canEditSelf"
-            v-model="review.summaryThisMonth"
-            rows="4"
-            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-            placeholder="请填写..."
-          ></textarea>
-          <div v-else class="whitespace-pre-wrap text-gray-700 print:text-black text-sm min-h-[3rem]">{{ review.summaryThisMonth || '无' }}</div>
-        </div>
+      <!-- Text Areas -->
+      <ContentCard class="print:shadow-none print:border-black print:p-0">
+        <h3 class="font-bold text-[var(--color-text-primary)] mb-3 print:text-black">本月工作总结（存在的问题、计划改进方法）</h3>
+        <textarea
+          v-if="canEditSelf"
+          v-model="review.summaryThisMonth"
+          rows="4"
+          class="text-area-input"
+          placeholder="请填写..."
+        ></textarea>
+        <div v-else class="read-only-text">{{ review.summaryThisMonth || '无' }}</div>
+      </ContentCard>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:shadow-none print:border-black print:p-0">
-          <h3 class="font-bold text-gray-800 mb-3 print:text-black">下月工作重点计划 (*)</h3>
-          <textarea
-            v-if="canEditSelf"
-            v-model="review.planNextMonth"
-            rows="4"
-            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-            placeholder="请填写..."
-          ></textarea>
-          <div v-else class="whitespace-pre-wrap text-gray-700 print:text-black text-sm min-h-[3rem]">{{ review.planNextMonth || '无' }}</div>
-        </div>
+      <ContentCard class="print:shadow-none print:border-black print:p-0">
+        <h3 class="font-bold text-[var(--color-text-primary)] mb-3 print:text-black">下月工作重点计划 (*)</h3>
+        <textarea
+          v-if="canEditSelf"
+          v-model="review.planNextMonth"
+          rows="4"
+          class="text-area-input"
+          placeholder="请填写..."
+        ></textarea>
+        <div v-else class="read-only-text">{{ review.planNextMonth || '无' }}</div>
+      </ContentCard>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:shadow-none print:border-black print:p-0">
-          <h3 class="font-bold text-gray-800 mb-3 print:text-black">公司或部门存在的问题和建议</h3>
-          <textarea
-            v-if="canEditSelf"
-            v-model="review.companySuggestions"
-            rows="4"
-            class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-            placeholder="请填写..."
-          ></textarea>
-          <div v-else class="whitespace-pre-wrap text-gray-700 print:text-black text-sm min-h-[3rem]">{{ review.companySuggestions || '无' }}</div>
-        </div>
-      </div>
+      <ContentCard class="print:shadow-none print:border-black print:p-0">
+        <h3 class="font-bold text-[var(--color-text-primary)] mb-3 print:text-black">公司或部门存在的问题和建议</h3>
+        <textarea
+          v-if="canEditSelf"
+          v-model="review.companySuggestions"
+          rows="4"
+          class="text-area-input"
+          placeholder="请填写..."
+        ></textarea>
+        <div v-else class="read-only-text">{{ review.companySuggestions || '无' }}</div>
+      </ContentCard>
 
-      <div class="hidden print:flex mt-12 justify-between px-12">
+      <!-- Print Signatures -->
+      <div class="hidden print:flex mt-12 justify-between px-12 text-black">
         <div class="text-center">
           <div class="mb-8">员工签字: __________________</div>
           <div>日期: __________________</div>
@@ -202,9 +210,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import performanceService from '@/services/performanceService';
+import PageHeader from '@/components/common/PageHeader.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
+
 
 interface ReviewItem {
   id: string;
@@ -242,6 +253,7 @@ interface CurrentUser {
 }
 
 const route = useRoute();
+const router = useRouter();
 const review = ref<ReviewDetail | null>(null);
 const currentUser = ref<CurrentUser | null>(null);
 
@@ -274,17 +286,17 @@ const canReject = computed(() => {
 const statusOrder = ['DRAFT', 'SELF_REVIEW', 'MANAGER_REVIEW', 'DIRECTOR_REVIEW', 'COMPLETED'];
 
 const getStepClass = (stepKey: string) => {
-  if (!review.value) return 'border-gray-200 text-gray-400';
+  if (!review.value) return 'border-[var(--color-border)] text-[var(--color-text-muted)]';
   const currentIndex = statusOrder.indexOf(review.value.status);
   const stepIndex = statusOrder.indexOf(stepKey);
 
   if (review.value.status === stepKey) {
-    return 'border-blue-500 bg-blue-500 text-white';
+    return 'border-[var(--color-accent)] bg-[var(--color-accent)] text-white shadow-md';
   }
   if (stepIndex < currentIndex) {
-    return 'border-blue-500 bg-white text-blue-500';
+    return 'border-[var(--color-accent)] bg-[var(--color-bg-page)] text-[var(--color-accent)]';
   }
-  return 'border-gray-200 bg-white text-gray-400';
+  return 'border-[var(--color-border)] bg-[var(--color-bg-page)] text-[var(--color-text-muted)]';
 };
 
 const calculatedTotals = computed(() => {
@@ -410,7 +422,7 @@ onMounted(() => {
 });
 </script>
 
-<style>
+<style scoped>
 @media print {
   @page {
     size: A4;
@@ -422,16 +434,72 @@ onMounted(() => {
   }
 }
 
-/* Clean White Theme Overrides */
-.min-h-screen { background: var(--color-bg-page); }
-.bg-white {
-  background: var(--color-bg-card);
-  border-color: var(--color-border);
+.score-input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem;
+  text-align: center;
+  outline: none;
+  font-size: 0.875rem;
 }
-.text-gray-800, .text-gray-900 { color: var(--color-text-primary); }
-.text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
-.text-gray-400 { color: var(--color-text-muted); }
-.bg-blue-600 { background: var(--color-accent); }
-.text-blue-600, .text-blue-700 { color: var(--color-accent); }
-.rounded-xl, .rounded-2xl { border-radius: var(--radius-md); }
+
+.comment-input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  resize: none;
+  outline: none;
+}
+
+.text-area-input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  outline: none;
+  resize: none;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.text-area-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+.read-only-text {
+  white-space: pre-wrap;
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  min-height: 3rem;
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  color: var(--color-text-primary);
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+.btn-secondary:hover {
+  background: var(--color-bg-page);
+  border-color: var(--color-text-muted);
+}
+
+.btn-primary {
+  padding: 0.5rem 1.5rem;
+  background: var(--color-accent);
+  color: white;
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+.btn-primary:hover {
+  background: var(--color-accent-hover);
+}
 </style>

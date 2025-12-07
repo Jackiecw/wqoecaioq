@@ -1,42 +1,47 @@
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-      <div class="flex items-center gap-4">
-        <button @click="$router.back()" class="text-gray-500 hover:text-gray-700">
-          &larr; 返回
+  <div class="page-shell">
+    <PageHeader title="绩效模板" subtitle="管理和创建员工绩效考核标准">
+      <template #actions>
+        <button
+          @click="openCreateModal"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors test-sm"
+        >
+          <span>+ 新建模板</span>
         </button>
-        <h1 class="text-2xl font-bold text-gray-800">绩效模板</h1>
-      </div>
-      <button
-        @click="openCreateModal"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-      >
-        <span>+ 新建模板</span>
-      </button>
-    </div>
+      </template>
+    </PageHeader>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div
         v-for="template in templates"
         :key="template.id"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer"
+        class="h-full cursor-pointer group"
         @click="openPreviewModal(template)"
       >
-        <div class="flex justify-between items-start mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">{{ template.name }}</h3>
-          <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-            {{ template.items.length }} 指标项
-          </span>
-        </div>
-        <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ template.description || '暂无描述' }}</p>
-        <div class="text-xs text-gray-400">
-          创建于 {{ template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '--' }}
-        </div>
+        <ContentCard
+          class="h-full flex flex-col hover:shadow-md transition-shadow relative"
+        >
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-semibold text-[var(--color-text-primary)] group-hover:text-blue-600 transition-colors">
+              {{ template.name }}
+            </h3>
+            <span class="text-xs text-[var(--color-text-secondary)] bg-gray-100 px-2 py-1 rounded">
+              {{ template.items.length }} 指标项
+            </span>
+          </div>
+          <p class="text-[var(--color-text-secondary)] text-sm mb-4 line-clamp-2 flex-1">
+            {{ template.description || '暂无描述' }}
+          </p>
+          <div class="text-xs text-[var(--color-text-muted)] pt-4 border-t border-[var(--color-border)] w-full">
+            创建于 {{ template.createdAt ? new Date(template.createdAt).toLocaleDateString() : '--' }}
+          </div>
+        </ContentCard>
       </div>
     </div>
 
+    <!-- Create Modal -->
     <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in-up">
         <div class="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 class="text-xl font-bold text-gray-800">创建绩效模板</h2>
           <button @click="showModal = false" class="text-gray-400 hover:text-gray-600">
@@ -143,8 +148,9 @@
       </div>
     </div>
 
+    <!-- Preview Modal -->
     <div v-if="showPreviewModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-fade-in-up">
         <div class="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 class="text-xl font-bold text-gray-800">{{ selectedTemplate?.name }}</h2>
           <button @click="showPreviewModal = false" class="text-gray-400 hover:text-gray-600">
@@ -184,6 +190,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import performanceService, { PerformanceTemplate } from '@/services/performanceService';
+import PageHeader from '@/components/common/PageHeader.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
 
 type TemplateItem = {
   category: string;
@@ -267,16 +275,20 @@ onMounted(fetchTemplates);
 </script>
 
 <style scoped>
-/* Clean White Theme Overrides */
-.p-6 { background: var(--color-bg-page); }
-h1 { color: var(--color-text-primary); }
-.bg-white {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+/* Page transition animation */
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
 }
-.text-gray-800, .text-gray-900 { color: var(--color-text-primary); }
-.text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
-.bg-blue-600 { background: var(--color-accent); }
-.rounded-xl, .rounded-2xl { border-radius: var(--radius-md); }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>
 ```

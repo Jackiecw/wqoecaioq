@@ -1,25 +1,24 @@
 <template>
-  <div class="sales-dashboard">
-    <!-- 页面头部 (Clean White Theme) -->
-    <header class="page-header">
-      <div class="header-top">
-        <div class="header-text">
-          <h1 class="page-title">销售数据看板</h1>
-          <p class="page-subtitle">实时监控关键业务指标与趋势</p>
-        </div>
-        <div class="header-actions">
-          <span class="refresh-badge"><i class="pi pi-sync"></i> {{ lastRefreshText }}</span>
-          <Button
-            :icon="isSnapshotMode ? 'pi pi-eye-slash' : 'pi pi-camera'"
-            :severity="isSnapshotMode ? 'danger' : 'secondary'"
-            text
-            rounded
-            size="small"
-            @click="toggleSnapshotMode"
-          />
-        </div>
-      </div>
-      <div class="filter-bar">
+  <div class="sales-dashboard page-shell">
+    <PageHeader
+      title="销售数据看板"
+      subtitle="实时监控关键业务指标与趋势"
+    >
+      <template #actions>
+        <span class="refresh-badge"><i class="pi pi-sync"></i> {{ lastRefreshText }}</span>
+        <Button
+          :icon="isSnapshotMode ? 'pi pi-eye-slash' : 'pi pi-camera'"
+          :severity="isSnapshotMode ? 'danger' : 'secondary'"
+          text
+          rounded
+          size="small"
+          @click="toggleSnapshotMode"
+        />
+      </template>
+    </PageHeader>
+
+    <FilterBar>
+      <template #start>
         <Dropdown
           v-model="selectedCountry"
           :options="countryOptions"
@@ -29,12 +28,12 @@
           :filter="countryOptions.length > 6"
           class="filter-dropdown"
         />
-        <div class="filter-tabs">
+        <div class="pill-tab-group">
           <button
             v-for="opt in dateRangeOptions"
             :key="opt.value"
-            class="filter-tab"
-            :class="{ 'filter-tab--active': currentRange === opt.value }"
+            class="pill-tab"
+            :class="{ 'is-active': currentRange === opt.value }"
             @click="currentRange = opt.value"
           >
             {{ opt.label }}
@@ -46,138 +45,60 @@
           <Calendar v-model="customEndDate" show-icon dateFormat="yy-mm-dd" placeholder="结束" class="filter-calendar" />
           <Button icon="pi pi-check" size="small" text @click="fetchStats" />
         </div>
-        <div class="filter-spacer"></div>
-        <div class="filter-compare">
-          <span>对比:</span>
+      </template>
+      <template #end>
+        <div class="pill-tab-group">
           <button
             v-for="opt in compareModeOptions"
             :key="opt.value"
-            class="compare-btn"
-            :class="{ 'compare-btn--active': compareMode === opt.value }"
+            class="pill-tab"
+            :class="{ 'is-active': compareMode === opt.value }"
             @click="compareMode = opt.value"
           >
             {{ opt.label }}
           </button>
         </div>
-      </div>
-    </header>
-
-    <!-- Snapshot Banner -->
-    <div v-if="isSnapshotMode" class="snapshot-banner">
-      <div>
-        <span class="snapshot-badge">Snapshot Mode</span>
-        <h3>销售周报截屏视图</h3>
-      </div>
-      <div class="snapshot-date">
-        <span>报告日期</span>
-        <strong>{{ todayText }}</strong>
-      </div>
-    </div>
+      </template>
+    </FilterBar>
 
     <Message v-if="errorMessage" severity="error" :closable="false">
       {{ errorMessage }}
     </Message>
 
-    <!-- KPI Cards -->
     <div class="kpi-grid">
-      <!-- GMV Card -->
-      <div class="kpi-card kpi-card--gmv" :class="{ 'kpi-card--loading': isLoading }">
-        <template v-if="isLoading">
-          <div class="skeleton skeleton--icon"></div>
-          <div class="skeleton skeleton--text-lg"></div>
-          <div class="skeleton skeleton--text-sm"></div>
-        </template>
-        <template v-else-if="stats.summary.totalGMV > 0">
+      <ContentCard
+        v-for="card in kpiCards"
+        :key="card.key"
+        class="kpi-card"
+      >
+        <div class="kpi-left-bar" :style="{ backgroundColor: card.accent }"></div>
+        <div v-if="isLoading" class="kpi-loading">
+          <SkeletonBlock width="44px" height="44px" />
+          <SkeletonBlock width="60%" height="20px" />
+          <SkeletonBlock width="40%" height="14px" />
+        </div>
+        <template v-else-if="card.hasData">
           <div class="kpi-header">
-            <div class="kpi-icon">
-              <i class="pi pi-chart-line"></i>
+            <div class="kpi-icon" :style="{ color: card.accent, backgroundColor: card.bg }">
+              <i :class="card.icon"></i>
             </div>
-            <span>总销售额 (GMV)</span>
+            <span class="kpi-label">{{ card.label }}</span>
           </div>
           <div class="kpi-value">
-            <span class="kpi-number">{{ formatNumber(stats.summary.totalGMV) }}</span>
-            <span class="kpi-currency">{{ stats.summary.currency }}</span>
+            <span class="kpi-number">{{ card.value }}</span>
+            <span class="kpi-currency">{{ card.suffix }}</span>
           </div>
           <div class="kpi-footer">
-            <Tag :value="formatGrowth(stats.summary.gmvGrowth)" :severity="growthSeverity(stats.summary.gmvGrowth)" rounded />
+            <Tag :value="card.growthText" :severity="card.growthSeverity" rounded />
             <span class="kpi-compare">{{ compareMode === 'wow' ? '环比' : '同比' }}</span>
           </div>
         </template>
-        <template v-else>
-          <div class="kpi-empty">
-            <i class="pi pi-inbox"></i>
-            <span>暂无数据</span>
-          </div>
-        </template>
-      </div>
-
-      <!-- Orders Card -->
-      <div class="kpi-card kpi-card--orders" :class="{ 'kpi-card--loading': isLoading }">
-        <template v-if="isLoading">
-          <div class="skeleton skeleton--icon"></div>
-          <div class="skeleton skeleton--text-lg"></div>
-          <div class="skeleton skeleton--text-sm"></div>
-        </template>
-        <template v-else-if="stats.summary.totalOrders > 0">
-          <div class="kpi-header">
-            <div class="kpi-icon">
-              <i class="pi pi-shopping-cart"></i>
-            </div>
-            <span>总订单量</span>
-          </div>
-          <div class="kpi-value">
-            <span class="kpi-number">{{ stats.summary.totalOrders.toLocaleString() }}</span>
-            <span class="kpi-currency">单</span>
-          </div>
-          <div class="kpi-footer">
-            <Tag :value="formatGrowth(stats.summary.ordersGrowth)" :severity="growthSeverity(stats.summary.ordersGrowth)" rounded />
-            <span class="kpi-compare">{{ compareMode === 'wow' ? '环比' : '同比' }}</span>
-          </div>
-        </template>
-        <template v-else>
-          <div class="kpi-empty">
-            <i class="pi pi-inbox"></i>
-            <span>暂无数据</span>
-          </div>
-        </template>
-      </div>
-
-      <!-- AOV Card -->
-      <div class="kpi-card kpi-card--aov" :class="{ 'kpi-card--loading': isLoading }">
-        <template v-if="isLoading">
-          <div class="skeleton skeleton--icon"></div>
-          <div class="skeleton skeleton--text-lg"></div>
-          <div class="skeleton skeleton--text-sm"></div>
-        </template>
-        <template v-else-if="stats.summary.aov > 0">
-          <div class="kpi-header">
-            <div class="kpi-icon">
-              <i class="pi pi-dollar"></i>
-            </div>
-            <span>平均客单价 (AOV)</span>
-          </div>
-          <div class="kpi-value">
-            <span class="kpi-number">{{ formatNumber(stats.summary.aov) }}</span>
-            <span class="kpi-currency">{{ stats.summary.currency }}</span>
-          </div>
-          <div class="kpi-footer">
-            <Tag :value="formatGrowth(stats.summary.aovGrowth)" :severity="growthSeverity(stats.summary.aovGrowth)" rounded />
-            <span class="kpi-compare">{{ compareMode === 'wow' ? '环比' : '同比' }}</span>
-          </div>
-        </template>
-        <template v-else>
-          <div class="kpi-empty">
-            <i class="pi pi-inbox"></i>
-            <span>暂无数据</span>
-          </div>
-        </template>
-      </div>
+        <EmptyState v-else icon="pi pi-inbox" title="暂无数据" />
+      </ContentCard>
     </div>
 
-    <!-- Charts Row -->
     <div class="charts-grid">
-      <!-- Trend Chart -->
-      <div class="chart-card chart-card--main">
+      <ContentCard class="chart-card">
         <div class="chart-header">
           <div class="chart-title">
             <div class="chart-icon chart-icon--blue">
@@ -187,29 +108,13 @@
           </div>
         </div>
         <div class="chart-body">
-          <template v-if="isLoading">
-            <div class="skeleton-chart">
-              <div class="skeleton skeleton--bar" style="height: 60%"></div>
-              <div class="skeleton skeleton--bar" style="height: 80%"></div>
-              <div class="skeleton skeleton--bar" style="height: 45%"></div>
-              <div class="skeleton skeleton--bar" style="height: 90%"></div>
-              <div class="skeleton skeleton--bar" style="height: 55%"></div>
-              <div class="skeleton skeleton--bar" style="height: 70%"></div>
-              <div class="skeleton skeleton--bar" style="height: 85%"></div>
-            </div>
-          </template>
+          <SkeletonBlock v-if="isLoading" class="w-full h-full" />
           <BaseChart v-else-if="hasTrendData" :option="trendChartOption" height="100%" />
-          <div v-else class="empty-state">
-            <div class="empty-icon">
-              <i class="pi pi-chart-line"></i>
-            </div>
-            <p>暂无趋势数据</p>
-          </div>
+          <EmptyState v-else icon="pi pi-chart-line" title="暂无趋势数据" description="选择其他时间范围再试试" />
         </div>
-      </div>
+      </ContentCard>
 
-      <!-- Platform Chart -->
-      <div class="chart-card">
+      <ContentCard class="chart-card">
         <div class="chart-header">
           <div class="chart-title">
             <div class="chart-icon chart-icon--purple">
@@ -220,10 +125,7 @@
         </div>
         <div class="chart-body chart-body--pie">
           <BaseChart v-if="hasPlatformData" :option="platformChartOption" height="160px" />
-          <div v-else class="empty-state empty-state--sm">
-            <i class="pi pi-chart-pie"></i>
-            <span>暂无数据</span>
-          </div>
+          <EmptyState v-else class="pt-4" icon="pi pi-chart-pie" title="暂无数据" />
         </div>
         <div v-if="hasPlatformData" class="platform-legend">
           <div v-for="(item, index) in stats.byPlatform" :key="item.platform" class="legend-item">
@@ -232,13 +134,11 @@
             <span class="legend-value">{{ formatCurrency(item.gmv, stats.summary.currency) }}</span>
           </div>
         </div>
-      </div>
+      </ContentCard>
     </div>
 
-    <!-- Bottom Row -->
     <div class="bottom-grid">
-      <!-- Country Performance -->
-      <div class="list-card">
+      <ContentCard class="list-card">
         <div class="list-header">
           <div class="list-icon list-icon--blue">
             <i class="pi pi-globe"></i>
@@ -255,15 +155,11 @@
               <ProgressBar :value="getPercentage(item.gmv, stats.summary.totalGMV)" :show-value="false" class="country-bar" />
             </div>
           </template>
-          <div v-else class="empty-state empty-state--sm">
-            <i class="pi pi-globe"></i>
-            <span>暂无数据</span>
-          </div>
+          <EmptyState v-else icon="pi pi-globe" title="暂无数据" />
         </div>
-      </div>
+      </ContentCard>
 
-      <!-- Top Stores -->
-      <div class="list-card">
+      <ContentCard class="list-card">
         <div class="list-header">
           <div class="list-icon list-icon--purple">
             <i class="pi pi-shop"></i>
@@ -273,7 +169,7 @@
         <div class="list-body">
           <template v-if="stats.topStores.length">
             <div v-for="(store, index) in stats.topStores" :key="store.name" class="rank-item">
-              <div class="rank-badge" :class="{ 'rank-badge--gold': index === 0, 'rank-badge--silver': index === 1, 'rank-badge--bronze': index === 2 }">
+              <div class="rank-badge" :class="rankClass(index)">
                 {{ index + 1 }}
               </div>
               <div class="rank-info">
@@ -283,15 +179,11 @@
               <span class="rank-value">{{ formatCurrency(store.gmv, stats.summary.currency) }}</span>
             </div>
           </template>
-          <div v-else class="empty-state empty-state--sm">
-            <i class="pi pi-shop"></i>
-            <span>暂无数据</span>
-          </div>
+          <EmptyState v-else icon="pi pi-shop" title="暂无数据" />
         </div>
-      </div>
+      </ContentCard>
 
-      <!-- Top Products -->
-      <div class="list-card">
+      <ContentCard class="list-card">
         <div class="list-header">
           <div class="list-icon list-icon--green">
             <i class="pi pi-box"></i>
@@ -311,12 +203,9 @@
               <span class="rank-value rank-value--green">{{ prod.volume.toLocaleString() }} 件</span>
             </div>
           </template>
-          <div v-else class="empty-state empty-state--sm">
-            <i class="pi pi-box"></i>
-            <span>暂无数据</span>
-          </div>
+          <EmptyState v-else icon="pi pi-box" title="暂无数据" />
         </div>
-      </div>
+      </ContentCard>
     </div>
   </div>
 </template>
@@ -324,7 +213,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
-import SelectButton from 'primevue/selectbutton';
 import Dropdown from 'primevue/dropdown';
 import Calendar from 'primevue/calendar';
 import Button from 'primevue/button';
@@ -332,6 +220,11 @@ import Tag from 'primevue/tag';
 import ProgressBar from 'primevue/progressbar';
 import Message from 'primevue/message';
 import BaseChart from '@/components/charts/BaseChart.vue';
+import EmptyState from '@/components/common/EmptyState.vue';
+import SkeletonBlock from '@/components/common/SkeletonBlock.vue';
+import PageHeader from '@/components/common/PageHeader.vue';
+import FilterBar from '@/components/common/FilterBar.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '@/stores/auth';
 
@@ -442,9 +335,50 @@ const chartPalette = ['#3b82f6', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444'];
 const hasTrendData = computed(() => stats.value.trend && stats.value.trend.length > 0);
 const hasPlatformData = computed(() => stats.value.byPlatform && stats.value.byPlatform.length > 0);
 
+const kpiCards = computed(() => {
+  const s = stats.value.summary;
+  return [
+    {
+      key: 'gmv',
+      label: '总销售额 (GMV)',
+      icon: 'pi pi-chart-line',
+      accent: '#2563eb',
+      bg: 'rgba(37,99,235,0.1)',
+      value: formatNumber(s.totalGMV),
+      suffix: s.currency,
+      growthText: formatGrowth(s.gmvGrowth),
+      growthSeverity: growthSeverity(s.gmvGrowth),
+      hasData: s.totalGMV > 0,
+    },
+    {
+      key: 'orders',
+      label: '总订单量',
+      icon: 'pi pi-shopping-cart',
+      accent: '#8b5cf6',
+      bg: 'rgba(139,92,246,0.1)',
+      value: s.totalOrders.toLocaleString(),
+      suffix: '单',
+      growthText: formatGrowth(s.ordersGrowth),
+      growthSeverity: growthSeverity(s.ordersGrowth),
+      hasData: s.totalOrders > 0,
+    },
+    {
+      key: 'aov',
+      label: '平均客单价 (AOV)',
+      icon: 'pi pi-dollar',
+      accent: '#14b8a6',
+      bg: 'rgba(20,184,166,0.1)',
+      value: formatNumber(s.aov),
+      suffix: s.currency,
+      growthText: formatGrowth(s.aovGrowth),
+      growthSeverity: growthSeverity(s.aovGrowth),
+      hasData: s.aov > 0,
+    },
+  ];
+});
+
 const trendChartOption = computed(() => {
   if (!stats.value.trend.length) return {};
-  
   return {
     tooltip: {
       trigger: 'axis',
@@ -495,7 +429,6 @@ const trendChartOption = computed(() => {
 
 const platformChartOption = computed(() => {
   if (!stats.value.byPlatform.length) return {};
-  
   return {
     tooltip: {
       trigger: 'item',
@@ -689,63 +622,26 @@ const formatDate = (date: Date) => {
   cloned.setHours(0, 0, 0, 0);
   return cloned.toISOString().slice(0, 10);
 };
+
+const rankClass = (index: number) => ({
+  'rank-badge--gold': index === 0,
+  'rank-badge--silver': index === 1,
+  'rank-badge--bronze': index === 2,
+});
 </script>
 
 <style scoped>
 .sales-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
   background: var(--color-bg-page);
 }
 
-/* ========================================
-   页面头部 (Clean White Theme)
-   ======================================== */
-.page-header {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1.25rem 1.5rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.header-text {
-  flex: 1;
-}
-
-.page-title {
-  font-size: 1.375rem;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.page-subtitle {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-  margin: 0.25rem 0 0;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .refresh-badge {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   background: var(--color-bg-page);
@@ -753,685 +649,180 @@ const formatDate = (date: Date) => {
   border-radius: var(--radius-sm);
 }
 
-.refresh-badge i {
-  font-size: 0.625rem;
-}
-
-/* ========================================
-   筛选栏
-   ======================================== */
-.filter-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.625rem;
-}
-
-.filter-dropdown {
-  min-width: 100px;
-}
-
 .filter-dropdown :deep(.p-select),
 .filter-dropdown :deep(.p-dropdown) {
-  background: var(--color-bg-page);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
-
 .filter-dropdown :deep(.p-select-label),
 .filter-dropdown :deep(.p-dropdown-label) {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: var(--color-text-primary);
-}
-
-.filter-tabs {
-  display: flex;
-  background: var(--color-bg-page);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.1875rem;
-}
-
-.filter-tab {
-  padding: 0.375rem 0.625rem;
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  background: transparent;
-  border: none;
-  border-radius: calc(var(--radius-sm) - 2px);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.filter-tab:hover {
-  color: var(--color-text-primary);
-}
-
-.filter-tab--active {
-  background: var(--color-bg-card);
-  color: var(--color-text-primary);
-  box-shadow: var(--shadow-xs);
 }
 
 .filter-custom {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: var(--color-text-secondary);
 }
-
 .filter-calendar {
-  width: 100px;
+  width: 110px;
 }
-
 .filter-calendar :deep(.p-inputtext) {
-  background: var(--color-bg-page);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   padding: 0.375rem 0.5rem;
 }
 
-.filter-spacer {
-  flex: 1;
-}
-
-.filter-compare {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-.filter-compare > span {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-}
-
-.compare-btn {
-  padding: 0.3rem 0.5rem;
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.compare-btn:hover {
-  color: var(--color-text-primary);
-  border-color: var(--color-primary);
-}
-
-.compare-btn--active {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-/* ========================================
-   Snapshot Banner
-   ======================================== */
-.snapshot-banner {
-  background: var(--color-accent-soft);
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-md);
-  padding: 1rem 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.snapshot-badge {
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-accent);
-}
-
-.snapshot-banner h3 {
-  font-size: 1.125rem;
-  font-weight: 700;
-  margin: 0.25rem 0 0;
-  color: var(--color-text-primary);
-}
-
-.snapshot-date {
-  text-align: right;
-}
-
-.snapshot-date span {
-  font-size: 0.7rem;
-  color: var(--color-text-secondary);
-  display: block;
-}
-
-.snapshot-date strong {
-  font-size: 1.25rem;
-  color: var(--color-accent);
-}
-
-/* ========================================
-   KPI Grid
-   ======================================== */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  gap: var(--space-4);
 }
-
-/* KPI Card - Clean White Theme */
 .kpi-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  position: relative;
   padding: 1.25rem;
   min-height: 140px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  transition: all var(--transition-fast);
-  box-shadow: var(--shadow-sm);
-  position: relative;
+  gap: 0.75rem;
 }
-
-.kpi-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.kpi-card::before {
-  content: '';
+.kpi-left-bar {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  width: 3px;
-  border-radius: 3px 0 0 3px;
+  width: 4px;
+  border-radius: 4px 0 0 4px;
 }
-
-/* KPI Card Variants - Left Border Colors */
-.kpi-card--gmv::before {
-  background: var(--color-accent);
-}
-
-.kpi-card--orders::before {
-  background: #8b5cf6;
-}
-
-.kpi-card--aov::before {
-  background: #14b8a6;
-}
-
 .kpi-header {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.75rem;
 }
-
 .kpi-icon {
-  width: 2.25rem;
-  height: 2.25rem;
-  background: var(--color-accent-soft);
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.875rem;
-  color: var(--color-accent);
 }
-
-.kpi-card--orders .kpi-icon {
-  background: #f3e8ff;
-  color: #8b5cf6;
-}
-
-.kpi-card--aov .kpi-icon {
-  background: #ccfbf1;
-  color: #14b8a6;
-}
-
-.kpi-header span {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-}
-
-.kpi-value {
-  display: flex;
-  align-items: baseline;
-  gap: 0.375rem;
-}
-
-.kpi-number {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text-primary);
-}
-
-.kpi-currency {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-}
-
+.kpi-label { font-size: 0.85rem; color: var(--color-text-secondary); }
+.kpi-value { display: flex; align-items: baseline; gap: 0.35rem; }
+.kpi-number { font-size: 2rem; font-weight: 700; color: var(--color-text-primary); }
+.kpi-currency { font-size: 0.9rem; color: var(--color-text-secondary); }
 .kpi-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 0.5rem;
+  justify-content: flex-start;
 }
+.kpi-compare { font-size: 0.75rem; color: var(--color-text-muted); }
+.kpi-loading { display: flex; flex-direction: column; gap: 0.5rem; }
 
-.kpi-compare {
-  font-size: 0.65rem;
-  color: var(--color-text-muted);
-}
-
-.kpi-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  opacity: 0.6;
-  gap: 0.5rem;
-}
-
-.kpi-empty i {
-  font-size: 2rem;
-}
-
-/* Skeleton */
-.skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite;
-  border-radius: 0.5rem;
-}
-
-.skeleton--icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
-}
-
-.skeleton--text-lg {
-  height: 2.5rem;
-  width: 60%;
-  margin-top: 1rem;
-}
-
-.skeleton--text-sm {
-  height: 1.5rem;
-  width: 40%;
-  margin-top: 0.5rem;
-}
-
-.skeleton--bar {
-  width: 12%;
-  border-radius: 0.25rem 0.25rem 0 0;
-}
-
-@keyframes skeleton-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* Charts Grid */
 .charts-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
 }
-
-.chart-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-.chart-header {
-  padding: 1.25rem 1.5rem 0;
-}
-
-.chart-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
+.chart-card { padding: 1.25rem; }
+.chart-header { margin-bottom: 0.75rem; }
+.chart-title { display: flex; align-items: center; gap: 0.75rem; }
 .chart-icon {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.625rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 2.5rem; height: 2.5rem;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
   font-size: 1rem;
 }
-
-.chart-icon--blue {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
-
-.chart-icon--purple {
-  background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
-}
-
-.chart-title span {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--surface-900);
-}
-
-.chart-body {
-  padding: 1rem 1.5rem 1.5rem;
-  height: 280px;
-}
-
-.chart-body--pie {
-  height: 180px;
-  display: flex;
-  justify-content: center;
-}
-
-.skeleton-chart {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 100%;
-  padding: 1rem;
-}
-
-.skeleton-chart .skeleton {
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
-  background-size: 200% 100%;
-}
-
+.chart-icon--blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.chart-icon--purple { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.chart-body { height: 280px; padding-top: 0.5rem; }
+.chart-body--pie { height: 200px; display: flex; justify-content: center; }
 .platform-legend {
-  padding: 0 1.5rem 1.5rem;
+  padding-top: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
   gap: 0.5rem;
-  font-size: 0.8rem;
 }
+.legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.legend-name { flex: 1; color: var(--color-text-secondary); font-weight: 500; }
+.legend-value { font-weight: 700; color: var(--color-text-primary); }
 
-.legend-dot {
-  width: 0.625rem;
-  height: 0.625rem;
-  border-radius: 50%;
-}
-
-.legend-name {
-  flex: 1;
-  color: var(--surface-700);
-  font-weight: 500;
-}
-
-.legend-value {
-  font-weight: 600;
-  color: var(--surface-900);
-}
-
-/* Bottom Grid */
 .bottom-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.25rem;
+  gap: var(--space-4);
 }
-
-.list-card {
-  background: white;
-  border-radius: 1.25rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
+.list-card { padding: 1.25rem; }
 .list-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--surface-100);
+  margin-bottom: 1rem;
 }
-
 .list-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
+.list-icon--blue { background: rgba(59, 130, 246, 0.12); color: #2563eb; }
+.list-icon--purple { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.list-icon--green { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.list-header span { font-weight: 700; color: var(--color-text-primary); }
+.list-body { display: flex; flex-direction: column; gap: 0.75rem; }
 
-.list-icon--blue {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
+.country-item { display: flex; flex-direction: column; gap: 0.35rem; }
+.country-info { display: flex; justify-content: space-between; align-items: center; }
+.country-name { font-weight: 600; color: var(--color-text-secondary); }
+.country-value { font-weight: 700; color: var(--color-text-primary); }
+.country-bar { height: 6px; }
+.country-bar :deep(.p-progressbar-value) { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
 
-.list-icon--purple {
-  background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
-}
-
-.list-icon--green {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.list-header span {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--surface-900);
-}
-
-.list-body {
-  padding: 1rem 1.5rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-}
-
-/* Country Item */
-.country-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.country-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.country-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--surface-700);
-}
-
-.country-value {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--surface-900);
-}
-
-.country-bar {
-  height: 6px;
-}
-
-.country-bar :deep(.p-progressbar-value) {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-}
-
-/* Rank Item */
 .rank-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  background: var(--surface-50);
-  border-radius: 0.75rem;
-  transition: background 0.15s ease;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
 }
-
-.rank-item:hover {
-  background: var(--surface-100);
-}
-
 .rank-badge {
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 700;
-  background: var(--surface-200);
-  color: var(--surface-600);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
 }
+.rank-badge--gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
+.rank-badge--silver { background: linear-gradient(135deg, #d1d5db, #9ca3af); color: white; }
+.rank-badge--bronze { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
+.rank-badge--green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.rank-info { flex: 1; min-width: 0; }
+.rank-name { display: block; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-label { font-size: 0.75rem; color: var(--color-text-muted); }
+.rank-value { font-weight: 700; color: var(--color-text-primary); }
+.rank-value--green { color: #10b981; }
 
-.rank-badge--gold {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: white;
-}
-
-.rank-badge--silver {
-  background: linear-gradient(135deg, #d1d5db, #9ca3af);
-  color: white;
-}
-
-.rank-badge--bronze {
-  background: linear-gradient(135deg, #d97706, #b45309);
-  color: white;
-}
-
-.rank-badge--green {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.rank-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.rank-name {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--surface-900);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rank-label {
-  font-size: 0.65rem;
-  color: var(--surface-500);
-}
-
-.rank-value {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--surface-900);
-}
-
-.rank-value--green {
-  color: #10b981;
-}
-
-/* Empty State */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--surface-400);
-  gap: 0.75rem;
-}
-
-.empty-icon {
-  width: 3.5rem;
-  height: 3.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.empty-icon i {
-  font-size: 1.25rem;
-  color: white;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.empty-state--sm {
-  flex-direction: row;
-  gap: 0.5rem;
-  padding: 2rem;
-}
-
-.empty-state--sm i {
-  font-size: 1rem;
-}
-
-.empty-state--sm span {
-  font-size: 0.8rem;
-}
-
-/* Responsive */
 @media (max-width: 1024px) {
-  .kpi-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .bottom-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .header-right {
-    width: 100%;
-    align-items: flex-start;
-  }
-
-  .header-controls {
-    width: 100%;
-    justify-content: flex-start;
-  }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .bottom-grid { grid-template-columns: 1fr; }
+  .content-grid { grid-template-columns: 1fr; }
 }
 </style>
