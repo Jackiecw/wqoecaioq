@@ -22,24 +22,40 @@
           
           <!-- 菜单项 -->
           <div class="nav-items">
-            <router-link
-              v-for="item in group.items"
-              :key="item.key"
-              :to="item.path"
-              class="nav-item"
-              :class="{ 'nav-item--active': isActive(item) }"
-            >
-              <i :class="item.icon" class="nav-item-icon"></i>
-              <span class="nav-item-label">{{ item.name }}</span>
-              <span v-if="item.badge" class="nav-item-badge">
-                {{ item.badge }}
-              </span>
-            </router-link>
+            <template v-for="item in group.items" :key="item.key">
+              <!-- 父级菜单项 -->
+              <router-link
+                :to="item.path"
+                class="nav-item"
+                :class="{ 'nav-item--active': isActive(item) }"
+              >
+                <i :class="item.icon" class="nav-item-icon"></i>
+                <span class="nav-item-label">{{ item.name }}</span>
+                <span v-if="item.badge" class="nav-item-badge">
+                  {{ item.badge }}
+                </span>
+                <i v-if="item.children" class="pi pi-angle-down text-xs ml-2 opacity-50"></i>
+              </router-link>
+
+              <!-- 子菜单项 (如果存在) -->
+              <div v-if="item.children" class="nav-children">
+                 <router-link
+                  v-for="child in item.children"
+                  :key="child.key"
+                  :to="child.path"
+                  class="nav-item nav-item-child"
+                  :class="{ 'nav-item--active': isActive(child) }"
+                >
+                  <i :class="child.icon" class="nav-item-icon child-icon"></i>
+                  <span class="nav-item-label">{{ child.name }}</span>
+                </router-link>
+              </div>
+            </template>
           </div>
         </section>
       </div>
     </nav>
-
+    
     <!-- 底部用户区域 (Refactored User Card) -->
     <div class="sidebar-footer">
       <div class="user-profile-card">
@@ -105,6 +121,16 @@ const visibleMenuGroups = computed<NavGroup[]>(() => {
         if (authStore.role === 'admin') return true;
         return perms.includes(item.key);
       });
+      // 过滤子菜单项权限
+      filteredItems.forEach(item => {
+        if (item.children) {
+             item.children = item.children.filter(child => {
+                if (authStore.role === 'admin') return true;
+                return perms.includes(child.key);
+             });
+        }
+      });
+
       if (filteredItems.length === 0) return null as unknown as NavGroup;
       return { ...group, items: filteredItems };
     })
@@ -115,7 +141,13 @@ const visibleMenuGroups = computed<NavGroup[]>(() => {
  * 判断菜单项是否激活
  */
 const isActive = (item: NavItem): boolean => {
-  return route.path.startsWith(item.path) && (item.path !== '/' || route.path === '/');
+  // 如果是父菜单，检查路径是否匹配且不等于根路径，或者检查是否有激活的子菜单
+  if (item.children) {
+      // 父菜单本身匹配，或者有子菜单匹配
+      return (route.path.startsWith(item.path) && item.path !== '/') || 
+             item.children.some(child => isActive(child));
+  }
+  return route.path === item.path || (route.path.startsWith(item.path) && item.path !== '/');
 };
 
 /**
@@ -271,6 +303,36 @@ const handleLogout = () => {
   color: white;
   border-radius: 9999px;
   font-weight: 600;
+}
+
+/* Submenu Styles */
+.nav-children {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-left: 0.75rem; /* Indentation for children */
+  margin-top: 0.25rem;
+  position: relative;
+}
+
+.nav-children::before {
+  content: '';
+  position: absolute;
+  left: 1.25rem; /* Align line with parent icon center */
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--color-border);
+  opacity: 0.5;
+}
+
+.nav-item-child {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem; /* Slightly smaller text for children */
+}
+
+.nav-item-child .child-icon {
+  font-size: 0.9rem; /* Smaller icon for children */
 }
 
 /* Footer (User Card) */

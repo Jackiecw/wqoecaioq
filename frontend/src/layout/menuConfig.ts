@@ -14,6 +14,8 @@ export interface NavItem {
     icon: string;
     /** 徽章标记 */
     badge?: string;
+    /** 子菜单项 */
+    children?: NavItem[];
 }
 
 /**
@@ -85,12 +87,6 @@ export const MENU_GROUPS: NavGroup[] = [
                 name: '数据导入',
                 path: '/sales/import',
                 icon: 'pi pi-upload'
-            },
-            {
-                key: 'SALES_IMPORT_HISTORY',
-                name: '导入记录',
-                path: '/sales/history',
-                icon: 'pi pi-history'
             },
         ],
     },

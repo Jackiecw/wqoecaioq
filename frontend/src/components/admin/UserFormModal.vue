@@ -3,31 +3,35 @@
     v-model:visible="visible"
     modal
     :style="{ width: '680px' }"
+    :breakpoints="{ '960px': '75vw', '640px': '90vw' }"
     :header="dialogTitle"
-    class="user-form-modal"
+    :dismissableMask="true"
+    :draggable="false"
+    class="p-dialog-custom"
     @hide="closeModal"
   >
-    <div class="flex flex-column gap-3">
+    <div class="flex flex-col gap-6 pt-1">
       <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
 
-      <div class="grid formgrid p-fluid">
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">用户名（登录账号） *</label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">用户名（登录账号） <span class="text-red-500">*</span></label>
           <InputText v-model="formData.username" :disabled="isEditMode" class="w-full" />
         </div>
 
-        <div v-if="!isEditMode" class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">初始密码（至少 8 位） *</label>
-          <Password v-model="formData.password" :feedback="false" toggle-mask class="w-full" />
+        <!-- Password Field (Conditional) -->
+        <div v-if="!isEditMode" class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">初始密码（至少 8 位） <span class="text-red-500">*</span></label>
+          <Password v-model="formData.password" :feedback="false" toggle-mask class="w-full" input-class="w-full" />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">昵称 *</label>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">昵称 <span class="text-red-500">*</span></label>
           <InputText v-model="formData.nickname" class="w-full" />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">分配角色 *</label>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">分配角色 <span class="text-red-500">*</span></label>
           <Dropdown
             v-model="formData.roleId"
             :options="roleOptions"
@@ -38,8 +42,8 @@
           />
         </div>
 
-        <div class="field col-12">
-          <label class="font-semibold text-sm mb-2 block">监管国家（自动加入运营国家）</label>
+        <div class="col-span-1 md:col-span-2 flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">监管国家（自动加入运营国家）</label>
           <MultiSelect
             v-model="selectedSupervisedIds"
             :options="countryOptions"
@@ -48,11 +52,12 @@
             placeholder="选择监管国家"
             display="chip"
             class="w-full"
+            :pt="{ token: { class: 'bg-purple-100 text-purple-700' } }"
           />
         </div>
 
-        <div class="field col-12">
-          <label class="font-semibold text-sm mb-2 block">运营国家</label>
+        <div class="col-span-1 md:col-span-2 flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">运营国家</label>
           <MultiSelect
             v-model="selectedOperatedIds"
             :options="countryOptions"
@@ -62,24 +67,23 @@
             display="chip"
             class="w-full"
           >
-            <template #option="slotProps">
-              <div class="flex align-items-center gap-2">
+             <template #option="slotProps">
+              <div class="flex items-center gap-2 w-full">
                 <Checkbox
                   :model-value="slotProps.selected"
                   :disabled="isOperatedCountryDisabled(slotProps.option.id)"
                   binary
-                  class="mr-2"
                 />
-                <span>{{ slotProps.option.label }}</span>
-                <Tag v-if="isOperatedCountryDisabled(slotProps.option.id)" value="监管已选" severity="info" />
+                <span class="text-sm">{{ slotProps.option.label }}</span>
+                <span v-if="isOperatedCountryDisabled(slotProps.option.id)" class="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">监管已选</span>
               </div>
             </template>
           </MultiSelect>
-          <small class="text-color-secondary">监管国家会自动加入运营列表，不可取消。</small>
+          <small class="text-xs text-[var(--color-text-muted)]">监管国家会自动加入运营列表，不可取消。</small>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
         <Button label="取消" severity="secondary" text @click="closeModal" />
         <Button label="保存" icon="pi pi-check" :loading="loading" @click="handleSubmit" />
       </div>

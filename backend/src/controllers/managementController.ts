@@ -31,6 +31,15 @@ export class ManagementController {
         }
     }
 
+    async getStorePlatforms(req: Request, res: Response, next: NextFunction) {
+        try {
+            const options = await managementService.getOptions();
+            res.json(options.platforms);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     // --- Stores ---
     async getAllStores(req: Request, res: Response, next: NextFunction) {
         try {

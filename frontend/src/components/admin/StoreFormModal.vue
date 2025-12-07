@@ -3,21 +3,23 @@
     v-model:visible="visible"
     modal
     :style="{ width: '600px' }"
+    :breakpoints="{ '960px': '75vw', '640px': '90vw' }"
     :header="dialogTitle"
-    class="store-form-modal"
+    :dismissableMask="true"
+    :draggable="false"
+    class="p-dialog-custom"
     @hide="closeModal"
   >
-    <div class="flex flex-column gap-3">
-      <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
-
-      <div class="grid formgrid p-fluid">
-        <div class="field col-12">
-          <label class="font-semibold text-sm mb-2 block">店铺名称 (易读) *</label>
+    <div class="flex flex-col gap-6 pt-1">
+      <Toast />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="col-span-1 md:col-span-2 flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">店铺名称 (易读) <span class="text-red-500">*</span></label>
           <InputText v-model="formData.name" class="w-full" placeholder="例如：Shopee 印尼 Mall 店" />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">平台 *</label>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">平台 <span class="text-red-500">*</span></label>
           <Dropdown
             v-model="formData.platform"
             :options="options.platforms"
@@ -26,8 +28,8 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">国家 *</label>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">国家 <span class="text-red-500">*</span></label>
           <Dropdown
             v-model="formData.countryCode"
             :options="countryOptions"
@@ -39,8 +41,8 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">店铺状态 *</label>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">店铺状态 <span class="text-red-500">*</span></label>
           <Dropdown
             v-model="formData.status"
             :options="statusOptions"
@@ -49,13 +51,19 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">注册日期</label>
-          <Calendar v-model="formData.registeredAt" show-icon date-format="yy-mm-dd" class="w-full" />
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">注册日期</label>
+          <Calendar 
+            v-model="formData.registeredAt" 
+            show-icon 
+            date-format="yy-mm-dd" 
+            class="w-full"
+            :pt="{ input: { class: 'w-full' } }" 
+          />
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
         <Button label="取消" severity="secondary" text @click="closeModal" />
         <Button label="保存" icon="pi pi-check" :loading="isSubmitting" @click="handleSubmit" />
       </div>
@@ -70,7 +78,8 @@ import Calendar from 'primevue/calendar';
 import Dialog from 'primevue/dialog';
 import Dropdown from 'primevue/dropdown';
 import InputText from 'primevue/inputtext';
-import Message from 'primevue/message';
+import Toast from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
 import apiClient from '@/services/apiClient';
 
 type CountryOption = { code: string; name: string };
@@ -104,6 +113,8 @@ const emit = defineEmits<{
   (e: 'store-updated', payload: StoreResponse): void;
 }>();
 
+const toast = useToast();
+
 const visible = computed({
   get: () => props.isOpen,
   set: (val) => {
@@ -113,7 +124,6 @@ const visible = computed({
 
 const dialogTitle = computed(() => (props.storeToEdit ? '编辑店铺' : '新建店铺'));
 const isSubmitting = ref(false);
-const errorMessage = ref('');
 
 const formData = ref<StoreFormState>({
   name: '',
@@ -165,7 +175,6 @@ const resetForm = () => {
     status: 'ACTIVE',
     registeredAt: null,
   };
-  errorMessage.value = '';
 };
 
 const fetchOptions = async () => {
@@ -178,12 +187,11 @@ const fetchOptions = async () => {
     countryOptions.value = countryRes.data || [];
   } catch (error: any) {
     console.error('加载店铺选项失败:', error);
-    errorMessage.value = error?.response?.data?.error || '加载店铺选项失败';
+    toast.add({ severity: 'error', summary: 'Error', detail: '加载店铺选项失败', life: 3000 });
   }
 };
 
 const handleSubmit = async () => {
-  errorMessage.value = '';
   isSubmitting.value = true;
   const payload: StorePayload = {
     name: formData.value.name.trim(),
@@ -202,9 +210,10 @@ const handleSubmit = async () => {
       emit('store-created', response.data);
     }
     closeModal();
+    toast.add({ severity: 'success', summary: '成功', detail: '店铺保存成功', life: 3000 });
   } catch (error: any) {
     console.error('保存失败:', error);
-    errorMessage.value = error?.response?.data?.error || '保存失败，请稍后再试。';
+    toast.add({ severity: 'error', summary: '保存失败', detail: error?.response?.data?.error || '请稍后再试', life: 3000 });
   } finally {
     isSubmitting.value = false;
   }

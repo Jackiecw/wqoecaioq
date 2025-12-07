@@ -1,45 +1,44 @@
 <template>
   <div class="dashboard-container p-4 md:p-5 xl:px-6 w-full min-h-full flex flex-column">
     <!-- 顶部区域 (Header Area) -->
-    <div class="flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3 mb-5">
-      <!-- 左侧：问候语 -->
-      <div>
-        <h1 class="text-3xl font-bold text-900 m-0">{{ greeting }}，{{ authStore.nickname }}</h1>
-        <p class="text-color-secondary mt-1 mb-0">{{ todayDate }}</p>
-      </div>
+    <PageHeader
+      :title="`${greeting}，${authStore.nickname}`"
+      :subtitle="todayDate"
+      class="mb-5"
+    >
+      <template #actions>
+        <div class="flex align-items-center gap-3 flex-wrap justify-content-end">
+          <!-- 国家筛选 -->
+          <IconField>
+            <InputIcon class="pi pi-globe" style="color: var(--surface-500)" />
+            <Select
+              v-model="selectedCountryCode"
+              :options="countryFilterOptions"
+              optionLabel="name"
+              optionValue="code"
+              placeholder="选择国家"
+              class="filter-select pl-5"
+              style="min-width: 150px"
+            />
+          </IconField>
 
-      <!-- 右侧：过滤器 -->
-      <div class="flex align-items-center gap-3 flex-wrap justify-content-end">
-        <!-- 国家筛选 -->
-        <IconField>
-          <InputIcon class="pi pi-globe" style="color: var(--surface-500)" />
-          <Select
-            v-model="selectedCountryCode"
-            :options="countryFilterOptions"
-            optionLabel="name"
-            optionValue="code"
-            placeholder="选择国家"
-            class="filter-select pl-5"
-            style="min-width: 150px"
-          />
-        </IconField>
-
-        <!-- 店铺筛选 -->
-        <IconField>
-          <InputIcon class="pi pi-shop" style="color: var(--surface-500)" />
-          <Select
-            v-model="selectedStoreId"
-            :options="storeFilterOptions"
-            optionLabel="name"
-            optionValue="id"
-            placeholder="选择店铺"
-            :disabled="!selectedCountryCode"
-            class="filter-select pl-5"
-            style="min-width: 180px"
-          />
-        </IconField>
-      </div>
-    </div>
+          <!-- 店铺筛选 -->
+          <IconField>
+            <InputIcon class="pi pi-shop" style="color: var(--surface-500)" />
+            <Select
+              v-model="selectedStoreId"
+              :options="storeFilterOptions"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="选择店铺"
+              :disabled="!selectedCountryCode"
+              class="filter-select pl-5"
+              style="min-width: 180px"
+            />
+          </IconField>
+        </div>
+      </template>
+    </PageHeader>
 
     <!-- KPI 卡片区 (Metrics Row) -->
     <div class="grid mb-5">
@@ -48,7 +47,7 @@
         :key="metric.label"
         class="col-12 sm:col-6 xl:col-3"
       >
-        <div 
+        <ContentCard
           class="kpi-card animate-fade-in-up"
           :class="[`kpi-card--${metric.colorKey}`]"
           :style="{ animationDelay: `${index * 100}ms` }"
@@ -76,7 +75,7 @@
               {{ metric.trend.value }}
             </span>
           </div>
-        </div>
+        </ContentCard>
       </div>
     </div>
 
@@ -94,7 +93,7 @@
       <!-- 右侧 (1/3 宽度)：工具栏 -->
       <div class="col-12 lg:col-4 flex flex-column gap-4">
         <!-- 卡片 A: 汇率计算器 (Clean White Theme) -->
-        <div class="exchange-card">
+        <ContentCard class="exchange-card">
           <!-- 标题 -->
           <div class="flex align-items-center justify-content-between mb-4">
             <div>
@@ -165,10 +164,10 @@
               1 CNY = {{ formatNumber(currentRate) }} {{ targetCurrency }}
             </div>
           </div>
-        </div>
+        </ContentCard>
 
         <!-- 卡片 B: 待办与日程 -->
-        <div class="glass-card-solid p-5 flex-1">
+        <ContentCard class="flex-1 p-5">
           <!-- 自定义 Tab 切换 -->
           <div class="tab-switcher mb-4">
             <button
@@ -208,7 +207,7 @@
               class="w-full border-round-3xl"
             />
           </div>
-        </div>
+        </ContentCard>
       </div>
     </div>
 
@@ -268,6 +267,8 @@ import apiClient from '@/services/apiClient';
 import DashboardTodo from './DashboardTodo.vue';
 import DashboardSchedule from './DashboardSchedule.vue';
 import SalesTrendChart from './SalesTrendChart.vue';
+import PageHeader from '@/components/common/PageHeader.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
 
 type GmvSummary = {
   today: number;

@@ -4,73 +4,84 @@
     modal
     header="周报详情"
     :style="{ width: '52rem' }"
-    class="report-modal"
+    :breakpoints="{ '960px': '75vw', '640px': '90vw' }"
+    :dismissableMask="true"
+    :draggable="false"
+    class="p-dialog-custom"
     @update:visible="handleDialogClose"
   >
-    <div v-if="report" class="modal-content">
+    <div v-if="report" class="flex flex-col gap-6 p-1">
       <!-- Meta Info -->
-      <div class="meta-row">
-        <div class="meta-card meta-card--blue">
-          <i class="pi pi-calendar"></i>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="meta-card">
+          <div class="meta-icon text-blue-600 bg-blue-50">
+             <i class="pi pi-calendar"></i>
+          </div>
           <div>
-            <span class="meta-label">开始日期</span>
-            <span class="meta-value">{{ formatDate(report.weekStartDate) }}</span>
+            <span class="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">开始日期</span>
+            <span class="block text-sm font-semibold text-[var(--color-text-primary)] mt-0.5">{{ formatDate(report.weekStartDate) }}</span>
           </div>
         </div>
-        <div class="meta-card meta-card--purple">
-          <i class="pi pi-user"></i>
+        <div class="meta-card">
+           <div class="meta-icon text-purple-600 bg-purple-50">
+             <i class="pi pi-user"></i>
+          </div>
           <div>
-            <span class="meta-label">提交人</span>
-            <span class="meta-value">{{ report.author?.nickname ?? '--' }}</span>
+            <span class="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">提交人</span>
+            <span class="block text-sm font-semibold text-[var(--color-text-primary)] mt-0.5">{{ report.author?.nickname ?? '--' }}</span>
           </div>
         </div>
-        <div class="meta-card meta-card--green">
-          <i class="pi pi-clock"></i>
+        <div class="meta-card">
+           <div class="meta-icon text-green-600 bg-green-50">
+             <i class="pi pi-clock"></i>
+          </div>
           <div>
-            <span class="meta-label">提交时间</span>
-            <span class="meta-value">{{ formatDateTime(report.createdAt) }}</span>
+            <span class="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">提交时间</span>
+            <span class="block text-sm font-semibold text-[var(--color-text-primary)] mt-0.5">{{ formatDateTime(report.createdAt) }}</span>
           </div>
         </div>
       </div>
 
       <!-- Content Grid -->
-      <div class="content-grid">
-        <div class="content-card content-card--green">
-          <div class="content-header">
-            <i class="pi pi-check-circle"></i>
-            <span>本周总结</span>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="content-card">
+          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
+            <i class="pi pi-check-circle text-green-500"></i>
+            <span class="font-bold text-gray-700">本周总结</span>
           </div>
-          <div class="content-body">{{ report.summaryThisWeek || '无' }}</div>
+          <div class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ report.summaryThisWeek || '无' }}</div>
         </div>
 
-        <div class="content-card content-card--blue">
-          <div class="content-header">
-            <i class="pi pi-flag"></i>
-            <span>下周计划</span>
+        <div class="content-card">
+          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
+            <i class="pi pi-flag text-blue-500"></i>
+            <span class="font-bold text-gray-700">下周计划</span>
           </div>
-          <div class="content-body">{{ report.planNextWeek || '无' }}</div>
+          <div class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ report.planNextWeek || '无' }}</div>
         </div>
 
-        <div class="content-card content-card--orange">
-          <div class="content-header">
-            <i class="pi pi-exclamation-triangle"></i>
-            <span>遇到的问题</span>
+        <div class="content-card">
+          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
+            <i class="pi pi-exclamation-triangle text-amber-500"></i>
+            <span class="font-bold text-gray-700">遇到的问题</span>
           </div>
-          <div class="content-body">{{ report.problemsEncountered || '无' }}</div>
+          <div class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ report.problemsEncountered || '无' }}</div>
         </div>
 
-        <div class="content-card content-card--gray">
-          <div class="content-header">
-            <i class="pi pi-comment"></i>
-            <span>其他</span>
+        <div class="content-card">
+          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
+            <i class="pi pi-comment text-gray-400"></i>
+            <span class="font-bold text-gray-700">其他</span>
           </div>
-          <div class="content-body">{{ report.other || '无' }}</div>
+          <div class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ report.other || '无' }}</div>
         </div>
       </div>
     </div>
 
     <template #footer>
-      <Button label="关闭" @click="closeModal" />
+      <div class="flex justify-end pt-4 border-t border-gray-100">
+        <Button label="关闭" severity="secondary" text @click="closeModal" />
+      </div>
     </template>
   </Dialog>
 </template>
@@ -128,115 +139,33 @@ const formatDateTime = (dateString?: string) => {
 </script>
 
 <style scoped>
-.modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Meta Row */
-.meta-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
 .meta-card {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  border-radius: 0.75rem;
-  background: var(--surface-50);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
 }
 
-.meta-card i {
-  font-size: 1.25rem;
+.meta-icon {
   width: 2.5rem;
   height: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.5rem;
-}
-
-.meta-card--blue i {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
-
-.meta-card--purple i {
-  background: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
-}
-
-.meta-card--green i {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.meta-label {
-  display: block;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--surface-500);
-}
-
-.meta-value {
-  display: block;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--surface-900);
-}
-
-/* Content Grid */
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 1.1rem;
 }
 
 .content-card {
-  background: var(--surface-50);
-  border-radius: 0.75rem;
-  padding: 1rem;
-  border-left: 4px solid transparent;
-}
-
-.content-card--green { border-left-color: #10b981; }
-.content-card--blue { border-left-color: #3b82f6; }
-.content-card--orange { border-left-color: #f59e0b; }
-.content-card--gray { border-left-color: #9ca3af; }
-
-.content-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: var(--surface-700);
-  margin-bottom: 0.75rem;
-}
-
-.content-card--green .content-header i { color: #10b981; }
-.content-card--blue .content-header i { color: #3b82f6; }
-.content-card--orange .content-header i { color: #f59e0b; }
-.content-card--gray .content-header i { color: #9ca3af; }
-
-.content-body {
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--surface-700);
-  white-space: pre-wrap;
-}
-
-@media (max-width: 768px) {
-  .meta-row {
-    grid-template-columns: 1fr;
-  }
-
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
+  background-color: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  height: 100%;
+  box-shadow: var(--shadow-sm);
 }
 </style>

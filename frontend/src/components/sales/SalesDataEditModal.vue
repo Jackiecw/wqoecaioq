@@ -3,28 +3,37 @@
     :visible="isOpen"
     modal
     :style="{ width: '640px' }"
+    :breakpoints="{ '960px': '75vw', '640px': '90vw' }"
+    :dismissableMask="true"
+    :draggable="false"
     header="修改销售数据"
+    class="p-dialog-custom"
     @update:visible="onDialogToggle"
   >
-    <div v-if="isLoading" class="p-4 text-center text-color-secondary">
-      正在加载表单选项...
+    <div v-if="isLoading" class="p-8 text-center text-[var(--color-text-secondary)]">
+      <i class="pi pi-spin pi-spinner text-2xl mb-2"></i>
+      <p>正在加载表单选项...</p>
     </div>
 
-    <form v-else class="flex flex-column gap-3" @submit.prevent="handleSubmit">
-      <div class="grid formgrid p-fluid">
-        <div class="field col-12 md:col-6">
-          <label for="edit_recordDate" class="font-semibold text-sm mb-2 block">记录日期 *</label>
+    <form v-else class="flex flex-col gap-6 pt-1" @submit.prevent="handleSubmit">
+      <Toast />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Date -->
+        <div class="flex flex-col gap-2">
+          <label for="edit_recordDate" class="text-sm font-medium text-[var(--color-text-secondary)]">记录日期 <span class="text-red-500">*</span></label>
           <Calendar
             input-id="edit_recordDate"
             v-model="formData.recordDate"
             date-format="yy-mm-dd"
             show-icon
             class="w-full"
+            :pt="{ input: { class: 'w-full' } }"
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">国家 *</label>
+        <!-- Country -->
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">国家 <span class="text-red-500">*</span></label>
           <Dropdown
             v-model="selectedCountry"
             :options="countryOptions"
@@ -36,8 +45,9 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">平台 *</label>
+        <!-- Platform -->
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">平台 <span class="text-red-500">*</span></label>
           <Dropdown
             v-model="selectedPlatform"
             :options="platformOptions"
@@ -48,8 +58,9 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">店铺名称 *</label>
+        <!-- Store -->
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">店铺名称 <span class="text-red-500">*</span></label>
           <Dropdown
             v-model="formData.storeId"
             :options="storeOptions"
@@ -62,10 +73,11 @@
           />
         </div>
 
-        <div class="field col-12">
-          <label class="font-semibold text-sm mb-2 block">
-            选择商品链接 (Listing) *
-            <span class="text-xs font-normal text-color-secondary ml-1">格式: [商品代码] 标题 (SKU)</span>
+        <!-- Listing (Full Width) -->
+        <div class="col-span-1 md:col-span-2 flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)] flex items-center gap-2">
+            选择商品链接 (Listing) <span class="text-red-500">*</span>
+            <span class="text-xs font-normal text-gray-400">格式: [商品代码] 标题 (SKU)</span>
           </label>
           <Dropdown
             v-model="formData.listingId"
@@ -77,27 +89,24 @@
             :loading="isLoadingListings"
             filter
             class="w-full"
+            panel-class="max-w-[600px]"
           >
-            <template #option="slotProps">
-              <div class="flex flex-column">
-                <span class="font-medium text-sm">{{ slotProps.option.displayLabel }}</span>
-                <small v-if="slotProps.option.product?.sku" class="text-color-secondary">SKU: {{ slotProps.option.product.sku }}</small>
+             <template #option="slotProps">
+              <div class="flex flex-col py-1">
+                <span class="font-medium text-sm text-[var(--color-text-primary)]">{{ slotProps.option.displayLabel }}</span>
+                <span v-if="slotProps.option.product?.sku" class="text-xs text-[var(--color-text-secondary)] mt-0.5">SKU: {{ slotProps.option.product.sku }}</span>
               </div>
             </template>
-            <template #value="slotProps">
-              <span v-if="slotProps.value">
-                {{ listingOptions.find((item) => item.id === slotProps.value)?.displayLabel || '请选择具体链接...' }}
-              </span>
-              <span v-else class="text-color-secondary">请选择具体链接...</span>
-            </template>
           </Dropdown>
-          <p v-if="!saleDataToEdit?.listingId && !formData.listingId" class="text-sm text-amber-600 mt-2">
+           <p v-if="!saleDataToEdit?.listingId && !formData.listingId" class="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+            <i class="pi pi-info-circle mr-1"></i>
             提示：这是旧数据，请重新关联到一个具体的商品链接
           </p>
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label for="edit_salesVolume" class="font-semibold text-sm mb-2 block">销量 *</label>
+        <!-- Sales Volume -->
+        <div class="flex flex-col gap-2">
+          <label for="edit_salesVolume" class="text-sm font-medium text-[var(--color-text-secondary)]">销量 <span class="text-red-500">*</span></label>
           <InputNumber
             input-id="edit_salesVolume"
             v-model="formData.salesVolume"
@@ -107,8 +116,9 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label for="edit_revenue" class="font-semibold text-sm mb-2 block">销售额 *</label>
+        <!-- Revenue -->
+        <div class="flex flex-col gap-2">
+          <label for="edit_revenue" class="text-sm font-medium text-[var(--color-text-secondary)]">销售额 <span class="text-red-500">*</span></label>
           <InputNumber
             input-id="edit_revenue"
             v-model="formData.revenue"
@@ -121,8 +131,9 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">订单状态</label>
+        <!-- Order Status -->
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)]">订单状态</label>
           <Dropdown
             v-model="formData.orderStatus"
             :options="orderStatusOptions"
@@ -134,17 +145,14 @@
           />
         </div>
 
-        <div class="field col-12">
-          <label for="edit_notes" class="font-semibold text-sm mb-2 block">备注（可选）</label>
+        <!-- Notes (Full Width) -->
+        <div class="col-span-1 md:col-span-2 flex flex-col gap-2">
+          <label for="edit_notes" class="text-sm font-medium text-[var(--color-text-secondary)]">备注（可选）</label>
           <Textarea id="edit_notes" v-model="formData.notes" rows="3" auto-resize class="w-full" />
         </div>
       </div>
 
-      <Message v-if="errorMessage" severity="error" :closable="false">
-        {{ errorMessage }}
-      </Message>
-
-      <div class="flex justify-content-end gap-2 pt-1">
+      <div class="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
         <Button type="button" label="取消" severity="secondary" text @click="closeModal" />
         <Button type="submit" label="保存修改" icon="pi pi-check" :loading="isSubmitting" />
       </div>
@@ -161,7 +169,8 @@ import Dropdown from 'primevue/dropdown';
 import InputNumber from 'primevue/inputnumber';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
-import Message from 'primevue/message';
+import Toast from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '@/stores/auth';
 import useStoreListings from '@/composables/useStoreListings';
@@ -238,6 +247,7 @@ const emit = defineEmits<{
 }>();
 
 const authStore = useAuthStore();
+const toast = useToast();
 const { stores, fetchStores, storesError, getStoresByCountry, getStoresByCountryAndPlatform, fetchListings } =
   useStoreListings();
 
@@ -253,7 +263,6 @@ const formData = ref<SaleFormState>({
 
 const isLoading = ref(false);
 const isSubmitting = ref(false);
-const errorMessage = ref('');
 const isLoadingListings = ref(false);
 const storeListings = ref<ListingOption[]>([]);
 const selectedCountry = ref('');
@@ -297,7 +306,7 @@ watch(
   () => storesError.value,
   (val) => {
     if (val) {
-      errorMessage.value = val;
+      toast.add({ severity: 'error', summary: 'Error', detail: val, life: 3000 });
     }
   },
 );
@@ -328,7 +337,7 @@ watch(
       const listings = await fetchListings(newStoreId);
       storeListings.value = Array.isArray(listings) ? listings : [];
     } catch (error) {
-      errorMessage.value = extractError(error, '无法加载店铺链接，请稍后重试');
+       toast.add({ severity: 'error', summary: '加载失败', detail: '无法加载店铺链接', life: 3000 });
     } finally {
       isLoadingListings.value = false;
     }
@@ -340,12 +349,11 @@ watch(
   async (visible) => {
     if (!visible) return;
     if (!props.saleDataToEdit) {
-      errorMessage.value = '未找到要编辑的销售数据';
+      toast.add({ severity: 'warn', summary: '提示', detail: '未找到要编辑的销售数据', life: 3000 });
       return;
     }
 
     isLoading.value = true;
-    errorMessage.value = '';
 
     try {
       await fetchStores();
@@ -360,7 +368,7 @@ watch(
         }
       }
     } catch (error) {
-      errorMessage.value = extractError(error, '加载数据失败，请稍后重试');
+       toast.add({ severity: 'error', summary: '错误', detail: extractError(error, '加载数据失败'), life: 3000 });
     } finally {
       isLoading.value = false;
     }
@@ -376,25 +384,24 @@ const onDialogToggle = (visible: boolean) => {
 const handleSubmit = async () => {
   if (!props.saleDataToEdit) return;
 
-  errorMessage.value = '';
 
   if (!formData.value.recordDate) {
-    errorMessage.value = '请填写记录日期';
+    toast.add({ severity: 'warn', summary: '请填写记录日期', life: 3000 });
     return;
   }
   if (!formData.value.storeId) {
-    errorMessage.value = '请选择店铺';
+    toast.add({ severity: 'warn', summary: '请选择店铺', life: 3000 });
     return;
   }
   if (!formData.value.listingId) {
-    errorMessage.value = '请选择一个商品链接';
+    toast.add({ severity: 'warn', summary: '请选择一个商品链接', life: 3000 });
     return;
   }
 
   const targetListing = storeListings.value.find((item) => item.id === formData.value.listingId);
   const productId = targetListing?.product?.id || targetListing?.productId || null;
   if (!productId) {
-    errorMessage.value = '链接数据缺少对应商品，无法提交，请刷新后重试';
+    toast.add({ severity: 'error', summary: '数据错误', detail: '链接数据缺少对应商品，无法提交', life: 3000 });
     return;
   }
 
@@ -414,8 +421,9 @@ const handleSubmit = async () => {
     const response = await apiClient.put(`/sales-data/${props.saleDataToEdit.id}`, payload);
     emit('sale-updated', response.data);
     closeModal();
+    toast.add({ severity: 'success', summary: '成功', detail: '销售数据已更新', life: 3000 });
   } catch (error) {
-    errorMessage.value = extractError(error, '更新失败，请稍后重试');
+    toast.add({ severity: 'error', summary: '更新失败', detail: extractError(error, '请稍后重试'), life: 3000 });
   } finally {
     isSubmitting.value = false;
   }

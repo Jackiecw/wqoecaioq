@@ -2,12 +2,11 @@
   <div class="page-shell">
     <PageHeader title="绩效模板" subtitle="管理和创建员工绩效考核标准">
       <template #actions>
-        <button
+        <Button
+          label="新建模板"
+          icon="pi pi-plus"
           @click="openCreateModal"
-          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors test-sm"
-        >
-          <span>+ 新建模板</span>
-        </button>
+        />
       </template>
     </PageHeader>
 
@@ -44,9 +43,7 @@
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-fade-in-up">
         <div class="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 class="text-xl font-bold text-gray-800">创建绩效模板</h2>
-          <button @click="showModal = false" class="text-gray-400 hover:text-gray-600">
-            <span class="text-2xl">&times;</span>
-          </button>
+          <Button icon="pi pi-times" text rounded severity="secondary" @click="showModal = false" />
         </div>
 
         <div class="p-6 overflow-y-auto flex-1">
@@ -77,12 +74,14 @@
               <div :class="{'text-green-600 font-bold': totalWeight === 100, 'text-red-500 font-bold': totalWeight !== 100}">
                 权重合计: {{ totalWeight }}%
               </div>
-              <button
+              <Button
+                label="添加指标"
+                icon="pi pi-plus"
+                size="small"
+                severity="secondary"
+                outlined
                 @click="addItem"
-                class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-colors"
-              >
-                + 添加指标
-              </button>
+              />
             </div>
           </div>
 
@@ -119,31 +118,29 @@
                   class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none text-center"
                 >
               </div>
-              <button
+              <Button
+                icon="pi pi-times"
+                text
+                severity="danger"
+                size="small"
                 @click="removeItem(index)"
-                class="text-red-400 hover:text-red-600 p-1"
-                title="删除"
-              >
-                &times;
-              </button>
+              />
             </div>
           </div>
         </div>
 
         <div class="p-6 border-t border-gray-100 flex justify-end gap-3">
-          <button
+          <Button
+            label="取消"
+            severity="secondary"
+            text
             @click="showModal = false"
-            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            取消
-          </button>
-          <button
-            @click="submitTemplate"
+          />
+          <Button
+            label="保存模板"
             :disabled="totalWeight !== 100 || !form.name"
-            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            保存模板
-          </button>
+            @click="submitTemplate"
+          />
         </div>
       </div>
     </div>
@@ -153,9 +150,7 @@
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col animate-fade-in-up">
         <div class="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 class="text-xl font-bold text-gray-800">{{ selectedTemplate?.name }}</h2>
-          <button @click="showPreviewModal = false" class="text-gray-400 hover:text-gray-600">
-            <span class="text-2xl">&times;</span>
-          </button>
+          <Button icon="pi pi-times" text rounded severity="secondary" @click="showPreviewModal = false" />
         </div>
         <div class="p-6 overflow-y-auto flex-1">
           <p class="text-gray-600 mb-6">{{ selectedTemplate?.description || '暂无描述' }}</p>
@@ -175,12 +170,12 @@
           </div>
         </div>
         <div class="p-6 border-t border-gray-100 flex justify-end">
-          <button
+          <Button
+            label="关闭"
+            severity="secondary"
+            text
             @click="showPreviewModal = false"
-            class="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            关闭
-          </button>
+          />
         </div>
       </div>
     </div>
@@ -192,6 +187,7 @@ import { ref, computed, onMounted } from 'vue';
 import performanceService, { PerformanceTemplate } from '@/services/performanceService';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
+import Button from 'primevue/button';
 
 type TemplateItem = {
   category: string;

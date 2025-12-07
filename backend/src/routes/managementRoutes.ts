@@ -8,6 +8,7 @@ router.use(adminMiddleware);
 
 // Options
 router.get('/management-options', managementController.getOptions);
+router.get('/store-platforms', managementController.getStorePlatforms);
 
 // Stores
 router.get('/stores', managementController.getAllStores);
