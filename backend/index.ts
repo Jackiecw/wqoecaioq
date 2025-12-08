@@ -42,7 +42,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Static Files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Health Check
 app.get('/', (req: Request, res: Response) => {

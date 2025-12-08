@@ -489,6 +489,7 @@ const growthSeverity = (val: number | null | undefined) => {
 };
 
 const fetchStats = async () => {
+  // console.log('Fetching stats...', { range: currentRange.value, country: selectedCountry.value });
   isLoading.value = true;
   errorMessage.value = '';
 
@@ -508,6 +509,7 @@ const fetchStats = async () => {
         compareMode: compareMode.value,
       },
     });
+    // console.log('Stats fetched successfully', response.data);
     stats.value = normalizeStats(response.data);
     lastRefreshTime.value = new Date();
   } catch (error) {

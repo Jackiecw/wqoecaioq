@@ -166,7 +166,9 @@ export async function getRates(options: { forceRefresh?: boolean } = {}) {
             };
         }
 
-        const response = await axios.get(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/CNY`);
+        const response = await axios.get(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/CNY`, {
+            timeout: 5000, // 5 seconds timeout
+        });
 
         if (response.data && response.data.result === 'success') {
             const rates = response.data.conversion_rates;

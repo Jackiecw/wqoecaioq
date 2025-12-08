@@ -1,28 +1,30 @@
 <template>
-  <Dialog v-model:visible="isVisible" modal header="新建/编辑链接" :style="{ width: '32rem' }" @update:visible="handleDialogClose">
-    <template #header>
-      <span class="text-lg font-bold text-900">{{ dialogTitle }}</span>
-    </template>
-
-    <div class="flex flex-column gap-4">
-      <div class="flex flex-column gap-2">
-        <label for="linkTitle" class="font-medium text-900">标题 *</label>
-        <InputText id="linkTitle" v-model="formData.title" placeholder="例如: Shopee 印尼卖家中心" />
+  <Dialog 
+    v-model:visible="isVisible" 
+    modal 
+    :header="dialogTitle" 
+    :style="{ width: '32rem' }" 
+    @update:visible="handleDialogClose"
+  >
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-2">
+        <label for="linkTitle" class="font-medium text-[var(--color-text-secondary)]">标题 *</label>
+        <InputText id="linkTitle" v-model="formData.title" placeholder="例如: Shopee 印尼卖家中心" class="w-full" />
       </div>
 
-      <div class="flex flex-column gap-2">
-        <label for="linkUrl" class="font-medium text-900">URL (链接地址) *</label>
-        <InputText id="linkUrl" v-model="formData.url" placeholder="例如: https://seller.shopee.co.id/" />
+      <div class="flex flex-col gap-2">
+        <label for="linkUrl" class="font-medium text-[var(--color-text-secondary)]">URL (链接地址) *</label>
+        <InputText id="linkUrl" v-model="formData.url" placeholder="例如: https://seller.shopee.co.id/" class="w-full" />
       </div>
 
-      <div class="flex flex-column gap-2">
-        <label for="linkDesc" class="font-medium text-900">备注 (说明)</label>
-        <InputText id="linkDesc" v-model="formData.description" placeholder="例如: 财务后台" />
+      <div class="flex flex-col gap-2">
+        <label for="linkDesc" class="font-medium text-[var(--color-text-secondary)]">备注 (说明)</label>
+        <InputText id="linkDesc" v-model="formData.description" placeholder="例如: 财务后台" class="w-full" />
       </div>
 
-      <div class="flex flex-column gap-2">
-        <label for="linkOrder" class="font-medium text-900">显示顺序 (数字越小越靠前)</label>
-        <InputNumber v-model="formData.displayOrder" :use-grouping="false" />
+      <div class="flex flex-col gap-2">
+        <label for="linkOrder" class="font-medium text-[var(--color-text-secondary)]">显示顺序 (数字越小越靠前)</label>
+        <InputNumber v-model="formData.displayOrder" :use-grouping="false" class="w-full" input-class="w-full" />
       </div>
 
       <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>

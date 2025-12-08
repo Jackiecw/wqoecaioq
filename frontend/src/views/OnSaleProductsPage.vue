@@ -457,6 +457,11 @@ async function handleDelete(listing: Listing) {
 
 function getListingImageUrl(imageUrl?: string) {
   if (!imageUrl) return placeholderImage;
+  // If imageUrl starts with 'http', return as is.
+  if (imageUrl.startsWith('http')) return imageUrl;
+  // If imageUrl starts with '/', return as is (relative path, proxied by Vite).
+  if (imageUrl.startsWith('/')) return imageUrl;
+  // Fallback for other cases (though mostly covered above)
   return `${apiBaseUrl}${imageUrl}`;
 }
 
@@ -576,7 +581,7 @@ function formatCnyPrice(listing?: Listing | null) {
 
 .listing-item {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-4);
   align-items: flex-start;
   width: 100%;
   padding: var(--space-3);
@@ -596,6 +601,10 @@ function formatCnyPrice(listing?: Listing | null) {
 .listing-item.active {
   border-color: var(--color-accent);
   box-shadow: 0 8px 20px rgba(59, 130, 246, 0.12);
+}
+
+.listing-item__media {
+  flex-shrink: 0;
 }
 
 .listing-item__media img {

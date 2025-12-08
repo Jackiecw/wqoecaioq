@@ -6,37 +6,98 @@
 
     <!-- Data Table Card -->
     <div class="table-card">
-      <!-- Toolbar -->
-      <div class="table-header">
-        <div class="header-main">
-          <div class="header-title">
-            <h2>销售数据</h2>
-            <span class="badge">{{ total }} 条</span>
-          </div>
-          <div class="header-actions">
+      <!-- Toolbar: Redesigned for minimal Notion style -->
+      <div class="table-toolbar">
+         <!-- Left: Primary Filters (Compact) -->
+         <div class="toolbar-left">
+            <IconField class="search-field">
+                <InputIcon class="pi pi-search" />
+                <InputText placeholder="搜索订单..." class="search-input" disabled v-tooltip="'搜索功能开发中'" />
+            </IconField>
+            
+             <span class="divider">|</span>
+
+            <!-- Compact Date Picker (Text button style trigger ideally, but keeping Calendar for now, styled cleaner) -->
+            <div class="filter-item">
+                 <Calendar v-model="filters.startDate" date-format="yy-mm-dd" placeholder="开始日期" inputClass="clean-input" :showIcon="false" />
+                 <span class="text-gray-400">-</span>
+                 <Calendar v-model="filters.endDate" date-format="yy-mm-dd" placeholder="结束日期" inputClass="clean-input" :showIcon="false" />
+            </div>
+
+            <Dropdown
+              v-model="filters.countryCode"
+              :options="countryOptions"
+              option-label="name"
+              option-value="code"
+              placeholder="国家"
+              class="clean-dropdown"
+              panelClass="clean-dropdown-panel"
+              :show-clear="!!filters.countryCode"
+            />
+
+            <Dropdown
+              v-model="filters.storeId"
+              :options="storeOptions"
+              option-label="name"
+              option-value="id"
+              placeholder="店铺"
+              class="clean-dropdown"
+              panelClass="clean-dropdown-panel"
+              :show-clear="!!filters.storeId"
+              filter
+            />
+            
+            <Dropdown
+              v-model="filters.orderStatus"
+              :options="statusOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="状态"
+              class="clean-dropdown"
+              panelClass="clean-dropdown-panel"
+              :show-clear="!!filters.orderStatus"
+            />
+         </div>
+
+         <!-- Right: Actions -->
+         <div class="toolbar-right">
+             <Button
+               v-if="hasActiveFilters"
+               label="清除筛选"
+               icon="pi pi-filter-slash"
+               text
+               severity="secondary"
+               size="small"
+               @click="resetFilters"
+             />
+             <Button
+               label="应用"
+               icon="pi pi-refresh"
+               text
+               severity="primary"
+               size="small"
+               @click="fetchData(true)"
+             />
+             
+            <span class="divider">|</span>
+
             <Button
               v-if="selectedRows.length > 0"
-              :label="`删除 ${selectedRows.length} 项`"
+              :label="`删除 ${selectedRows.length}`"
               icon="pi pi-trash"
               severity="danger"
+              text
               size="small"
-              outlined
               @click="handleBatchDelete"
             />
-            <Button
-              :icon="showFilters ? 'pi pi-filter-slash' : 'pi pi-filter'"
-              :label="showFilters ? '' : '筛选'"
-              :severity="hasActiveFilters ? 'primary' : 'secondary'"
-              :outlined="!hasActiveFilters"
-              size="small"
-              @click="showFilters = !showFilters"
-            />
+
             <div class="column-toggle-wrapper">
               <Button
                 icon="pi pi-sliders-h"
                 severity="secondary"
                 text
-                size="small"
+                rounded
+                v-tooltip="'显示列'"
                 @click="showColumnMenu = !showColumnMenu"
               />
               <div v-if="showColumnMenu" class="column-menu">
@@ -52,73 +113,7 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Expandable Filters -->
-        <Transition name="expand">
-          <div v-if="showFilters" class="filters-panel">
-            <div class="filters-grid">
-              <div class="filter-group">
-                <label>日期范围</label>
-                <div class="date-range">
-                  <Calendar v-model="filters.startDate" date-format="yy-mm-dd" placeholder="开始" show-icon />
-                  <span>-</span>
-                  <Calendar v-model="filters.endDate" date-format="yy-mm-dd" placeholder="结束" show-icon />
-                </div>
-              </div>
-              <div class="filter-group">
-                <label>国家</label>
-                <Dropdown
-                  v-model="filters.countryCode"
-                  :options="countryOptions"
-                  option-label="name"
-                  option-value="code"
-                  placeholder="全部"
-                  show-clear
-                  filter
-                />
-              </div>
-              <div class="filter-group">
-                <label>平台</label>
-                <Dropdown
-                  v-model="filters.platform"
-                  :options="platformOptions"
-                  placeholder="全部"
-                  show-clear
-                />
-              </div>
-              <div class="filter-group">
-                <label>店铺</label>
-                <Dropdown
-                  v-model="filters.storeId"
-                  :options="storeOptions"
-                  option-label="name"
-                  option-value="id"
-                  placeholder="全部"
-                  show-clear
-                  filter
-                  :disabled="storeOptions.length === 0"
-                />
-              </div>
-              <div class="filter-group">
-                <label>状态</label>
-                <Dropdown
-                  v-model="filters.orderStatus"
-                  :options="statusOptions"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="全部"
-                  show-clear
-                />
-              </div>
-            </div>
-            <div class="filters-footer">
-              <Button label="重置" severity="secondary" text size="small" @click="resetFilters" />
-              <Button label="应用筛选" icon="pi pi-check" size="small" @click="fetchData(true)" />
-            </div>
-          </div>
-        </Transition>
+         </div>
       </div>
 
       <!-- Table -->
@@ -134,7 +129,6 @@
         :total-records="total"
         :lazy="true"
         :first="(page - 1) * pageSize"
-        stripedRows
         rowHover
         class="modern-table"
         @page="onPage"
@@ -149,7 +143,7 @@
 
         <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
-        <Column v-if="visibleColumns.includes('recordDate')" field="recordDate" header="日期" sortable style="width: 7rem">
+        <Column v-if="visibleColumns.includes('recordDate')" field="recordDate" header="日期" sortable style="width: 9rem">
           <template #body="{ data }">
             <span class="date-cell">{{ formatDate(data.recordDate) }}</span>
           </template>
@@ -161,13 +155,13 @@
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('store')" header="店铺" style="width: 9rem">
+        <Column v-if="visibleColumns.includes('store')" header="店铺" style="width: 10rem">
           <template #body="{ data }">
             <span class="store-cell" :title="data.store?.name">{{ data.store?.name || '-' }}</span>
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('product')" header="商品/SKU" style="min-width: 12rem">
+        <Column v-if="visibleColumns.includes('product')" header="商品/SKU" style="min-width: 14rem">
           <template #body="{ data }">
             <div class="product-cell">
               <span class="product-code">{{ data.listing?.productCode || '未关联' }}</span>
@@ -176,23 +170,24 @@
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('orderStatus')" field="orderStatus" header="状态" style="width: 7rem">
+        <Column v-if="visibleColumns.includes('orderStatus')" field="orderStatus" header="状态" class="text-center" headerClass="text-center" style="width: 8rem">
           <template #body="{ data }">
-            <div v-if="data.orderStatus" class="status-badge" :class="statusClass(data.orderStatus)">
-              <i :class="statusIcon(data.orderStatus)"></i>
-              <span>{{ ORDER_STATUS_MAP[data.orderStatus] || data.orderStatus }}</span>
+            <div class="flex justify-center">
+                <div v-if="data.orderStatus" class="status-badge" :class="statusClass(data.orderStatus)">
+                  <span>{{ ORDER_STATUS_MAP[data.orderStatus] || data.orderStatus }}</span>
+                </div>
+                <span v-else class="text-muted">-</span>
             </div>
-            <span v-else class="text-muted">-</span>
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('salesVolume')" field="salesVolume" header="销量" sortable style="width: 5rem">
+        <Column v-if="visibleColumns.includes('salesVolume')" field="salesVolume" header="销量" sortable class="text-right" headerClass="text-right" style="width: 6rem">
           <template #body="{ data }">
             <span class="number-cell">{{ data.salesVolume }}</span>
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('revenue')" field="revenue" header="销售额" sortable style="width: 7rem">
+        <Column v-if="visibleColumns.includes('revenue')" field="revenue" header="销售额" sortable class="text-right" headerClass="text-right" style="width: 8rem">
           <template #body="{ data }">
             <span class="revenue-cell">{{ formatNumber(data.revenue) }}</span>
           </template>
@@ -204,21 +199,21 @@
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('enteredBy')" header="录入人" style="width: 6rem">
+        <Column v-if="visibleColumns.includes('enteredBy')" header="录入人" style="width: 7rem">
           <template #body="{ data }">
             {{ data.enteredBy?.nickname || '-' }}
           </template>
         </Column>
 
-        <Column header="操作" style="width: 6rem" frozen alignFrozen="right">
+        <Column header="操作" style="width: 5rem" frozen alignFrozen="right" headerClass="text-center" class="text-center action-col">
           <template #body="{ data }">
-            <div v-if="data.canManage" class="action-buttons">
+            <div v-if="data.canManage" class="action-buttons opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <Button
                 icon="pi pi-pencil"
                 severity="secondary"
                 text
-                rounded
                 size="small"
+                class="w-7 h-7"
                 v-tooltip.bottom="'编辑'"
                 @click="openEditModal(data)"
               />
@@ -226,13 +221,12 @@
                 icon="pi pi-trash"
                 severity="danger"
                 text
-                rounded
                 size="small"
+                class="w-7 h-7"
                 v-tooltip.bottom="'删除'"
                 @click="handleDelete(data.id)"
               />
             </div>
-            <span v-else class="text-muted text-sm">-</span>
           </template>
         </Column>
       </DataTable>
@@ -247,6 +241,54 @@
   </div>
 </template>
 
+<style>
+/* Global style strictly for the dropdown panels in this component */
+.clean-dropdown-panel {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0,0,0,0.05); /* Stronger layered shadow */
+    margin-top: 0.25rem;
+    overflow: hidden;
+}
+
+.clean-dropdown-panel .p-dropdown-items-wrapper {
+    padding: 0.25rem;
+}
+
+.clean-dropdown-panel .p-dropdown-item {
+    margin: 0.125rem 0;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem; /* More spacing */
+    font-size: 0.875rem;
+    color: var(--surface-700);
+    transition: all 0.15s ease;
+}
+
+/* Hover state */
+.clean-dropdown-panel .p-dropdown-item:not(.p-highlight):not(.p-disabled):hover {
+    background-color: var(--surface-100);
+    color: var(--surface-900);
+}
+
+/* Selected state */
+.clean-dropdown-panel .p-dropdown-item.p-highlight {
+    background-color: var(--primary-50);
+    color: var(--primary-700);
+    font-weight: 600;
+}
+
+/* Filter helper inside dropdown */
+.clean-dropdown-panel .p-dropdown-filter-container {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--surface-100);
+}
+.clean-dropdown-panel .p-dropdown-filter-container .p-inputtext {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+}
+</style>
+
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
@@ -255,6 +297,9 @@ import Column from 'primevue/column';
 import DataTable, { type DataTablePageEvent, type DataTableSortEvent } from 'primevue/datatable';
 import Dropdown from 'primevue/dropdown';
 import Message from 'primevue/message';
+import InputText from 'primevue/inputtext';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
 import { useAuthStore } from '@/stores/auth';
 import useStoreListings from '@/composables/useStoreListings';
 import SalesDataEditModal from './SalesDataEditModal.vue';
@@ -314,7 +359,7 @@ const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
 
-const showFilters = ref(false);
+// showFilters ref is removed as filters are always inline now
 const showColumnMenu = ref(false);
 
 const toggleableColumns = [
@@ -406,19 +451,6 @@ watch(() => storesError.value, (val) => {
 
 const formatNumber = (value: number) => (Number.isFinite(value) ? value.toFixed(2) : '0.00');
 const formatDate = (dateString: string) => (!dateString ? '-' : new Date(dateString).toISOString().split('T')[0]);
-
-const statusIcon = (status: string) => {
-  switch (status) {
-    case 'PENDING': return 'pi pi-clock';
-    case 'READY_TO_SHIP': return 'pi pi-box';
-    case 'SHIPPED': return 'pi pi-truck';
-    case 'DELIVERED': return 'pi pi-home';
-    case 'COMPLETED': return 'pi pi-check-circle';
-    case 'CANCELLED': return 'pi pi-times-circle';
-    case 'RETURNED': return 'pi pi-replay';
-    default: return 'pi pi-circle';
-  }
-};
 
 const statusClass = (status: string) => {
   switch (status) {
@@ -562,51 +594,114 @@ onMounted(async () => {
 /* Table Card */
 .table-card {
   background: white;
-  border-radius: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 20px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
+  border-radius: 0.5rem; /* Reduced radius for compact look */
+  /* Remove shadow for cleaner look or make it very subtle */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  overflow: visible; /* Allow popups */
 }
 
-/* Table Header */
-.table-header {
-  border-bottom: 1px solid var(--surface-100);
-}
-
-.header-main {
+/* New Toolbar */
+.table-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--surface-100);
+  gap: 1rem;
 }
 
-.header-title {
+.toolbar-left, .toolbar-right {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.header-title h2 {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--surface-900);
-  margin: 0;
+.divider {
+    color: var(--surface-200);
+    font-size: 0.875rem;
 }
 
-.badge {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--surface-500);
-  background: var(--surface-100);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+/* Filter Items */
+.filter-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+/* Clean Input/Dropdown Overrides */
+:deep(.clean-input) {
+    background: white;
+    border: 1px solid var(--surface-200);
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    padding: 0.4rem 0.6rem;
+    font-size: 0.95rem;
+    color: var(--surface-700);
+    width: 7rem; /* Slightly wider */
+    transition: all 0.2s;
+}
+:deep(.clean-input:hover) {
+    border-color: var(--surface-300);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+:deep(.clean-input:focus) {
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 2px var(--primary-100);
 }
 
+:deep(.clean-dropdown) {
+    background: white;
+    border: 1px solid var(--surface-200);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    border-radius: 6px;
+    height: 2.5rem;
+    align-items: center;
+    transition: all 0.2s;
+}
+:deep(.clean-dropdown:hover) {
+    border-color: var(--surface-300);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+:deep(.clean-dropdown.p-focus) {
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 2px var(--primary-100);
+}
+:deep(.clean-dropdown .p-dropdown-label) {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.95rem;
+}
+:deep(.clean-dropdown .p-dropdown-trigger) {
+    width: 2rem;
+    color: var(--surface-400);
+}
+
+/* Enhanced Search Field */
+.search-field :deep(.p-inputtext) {
+    border: 1px solid var(--surface-200);
+    background: white;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    font-size: 0.95rem;
+    width: 260px; /* Even wider */
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.search-field :deep(.p-inputtext:hover) {
+    border-color: var(--surface-300);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.search-field :deep(.p-inputtext:focus) {
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 2px var(--primary-100);
+    width: 300px;
+}
+.search-field :deep(.p-inputicon) {
+    top: 50%;
+    margin-top: -0.5rem;
+    color: var(--surface-400);
+}
+
+/* Column Toggle Menu */
 .column-toggle-wrapper {
   position: relative;
 }
@@ -617,188 +712,146 @@ onMounted(async () => {
   right: 0;
   margin-top: 0.5rem;
   background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-  min-width: 150px;
-  z-index: 20;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 100;
   overflow: hidden;
+  border: 1px solid var(--surface-100);
 }
 
 .column-menu-header {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: var(--surface-400);
-  padding: 0.75rem 1rem 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--surface-500);
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-50);
+  border-bottom: 1px solid var(--surface-100);
 }
 
 .column-menu-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
   cursor: pointer;
+  color: var(--surface-700);
   transition: background 0.1s;
 }
 
 .column-menu-item:hover {
-  background: var(--surface-50);
+  background: var(--primary-50);
+  color: var(--primary-700);
 }
 
 .column-menu-item i {
-  color: var(--primary-color);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
-/* Filters Panel */
-.filters-panel {
-  padding: 1rem 1.25rem;
-  background: var(--surface-50);
-  border-top: 1px solid var(--surface-100);
-}
-
-.filters-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.filter-group label {
-  font-size: 0.65rem;
+/* Modern Table Overrides */
+.modern-table :deep(.p-datatable-thead > tr > th) {
+  background: white;
+  font-size: 0.8rem; /* Slightly larger header font */
   font-weight: 600;
   color: var(--surface-500);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.filter-group :deep(.p-dropdown),
-.filter-group :deep(.p-calendar) {
-  min-width: 120px;
-}
-
-.filter-group :deep(.p-inputtext) {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-.date-range {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.date-range span {
-  color: var(--surface-400);
-  font-size: 0.8rem;
-}
-
-.date-range :deep(.p-calendar) {
-  width: 120px;
-}
-
-.filters-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--surface-200);
-}
-
-/* Expand Transition */
-.expand-enter-active,
-.expand-leave-active {
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.expand-enter-from,
-.expand-leave-to {
-  opacity: 0;
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-/* Modern Table */
-.modern-table :deep(.p-datatable-header) {
-  display: none;
-}
-
-.modern-table :deep(.p-datatable-thead > tr > th) {
-  background: var(--surface-50);
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--surface-600);
   padding: 0.75rem 1rem;
-  border: none;
+  border-bottom: 1px solid var(--surface-200);
+  white-space: nowrap;
+}
+
+/* Fix Right Align Headers */
+.modern-table :deep(.p-datatable-thead > tr > th.text-right .p-column-header-content) {
+    justify-content: flex-end;
+}
+/* Fix Center Align Headers */
+.modern-table :deep(.p-datatable-thead > tr > th.text-center .p-column-header-content) {
+    justify-content: center;
 }
 
 .modern-table :deep(.p-datatable-tbody > tr) {
+  background: white;
   transition: background 0.1s;
 }
 
-.modern-table :deep(.p-datatable-tbody > tr:nth-child(even)) {
+/* Remove stripes, keep hover */
+.modern-table :deep(.p-datatable-tbody > tr:hover) {
   background: var(--surface-50);
 }
 
-.modern-table :deep(.p-datatable-tbody > tr:hover) {
-  background: var(--primary-50) !important;
+/* Row border */
+.modern-table :deep(.p-datatable-tbody > tr) {
+    border-bottom: 1px solid var(--surface-50);
 }
 
 .modern-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 0.625rem 1rem;
+  padding: 0.85rem 1rem; /* More comfortable padding */
   border: none;
-  font-size: 0.8rem;
+  font-size: 0.9rem; /* Increased cell font size */
+  color: var(--surface-700);
+}
+
+/* Make action buttons visible on group hover */
+.modern-table :deep(.p-datatable-tbody > tr:hover .action-buttons) {
+    opacity: 1;
 }
 
 /* Cell Styles */
 .date-cell {
-  font-weight: 500;
-  color: var(--surface-700);
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--surface-600);
 }
 
 .country-cell {
   font-weight: 600;
-  color: var(--surface-600);
+  color: var(--surface-900);
 }
 
 .store-cell {
-  max-width: 8rem;
+  max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--surface-600);
 }
 
 .product-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 0.1rem;
 }
 
 .product-code {
-  font-weight: 600;
-  color: var(--primary-color);
-  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--surface-900);
+  font-size: 0.9rem;
 }
 
 .product-sku {
-  font-size: 0.7rem;
-  color: var(--surface-500);
+  font-size: 0.75rem;
+  color: var(--surface-400); 
 }
 
-.number-cell {
-  font-weight: 500;
+/* Status Badges - Cleaner */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status--success { background-color: #ecfdf5; color: #059669; }
+.status--warning { background-color: #fffbeb; color: #d97706; }
+.status--danger  { background-color: #fef2f2; color: #dc2626; }
+.status--info    { background-color: #eff6ff; color: #3b82f6; }
+.status--secondary { background-color: #f3f4f6; color: #6b7280; }
+
+.number-cell, .revenue-cell {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
 }
 
 .revenue-cell {
@@ -816,46 +869,6 @@ onMounted(async () => {
 
 .text-muted {
   color: var(--surface-400);
-}
-
-/* Status Badge */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-size: 0.7rem;
-  font-weight: 500;
-}
-
-.status--success {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.status--warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-}
-
-.status--danger {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
-.status--info {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
-
-.status--secondary {
-  background: var(--surface-100);
-  color: var(--surface-600);
-}
-
-.status-badge i {
-  font-size: 0.65rem;
 }
 
 /* Action Buttons */

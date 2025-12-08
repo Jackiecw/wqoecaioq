@@ -27,10 +27,13 @@ export default defineConfig(({ mode }) => {
             proxy.on('error', (err, req, res) => {
               console.log('[Proxy Error]', err.message)
             })
-            proxy.on('proxyReq', (proxyReq, req, res) => {
-              console.log('[Proxy]', req.method, req.url, '->', apiTarget + req.url)
-            })
+
           }
+        },
+        '/uploads': {
+          target: apiTarget,
+          changeOrigin: true,
+          secure: false,
         },
       },
     },
