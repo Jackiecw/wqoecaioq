@@ -5,6 +5,7 @@ export interface WeeklyReport {
     weekStartDate: string;
     createdAt: string;
     author: {
+        id: string;
         nickname: string;
     };
     summaryThisWeek?: string;

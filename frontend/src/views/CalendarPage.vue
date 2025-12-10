@@ -6,6 +6,27 @@
     >
       <template #actions>
         <div class="header-actions">
+          <!-- Admin Filter (inline) -->
+          <div v-if="isAdmin" class="admin-filter-group">
+            <Dropdown
+              v-model="adminFilterMode"
+              :options="adminFilterOptions"
+              option-label="label"
+              option-value="value"
+              class="filter-dropdown-compact"
+            />
+            <Dropdown
+              v-if="adminFilterMode === 'USER'"
+              v-model="selectedUserId"
+              :options="userList"
+              option-label="nickname"
+              option-value="id"
+              placeholder="选择成员"
+              class="filter-dropdown-compact"
+              filter
+            />
+          </div>
+
           <div class="nav-pill">
             <button class="nav-btn" @click="onClickNav('prev')"><i class="pi pi-chevron-left"></i></button>
             <span class="nav-label">{{ currentMonthDisplay }}</span>
@@ -30,29 +51,6 @@
         </div>
       </template>
     </PageHeader>
-
-    <FilterBar v-if="isAdmin">
-      <template #start>
-        <span class="filter-label"><i class="pi pi-filter"></i> 筛选</span>
-        <Dropdown
-          v-model="adminFilterMode"
-          :options="adminFilterOptions"
-          option-label="label"
-          option-value="value"
-          class="filter-dropdown w-8rem"
-        />
-        <Dropdown
-          v-if="adminFilterMode === 'USER'"
-          v-model="selectedUserId"
-          :options="userList"
-          option-label="nickname"
-          option-value="id"
-          placeholder="选择成员"
-          class="filter-dropdown w-10rem"
-          filter
-        />
-      </template>
-    </FilterBar>
 
     <div class="content-grid">
       <div class="main-column">
@@ -201,13 +199,12 @@ import interactionPlugin from '@fullcalendar/interaction';
 import zhCnLocale from '@fullcalendar/core/locales/zh-cn';
 import { useAuthStore } from '@/stores/auth';
 import calendarService, { CalendarEventDto } from '@/services/calendarService';
-import EventModal from '@/components/common/EventModal.vue';
+import EventModal from '@/components/calendar/EventModal.vue';
 import Button from 'primevue/button';
 import SelectButton from 'primevue/selectbutton';
 import Dropdown from 'primevue/dropdown';
 import Textarea from 'primevue/textarea';
 import PageHeader from '@/components/common/PageHeader.vue';
-import FilterBar from '@/components/common/FilterBar.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
 
 type CalendarView = 'month' | 'week' | 'day';
@@ -679,6 +676,33 @@ function onClickEventById(eventId: string) {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.admin-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+}
+
+.filter-dropdown-compact {
+  min-width: 100px;
+}
+
+.filter-dropdown-compact :deep(.p-select) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-size: 0.8125rem;
+}
+
+.filter-dropdown-compact :deep(.p-select-label) {
+  padding: 0.375rem 0.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .content-grid {

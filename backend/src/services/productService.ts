@@ -11,6 +11,12 @@ export class ProductService {
         });
     }
 
+    async getProductById(id: string) {
+        return await prisma.product.findUnique({
+            where: { id }
+        });
+    }
+
     async getProductOptions() {
         return {
             categories: Object.values(ProductCategory),

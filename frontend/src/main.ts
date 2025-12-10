@@ -5,13 +5,11 @@ import ToastService from 'primevue/toastservice';
 import Tooltip from 'primevue/tooltip';
 
 import { primeTheme } from './styles/prime-theme';
-import 'primeflex/primeflex.css';
 import 'primeicons/primeicons.css';
 import './fullcalendar-core.css';
 import './fullcalendar-daygrid.css';
 import './fullcalendar-timegrid.css';
-import './style.css';
-import './styles/dashboard-theme.css';
+import './styles/main.css';
 import App from './App.vue';
 
 import router from './router';

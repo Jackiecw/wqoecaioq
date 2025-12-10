@@ -10,6 +10,8 @@ export default {
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
+  // Enable important for PrimeVue compatibility
+  important: true,
   theme: {
     extend: {
       // 字体配置：Inter为主字体

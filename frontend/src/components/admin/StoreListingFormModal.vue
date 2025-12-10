@@ -1,6 +1,6 @@
 <template>
   <TransitionRoot appear :show="isOpen" as="template">
-    <Dialog as="div" @close="closeModal" class="relative z-10">
+    <Dialog as="div" @close="closeModal" class="relative z-50">
       <TransitionChild
         as="template"
         enter="duration-300 ease-out"
@@ -10,11 +10,11 @@
         leave-from="opacity-100"
         leave-to="opacity-0"
       >
-        <div class="fixed inset-0 bg-black/25" />
+        <div class="fixed inset-0 bg-black/30 backdrop-blur-sm" />
       </TransitionChild>
 
       <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center">
+        <div class="flex min-h-full items-center justify-center p-4">
           <TransitionChild
             as="template"
             enter="duration-300 ease-out"
@@ -24,134 +24,180 @@
             leave-from="opacity-100 scale-100"
             leave-to="opacity-0 scale-95"
           >
-            <DialogPanel class="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-              <DialogTitle as="h3" class="text-lg font-medium leading-6 text-gray-900">
-                {{ isEditMode ? '编辑在售商品' : '上架新商品' }}
-              </DialogTitle>
-
-              <div v-if="isLoading" class="mt-4 p-6 text-center text-stone-500">
-                {{ isLoadingMessage }}
+            <DialogPanel class="modal-panel">
+              <div class="modal-header">
+                <DialogTitle as="h3" class="modal-title">
+                  <i :class="isEditMode ? 'pi pi-pencil' : 'pi pi-plus-circle'"></i>
+                  {{ isEditMode ? '编辑在售商品' : '上架新商品' }}
+                </DialogTitle>
+                <button class="close-btn" @click="closeModal">
+                  <i class="pi pi-times"></i>
+                </button>
               </div>
 
-              <div v-else class="mt-4 grid grid-cols-1 gap-4">
-                <div class="input-group">
-                  <label for="productId">1. 选择产品（产品目录） *</label>
-                  <select id="productId" v-model="formData.productId" class="form-input" :disabled="isEditMode">
-                    <option disabled value="">请选择...</option>
-                    <option v-for="product in allProducts" :key="product.id" :value="product.id">
-                      {{ product.sku }} · {{ product.name }}
-                    </option>
-                  </select>
-                </div>
+              <div v-if="isLoading" class="modal-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>{{ isLoadingMessage }}</span>
+              </div>
 
-                <div class="grid gap-4 md:grid-cols-2">
-                  <div class="input-group">
-                    <label for="countryCode">2. 选择上架国家 *</label>
-                    <select
-                      id="countryCode"
-                      v-model="selectedCountryCode"
-                      class="form-input"
-                      :disabled="isEditMode"
-                    >
-                      <option disabled value="">请选择...</option>
-                      <option v-for="country in countryOptions" :key="country.code" :value="country.code">
-                        [{{ country.code }}] {{ country.name }}
-                      </option>
-                    </select>
+              <div v-else class="modal-body">
+                <!-- Section 1: 产品选择 -->
+                <div class="form-section">
+                  <div class="section-title">
+                    <i class="pi pi-box"></i>
+                    选择产品
                   </div>
-
-                  <div class="input-group">
-                    <label for="storeId">3. 选择上架店铺 *</label>
-                    <select
-                      id="storeId"
-                      v-model="formData.storeId"
-                      class="form-input"
-                      :disabled="isEditMode || filteredStores.length === 0"
-                    >
-                      <option disabled value="">请选择...</option>
-                      <option v-for="store in filteredStores" :key="store.id" :value="store.id">
-                        [{{ store.countryCode }}] {{ store.name }}
+                  <div class="field-group">
+                    <label>产品（产品目录）<span class="required">*</span></label>
+                    <select v-model="formData.productId" class="field-select" :disabled="isEditMode">
+                      <option disabled value="">请选择产品...</option>
+                      <option v-for="product in allProducts" :key="product.id" :value="product.id">
+                        {{ product.sku }} · {{ product.name }}
                       </option>
                     </select>
                   </div>
                 </div>
 
-                <div class="input-group">
-                  <label for="storeTitle">4. 商品标题 *</label>
-                  <input
-                    id="storeTitle"
-                    type="text"
-                    v-model="formData.storeTitle"
-                    placeholder="例如：Vega Pro 官方旗舰店"
-                  />
+                <!-- Section 2: 上架位置 -->
+                <div class="form-section">
+                  <div class="section-title">
+                    <i class="pi pi-map-marker"></i>
+                    上架位置
+                  </div>
+                  <div class="form-row">
+                    <div class="field-group">
+                      <label>国家<span class="required">*</span></label>
+                      <select
+                        v-model="selectedCountryCode"
+                        class="field-select"
+                        :disabled="isEditMode"
+                      >
+                        <option disabled value="">请选择...</option>
+                        <option v-for="country in countryOptions" :key="country.code" :value="country.code">
+                          [{{ country.code }}] {{ country.name }}
+                        </option>
+                      </select>
+                    </div>
+                    <div class="field-group">
+                      <label>店铺<span class="required">*</span></label>
+                      <select
+                        v-model="formData.storeId"
+                        class="field-select"
+                        :disabled="isEditMode || filteredStores.length === 0"
+                      >
+                        <option disabled value="">请选择...</option>
+                        <option v-for="store in filteredStores" :key="store.id" :value="store.id">
+                          {{ store.name }}
+                        </option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                <div class="input-group">
-                  <label for="productCode">5. 商品代码 *</label>
-                  <input
-                    id="productCode"
-                    type="text"
-                    v-model="formData.productCode"
-                    placeholder="例如：Vega Pro - 1"
-                  />
+                <!-- Section 3: 商品信息 -->
+                <div class="form-section">
+                  <div class="section-title">
+                    <i class="pi pi-tag"></i>
+                    商品信息
+                  </div>
+                  <div class="form-row">
+                    <div class="field-group field-group--wide">
+                      <label>商品标题<span class="required">*</span></label>
+                      <input
+                        type="text"
+                        v-model="formData.storeTitle"
+                        class="field-input"
+                        placeholder="例如：Vega Pro 官方旗舰店"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label>商品代码<span class="required">*</span></label>
+                      <input
+                        type="text"
+                        v-model="formData.productCode"
+                        class="field-input"
+                        placeholder="例如：VP-01"
+                      />
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="field-group">
+                      <label>
+                        售价
+                        <span class="currency-hint">({{ currentCurrencyLabel }})</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        inputmode="decimal"
+                        v-model="formData.currentPrice"
+                        class="field-input"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div class="field-group field-group--wide">
+                      <label>商品链接<span class="optional">(可选)</span></label>
+                      <input
+                        type="text"
+                        v-model="formData.platformUrl"
+                        class="field-input"
+                        placeholder="https://shopee.co.id/..."
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div class="input-group">
-                  <label for="currentPrice">
-                    6. 售价
-                    <span class="text-xs text-[#6B7280]">（当地货币：{{ currentCurrencyLabel }}）</span>
-                  </label>
-                  <input
-                    id="currentPrice"
-                    type="number"
-                    step="0.01"
-                    inputmode="decimal"
-                    v-model="formData.currentPrice"
-                    placeholder="请输入在售价格"
-                  />
+                <!-- Section 4: 商品图片 -->
+                <div class="form-section">
+                  <div class="section-title">
+                    <i class="pi pi-image"></i>
+                    商品主图
+                    <span class="optional">({{ isEditMode ? '可替换' : '可选' }})</span>
+                  </div>
+                  <div class="image-upload-row">
+                    <div 
+                      class="image-uploader"
+                      :class="{ 'has-image': previewUrl }"
+                      @click="triggerFileInput"
+                    >
+                      <img v-if="previewUrl" :src="previewUrl" alt="商品图片" />
+                      <div v-else class="upload-placeholder">
+                        <i class="pi pi-cloud-upload"></i>
+                        <span>点击上传图片</span>
+                        <span class="upload-hint">JPG, PNG</span>
+                      </div>
+                      <input 
+                        ref="fileInputRef"
+                        type="file" 
+                        @change="onFileSelected" 
+                        accept="image/png, image/jpeg"
+                        class="hidden-input"
+                      />
+                    </div>
+                    <button v-if="previewUrl" class="remove-image-btn" @click="removeImage">
+                      <i class="pi pi-trash"></i>
+                      移除图片
+                    </button>
+                  </div>
                 </div>
 
-                <div class="input-group">
-                  <label for="platformUrl">7. 商品链接（可选）</label>
-                  <input
-                    id="platformUrl"
-                    type="text"
-                    v-model="formData.platformUrl"
-                    placeholder="https://shopee.co.id/..."
-                  />
-                </div>
-
-                <div class="input-group">
-                  <label for="storeImageUrl">8. 商品主图（{{ isEditMode ? '替换' : '上传' }}）</label>
-                  <input
-                    id="storeImageUrl"
-                    type="file"
-                    @change="onFileSelected"
-                    accept="image/png, image/jpeg"
-                    class="block w-full text-sm text-stone-500 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
-                  />
-                  <img v-if="previewUrl" :src="previewUrl" class="mt-3 h-48 w-48 rounded-xl object-cover shadow" />
-                </div>
-
-                <p v-if="errorMessage" class="text-sm text-red-600">
+                <p v-if="errorMessage" class="error-message">
+                  <i class="pi pi-exclamation-circle"></i>
                   {{ errorMessage }}
                 </p>
               </div>
 
-              <div class="mt-6 flex justify-end space-x-4">
-                <button
-                  type="button"
-                  @click="closeModal"
-                  class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-                >
+              <div class="modal-footer">
+                <button type="button" class="btn-cancel" @click="closeModal">
                   取消
                 </button>
-                <button
-                  type="button"
+                <button 
+                  type="button" 
+                  class="btn-submit" 
                   @click="handleSubmit"
                   :disabled="isLoading"
-                  class="rounded-md bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow disabled:cursor-not-allowed disabled:bg-[#93C5FD]"
                 >
+                  <i :class="isEditMode ? 'pi pi-check' : 'pi pi-upload'"></i>
                   {{ isEditMode ? '保存修改' : '确认上架' }}
                 </button>
               </div>
@@ -220,6 +266,7 @@ const selectedCountryCode = ref<string>('');
 const isLoading = ref(false);
 const isLoadingMessage = ref('');
 
+const fileInputRef = ref<HTMLInputElement | null>(null);
 const selectedFile = ref<File | null>(null);
 const previewUrl = ref<string | null>(null);
 const errorMessage = ref<string>('');
@@ -257,6 +304,18 @@ const currentCurrencyLabel = computed(() => {
   if (!selectedCountryCode.value) return '请选择国家';
   return currencyMap.value[selectedCountryCode.value] || '当地货币';
 });
+
+const triggerFileInput = () => {
+  fileInputRef.value?.click();
+};
+
+const removeImage = () => {
+  selectedFile.value = null;
+  if (previewUrl.value?.startsWith('blob:')) {
+    URL.revokeObjectURL(previewUrl.value);
+  }
+  previewUrl.value = null;
+};
 
 async function fetchCreateOptions() {
   isLoading.value = true;
@@ -327,7 +386,7 @@ function onFileSelected(event: Event) {
   const file = target?.files?.[0];
   if (file) {
     selectedFile.value = file;
-    if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
+    if (previewUrl.value?.startsWith('blob:')) {
       URL.revokeObjectURL(previewUrl.value);
     }
     previewUrl.value = URL.createObjectURL(file);
@@ -365,10 +424,10 @@ async function handleSubmit() {
       emit('listing-created', response.data);
     }
     closeModal();
-  } catch (error) {
+  } catch (error: any) {
     console.error('操作失败:', error);
-    if (error.response && error.response.data?.details) {
-      errorMessage.value = error.response.data.details.map((d) => d.message).join('; ');
+    if (error.response?.data?.details) {
+      errorMessage.value = error.response.data.details.map((d: any) => d.message).join('; ');
     } else {
       errorMessage.value = error.response?.data?.error || '操作失败，请稍后重试。';
     }
@@ -406,7 +465,7 @@ watch(
         await fetchCreateOptions();
       }
     } else {
-      if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
+      if (previewUrl.value?.startsWith('blob:')) {
         URL.revokeObjectURL(previewUrl.value);
       }
     }
@@ -428,21 +487,332 @@ function resetForm() {
 </script>
 
 <style scoped>
-.input-group {
+/* ========================================
+   Store Listing Form Modal - Clean Design
+   ======================================== */
+.modal-panel {
+  width: 100%;
+  max-width: 640px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.modal-title i {
+  color: var(--color-accent);
+}
+
+.close-btn {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.close-btn:hover {
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+}
+
+.modal-loading {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  color: var(--color-text-secondary);
 }
-.input-group label {
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
-  font-size: 0.875rem; /* 14px */
+
+.modal-loading i {
+  font-size: 1.5rem;
+  color: var(--color-accent);
 }
-.input-group input,
-.input-group select {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
+
+.modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* Form Sections */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.section-title i {
+  font-size: 0.875rem;
+}
+
+.section-title .optional {
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: none;
+  font-size: 0.75rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* Field Group */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.field-group--wide {
+  grid-column: span 1;
+}
+
+.field-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 0.125rem;
+}
+
+.optional {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+
+.currency-hint {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-size: 0.75rem;
+}
+
+.field-input,
+.field-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+}
+
+.field-input:focus,
+.field-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.field-input:disabled,
+.field-select:disabled {
+  background: var(--color-bg-page);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Image Upload */
+.image-upload-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.image-uploader {
+  width: 120px;
+  height: 120px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all var(--transition-fast);
+  background: var(--color-bg-page);
+}
+
+.image-uploader:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.image-uploader.has-image {
+  border-style: solid;
+  border-color: var(--color-border);
+}
+
+.image-uploader img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.upload-placeholder i {
+  font-size: 1.5rem;
+}
+
+.upload-placeholder span {
+  font-size: 0.75rem;
+}
+
+.upload-hint {
+  font-size: 0.625rem !important;
+  color: var(--color-text-muted) !important;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.remove-image-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.remove-image-btn:hover {
+  background: #fee2e2;
+}
+
+/* Error Message */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+}
+
+.btn-cancel {
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-cancel:hover {
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+}
+
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-submit:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .field-group--wide {
+    grid-column: span 1;
+  }
 }
 </style>

@@ -2,87 +2,122 @@
   <Dialog
     v-model:visible="isVisible"
     modal
-    header="周报详情"
-    :style="{ width: '52rem' }"
-    :breakpoints="{ '960px': '75vw', '640px': '90vw' }"
+    :style="{ width: '56rem' }"
+    :breakpoints="{ '960px': '80vw', '640px': '95vw' }"
     :dismissableMask="true"
     :draggable="false"
-    class="p-dialog-custom"
+    :showHeader="false"
+    :pt="{
+      root: { class: 'report-dialog' },
+      content: { class: 'report-dialog-content' },
+      mask: { class: 'report-dialog-mask' }
+    }"
     @update:visible="handleDialogClose"
   >
-    <div v-if="report" class="flex flex-col gap-6 p-1">
-      <!-- Meta Info -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="meta-card">
-          <div class="meta-icon text-blue-600 bg-blue-50">
-             <i class="pi pi-calendar"></i>
+    <div v-if="report" class="report-detail">
+      <!-- Custom Header -->
+      <div class="dialog-header">
+        <div class="header-left">
+          <div class="header-icon">
+            <i class="pi pi-file-edit"></i>
           </div>
-          <div>
-            <span class="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">开始日期</span>
-            <span class="block text-sm font-semibold text-[var(--color-text-primary)] mt-0.5">{{ formatDate(report.weekStartDate) }}</span>
-          </div>
-        </div>
-        <div class="meta-card">
-           <div class="meta-icon text-purple-600 bg-purple-50">
-             <i class="pi pi-user"></i>
-          </div>
-          <div>
-            <span class="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">提交人</span>
-            <span class="block text-sm font-semibold text-[var(--color-text-primary)] mt-0.5">{{ report.author?.nickname ?? '--' }}</span>
+          <div class="header-info">
+            <h3 class="dialog-title">周报详情</h3>
+            <p class="dialog-subtitle">{{ formatWeekRange(report.weekStartDate) }}</p>
           </div>
         </div>
-        <div class="meta-card">
-           <div class="meta-icon text-green-600 bg-green-50">
-             <i class="pi pi-clock"></i>
+        <button class="close-btn" @click="closeModal">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <!-- Meta Cards -->
+      <div class="meta-row">
+        <div class="meta-card meta-card--blue">
+          <i class="pi pi-calendar meta-icon"></i>
+          <div class="meta-content">
+            <span class="meta-label">开始日期</span>
+            <span class="meta-value">{{ formatDate(report.weekStartDate) }}</span>
           </div>
-          <div>
-            <span class="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">提交时间</span>
-            <span class="block text-sm font-semibold text-[var(--color-text-primary)] mt-0.5">{{ formatDateTime(report.createdAt) }}</span>
+        </div>
+        <div class="meta-card meta-card--purple">
+          <i class="pi pi-user meta-icon"></i>
+          <div class="meta-content">
+            <span class="meta-label">提交人</span>
+            <span class="meta-value">{{ report.author?.nickname ?? '未知' }}</span>
+          </div>
+        </div>
+        <div class="meta-card meta-card--green">
+          <i class="pi pi-clock meta-icon"></i>
+          <div class="meta-content">
+            <span class="meta-label">提交时间</span>
+            <span class="meta-value">{{ formatDateTime(report.createdAt) }}</span>
           </div>
         </div>
       </div>
 
-      <!-- Content Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="content-card">
-          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-            <i class="pi pi-check-circle text-green-500"></i>
-            <span class="font-bold text-gray-700">本周总结</span>
+      <!-- Content Sections -->
+      <div class="content-grid">
+        <div class="content-section content-section--primary">
+          <div class="section-header">
+            <div class="section-icon section-icon--green">
+              <i class="pi pi-check-circle"></i>
+            </div>
+            <span class="section-title">本周工作总结</span>
           </div>
-          <div class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ report.summaryThisWeek || '无' }}</div>
+          <div class="section-body">
+            <p class="section-text">{{ report.summaryThisWeek || '暂无内容' }}</p>
+          </div>
         </div>
 
-        <div class="content-card">
-          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-            <i class="pi pi-flag text-blue-500"></i>
-            <span class="font-bold text-gray-700">下周计划</span>
+        <div class="content-section content-section--primary">
+          <div class="section-header">
+            <div class="section-icon section-icon--blue">
+              <i class="pi pi-flag"></i>
+            </div>
+            <span class="section-title">下周工作计划</span>
           </div>
-          <div class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ report.planNextWeek || '无' }}</div>
+          <div class="section-body">
+            <p class="section-text">{{ report.planNextWeek || '暂无内容' }}</p>
+          </div>
         </div>
 
-        <div class="content-card">
-          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-            <i class="pi pi-exclamation-triangle text-amber-500"></i>
-            <span class="font-bold text-gray-700">遇到的问题</span>
+        <div class="content-section content-section--secondary">
+          <div class="section-header">
+            <div class="section-icon section-icon--amber">
+              <i class="pi pi-exclamation-triangle"></i>
+            </div>
+            <span class="section-title">遇到的问题</span>
           </div>
-          <div class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ report.problemsEncountered || '无' }}</div>
+          <div class="section-body">
+            <p class="section-text section-text--muted">{{ report.problemsEncountered || '暂无问题' }}</p>
+          </div>
         </div>
 
-        <div class="content-card">
-          <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-            <i class="pi pi-comment text-gray-400"></i>
-            <span class="font-bold text-gray-700">其他</span>
+        <div class="content-section content-section--secondary">
+          <div class="section-header">
+            <div class="section-icon section-icon--gray">
+              <i class="pi pi-comment"></i>
+            </div>
+            <span class="section-title">其他备注</span>
           </div>
-          <div class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{{ report.other || '无' }}</div>
+          <div class="section-body">
+            <p class="section-text section-text--muted">{{ report.other || '暂无备注' }}</p>
+          </div>
         </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="dialog-footer">
+        <Button 
+          label="关闭" 
+          icon="pi pi-times" 
+          severity="secondary" 
+          outlined
+          @click="closeModal" 
+        />
       </div>
     </div>
-
-    <template #footer>
-      <div class="flex justify-end pt-4 border-t border-gray-100">
-        <Button label="关闭" severity="secondary" text @click="closeModal" />
-      </div>
-    </template>
   </Dialog>
 </template>
 
@@ -136,36 +171,243 @@ const formatDateTime = (dateString?: string) => {
     minute: '2-digit',
   });
 };
+
+const formatWeekRange = (startDateString?: string) => {
+  if (!startDateString) return '';
+  const start = new Date(startDateString);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const formatShort = (d: Date) => `${d.getMonth() + 1}月${d.getDate()}日`;
+  return `${formatShort(start)} - ${formatShort(end)}`;
+};
 </script>
 
 <style scoped>
+.report-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Dialog Header */
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.header-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #8b5cf6 100%);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+}
+
+.dialog-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.dialog-subtitle {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin: 0.25rem 0 0 0;
+}
+
+.close-btn {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.close-btn:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+/* Meta Row */
+.meta-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
 .meta-card {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
   border-radius: var(--radius-md);
-  background-color: var(--color-bg-page);
   border: 1px solid var(--color-border);
-  transition: all var(--transition-fast);
+  background: var(--color-bg-page);
 }
 
+.meta-card--blue .meta-icon { color: #3b82f6; }
+.meta-card--purple .meta-icon { color: #8b5cf6; }
+.meta-card--green .meta-icon { color: #10b981; }
+
 .meta-icon {
-  width: 2.5rem;
-  height: 2.5rem;
+  font-size: 1.25rem;
+}
+
+.meta-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.meta-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.meta-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Content Grid */
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.content-section {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.content-section--primary {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+
+.content-section--secondary {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+}
+
+.section-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-sm);
-  font-size: 1.1rem;
+  font-size: 0.875rem;
 }
 
-.content-card {
-  background-color: var(--color-bg-page);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1.25rem;
-  height: 100%;
-  box-shadow: var(--shadow-sm);
+.section-icon--green {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.section-icon--blue {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.section-icon--amber {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.section-icon--gray {
+  background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+}
+
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.section-body {
+  padding: 1rem;
+  min-height: 80px;
+}
+
+.section-text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.section-text--muted {
+  color: var(--color-text-secondary);
+}
+
+/* Footer */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .meta-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<style>
+/* Global Dialog Styles */
+.report-dialog .p-dialog-content {
+  padding: 1.5rem;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+}
+
+.report-dialog-mask {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
 }
 </style>

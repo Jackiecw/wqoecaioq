@@ -52,6 +52,19 @@ export class ProductController {
         }
     }
 
+    async getProductById(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { id } = req.params;
+            const product = await productService.getProductById(id);
+            if (!product) {
+                throw new AppError('产品不存在', 404);
+            }
+            res.json(product);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     async getProductOptions(req: Request, res: Response, next: NextFunction) {
         try {
             const options = await productService.getProductOptions();

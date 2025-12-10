@@ -1,57 +1,103 @@
 <template>
-  <div class="space-y-6">
-    <!-- Upload Section -->
-    <div class="space-y-6">
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <!-- Country selection moved to parent -->
-            
-             <div class="input-group">
-                <label for="store">所属店铺</label>
-                <select id="store" v-model="selectedStoreId" class="form-input" :disabled="!selectedCountry">
-                    <option value="" disabled>请选择店铺</option>
-                    <option v-for="store in filteredStores" :key="store.id" :value="store.id">{{ store.name }}</option>
-                </select>
-                <p v-if="!selectedCountry" class="text-xs text-red-500 mt-1">请先在上方选择国家</p>
-            </div>
+  <div class="batch-import">
+    <!-- Step 1: Store Selection & File Upload in one row -->
+    <div class="upload-section">
+      <div class="upload-header">
+        <div class="step-indicator">
+          <span class="step-number">1</span>
+          <span class="step-label">选择店铺并上传文件</span>
+        </div>
+        <p class="upload-hint">请先选择要导入数据的店铺，然后上传平台导出的 Excel 文件</p>
+      </div>
 
-            <div class="col-span-full">
-                <label class="block text-sm font-bold text-stone-700 mb-2">上传文件</label>
-                <div 
-                    class="flex justify-center rounded-lg border-2 border-dashed border-stone-300 px-6 py-10 hover:bg-stone-50 transition-colors"
-                    @dragover.prevent
-                    @drop.prevent="handleDrop"
-                    :class="{'bg-indigo-50 border-indigo-300': isDragging}"
-                    @dragenter="isDragging = true"
-                    @dragleave="isDragging = false"
-                >
-                    <div class="text-center">
-                        <DocumentArrowUpIcon class="mx-auto h-12 w-12 text-stone-400" aria-hidden="true" />
-                        <div class="mt-4 flex text-sm leading-6 text-stone-600 justify-center">
-                            <label for="file-upload" class="relative cursor-pointer rounded-md font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500">
-                                <span>上传文件</span>
-                                <input id="file-upload" name="file-upload" type="file" class="sr-only" @change="handleFileSelect" accept=".xlsx, .xls" />
-                            </label>
-                            <p class="pl-1">或拖拽文件到这里</p>
-                        </div>
-                        <p class="text-xs leading-5 text-stone-500">支持 .xlsx, .xls</p>
-                        <p v-if="selectedFile" class="mt-2 text-sm font-semibold text-indigo-600">{{ selectedFile.name }}</p>
-                    </div>
-                </div>
+      <div class="upload-grid">
+        <!-- Store Selection -->
+        <div class="store-select-card">
+          <label class="field-label">
+            <i class="pi pi-shop"></i>
+            所属店铺
+          </label>
+          <select v-model="selectedStoreId" class="store-select" :disabled="!selectedCountry">
+            <option value="" disabled>请选择店铺</option>
+            <option v-for="store in filteredStores" :key="store.id" :value="store.id">
+              {{ store.name }}
+            </option>
+          </select>
+          <p v-if="!selectedCountry" class="field-error">
+            <i class="pi pi-info-circle"></i>
+            请先在上方选择国家
+          </p>
+          <p v-else-if="selectedStoreId" class="field-success">
+            <i class="pi pi-check-circle"></i>
+            已选择店铺
+          </p>
+        </div>
+
+        <!-- File Upload -->
+        <div 
+          class="file-upload-card"
+          :class="{ 
+            'is-dragging': isDragging, 
+            'has-file': selectedFile,
+            'is-disabled': !selectedStoreId 
+          }"
+          @dragover.prevent
+          @drop.prevent="handleDrop"
+          @dragenter="isDragging = true"
+          @dragleave="isDragging = false"
+        >
+          <div class="upload-content">
+            <div v-if="selectedFile" class="file-info">
+              <i class="pi pi-file-excel file-icon"></i>
+              <div class="file-details">
+                <span class="file-name">{{ selectedFile.name }}</span>
+                <span class="file-size">{{ formatFileSize(selectedFile.size) }}</span>
+              </div>
+              <button class="remove-file-btn" @click.stop="selectedFile = null">
+                <i class="pi pi-times"></i>
+              </button>
             </div>
+            <div v-else class="upload-placeholder">
+              <div class="upload-icon-wrapper">
+                <i class="pi pi-cloud-upload"></i>
+              </div>
+              <div class="upload-text">
+                <label for="file-upload" class="upload-link">
+                  点击上传
+                  <input 
+                    id="file-upload" 
+                    type="file" 
+                    class="sr-only" 
+                    @change="handleFileSelect" 
+                    accept=".xlsx, .xls" 
+                    :disabled="!selectedStoreId"
+                  />
+                </label>
+                <span>或拖拽文件到这里</span>
+              </div>
+              <span class="upload-format">支持 .xlsx, .xls 格式</span>
+            </div>
+          </div>
         </div>
-        
-        <div class="flex items-center justify-end gap-x-4 pt-4 border-t border-stone-100">
-            <button type="button" class="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50" @click="reset">重置</button>
-            <button 
-                type="submit" 
-                class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                @click="uploadAndPreview"
-                :disabled="!selectedFile || !selectedStoreId || loading"
-            >
-                <span v-if="loading">处理中...</span>
-                <span v-else>生成预览</span>
-            </button>
-        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="upload-actions">
+        <button type="button" class="btn-reset" @click="reset">
+          <i class="pi pi-refresh"></i>
+          重置
+        </button>
+        <button 
+          type="button" 
+          class="btn-preview"
+          @click="uploadAndPreview"
+          :disabled="!selectedFile || !selectedStoreId || loading"
+        >
+          <i class="pi pi-eye" v-if="!loading"></i>
+          <i class="pi pi-spin pi-spinner" v-else></i>
+          {{ loading ? '解析中...' : '生成预览' }}
+        </button>
+      </div>
     </div>
 
 
@@ -177,7 +223,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { DocumentArrowUpIcon } from '@heroicons/vue/24/outline';
 import MappingModal from './MappingModal.vue';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '../../stores/auth';
@@ -356,6 +401,14 @@ const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString();
 };
+
+const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
 </script>
 
 <style scoped>
@@ -398,6 +451,317 @@ const formatDate = (dateString) => {
   color: var(--color-text-primary);
 }
 
+/* ========================================
+   Batch Import - New Design
+   ======================================== */
+.batch-import {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.upload-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.step-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.upload-hint {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding-left: 2.5rem;
+}
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .upload-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.store-select-card {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.field-label i {
+  color: var(--color-accent);
+}
+
+.store-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  background: var(--color-bg-card);
+  transition: all var(--transition-fast);
+}
+
+.store-select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+  outline: none;
+}
+
+.store-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: #ef4444;
+  margin: 0;
+}
+
+.field-success {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: #10b981;
+  margin: 0;
+}
+
+.file-upload-card {
+  background: var(--color-bg-page);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.file-upload-card:hover:not(.is-disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.file-upload-card.is-dragging {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.file-upload-card.has-file {
+  border-style: solid;
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.file-upload-card.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upload-content {
+  width: 100%;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.upload-icon-wrapper {
+  width: 3.5rem;
+  height: 3.5rem;
+  background: var(--color-accent-soft);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-icon-wrapper i {
+  font-size: 1.5rem;
+  color: var(--color-accent);
+}
+
+.upload-text {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+}
+
+.upload-link {
+  color: var(--color-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.upload-link:hover {
+  text-decoration: underline;
+}
+
+.upload-format {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.file-icon {
+  font-size: 2.5rem;
+  color: #10b981;
+}
+
+.file-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.file-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.file-size {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.remove-file-btn {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.remove-file-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.upload-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.btn-reset {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-reset:hover {
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+}
+
+.btn-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-preview:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.btn-preview:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Override Tailwind hardcoded colors */
 .bg-indigo-600 { background: var(--color-accent); }
 .text-indigo-600 { color: var(--color-accent); }
@@ -410,3 +774,4 @@ const formatDate = (dateString) => {
 .rounded-lg, .rounded-md { border-radius: var(--radius-sm); }
 .shadow { box-shadow: var(--shadow-sm); }
 </style>
+

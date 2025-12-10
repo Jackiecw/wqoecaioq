@@ -93,6 +93,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
@@ -103,7 +104,7 @@ import Checkbox from 'primevue/checkbox';
 import Message from 'primevue/message';
 import Tag from 'primevue/tag';
 import apiClient from '@/services/apiClient';
-import useManagedCountries from '@/composables/useManagedCountries';
+import { useCountriesStore } from '@/stores/countries';
 
 type RoleOption = { id: string; name: string; description: string };
 type CountryOption = { id: string; code: string; name: string; label: string };
@@ -159,11 +160,8 @@ const dialogTitle = computed(() => (isEditMode.value ? '编辑用户' : '新建�
 
 const roleOptions = computed(() => props.roles || []);
 
-const {
-  countries,
-  fetchCountries,
-  countriesError,
-} = useManagedCountries();
+const countriesStore = useCountriesStore();
+const { countries, error: countriesError } = storeToRefs(countriesStore);
 
 const countryOptions = computed<CountryOption[]>(() =>
   countries.value
@@ -244,7 +242,7 @@ watch(
   async (val) => {
     if (val) {
       try {
-        await fetchCountries();
+        await countriesStore.fetchCountries();
       } catch (error) {
         console.error('获取国家列表失败:', error);
         errorMessage.value = countriesError.value || '无法加载国家列表。';

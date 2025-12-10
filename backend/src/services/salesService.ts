@@ -106,6 +106,10 @@ export function buildSalesDataWhere(query: any, user: any) {
         where.storeId = query.storeId;
     }
 
+    if (query.search) {
+        where.platformOrderId = { contains: query.search };
+    }
+
     const recordDateFilter = buildRecordDateFilter(query.startDate, query.endDate);
     if (recordDateFilter) {
         where.recordDate = recordDateFilter;

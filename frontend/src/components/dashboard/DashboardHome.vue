@@ -9,22 +9,21 @@
       <template #actions>
         <div class="flex align-items-center gap-3 flex-wrap justify-content-end">
           <!-- 国家筛选 -->
-          <IconField>
-            <InputIcon class="pi pi-globe" style="color: var(--surface-500)" />
+          <div class="header-filter-item">
+            <i class="pi pi-globe filter-icon"></i>
             <Select
               v-model="selectedCountryCode"
               :options="countryFilterOptions"
               optionLabel="name"
               optionValue="code"
               placeholder="选择国家"
-              class="filter-select pl-5"
-              style="min-width: 150px"
+              class="header-filter-select"
             />
-          </IconField>
+          </div>
 
           <!-- 店铺筛选 -->
-          <IconField>
-            <InputIcon class="pi pi-shop" style="color: var(--surface-500)" />
+          <div class="header-filter-item">
+            <i class="pi pi-shop filter-icon"></i>
             <Select
               v-model="selectedStoreId"
               :options="storeFilterOptions"
@@ -32,10 +31,9 @@
               optionValue="id"
               placeholder="选择店铺"
               :disabled="!selectedCountryCode"
-              class="filter-select pl-5"
-              style="min-width: 180px"
+              class="header-filter-select"
             />
-          </IconField>
+          </div>
         </div>
       </template>
     </PageHeader>
@@ -139,7 +137,7 @@
             <!-- 交换按钮 -->
             <div class="flex justify-content-center" style="margin: -0.25rem 0">
               <button class="exchange-swap-btn" @click="swapExchangeCurrencies">
-                <i class="pi pi-arrow-down-up"></i>
+                <i class="pi pi-arrows-v"></i>
               </button>
             </div>
 
@@ -190,60 +188,67 @@
           <div v-if="activeTab === 'todo'">
             <DashboardTodo :compact="true" :max-items="5" />
           </div>
-          <div v-else class="cursor-pointer" @click="isScheduleOpen = true">
-            <div class="mb-4">
-              <span class="text-sm font-semibold text-700 block mb-2">本周重点</span>
-              <p class="text-sm text-600 line-height-3 m-0">
-                {{ summaryData.schedule.planNextWeek || '暂无计划，点击填写' }}
-              </p>
+          <div v-else class="schedule-preview" @click="isScheduleOpen = true">
+            <div class="schedule-preview-header">
+              <div class="preview-icon">
+                <i class="pi pi-calendar"></i>
+              </div>
+              <div class="preview-info">
+                <span class="preview-label">本周重点</span>
+                <p class="preview-content">
+                  {{ summaryData.schedule.planNextWeek || '暂无计划，点击查看详情' }}
+                </p>
+              </div>
             </div>
-            <Button
-              label="查看详情"
-              icon="pi pi-arrow-right"
-              iconPos="right"
-              severity="secondary"
-              outlined
-              size="small"
-              class="w-full border-round-3xl"
-            />
+            <button class="preview-action">
+              <span>查看日程详情</span>
+              <i class="pi pi-arrow-right"></i>
+            </button>
           </div>
         </ContentCard>
       </div>
     </div>
 
     <!-- 快捷链接栏 -->
-    <div class="mt-5 pt-4 border-top-1 surface-border">
-      <div class="flex align-items-center justify-content-between mb-3">
-        <span class="text-sm font-semibold text-700">快捷链接</span>
+    <ContentCard class="quick-links-card mt-4">
+      <div class="quick-links-header">
+        <div class="quick-links-title">
+          <i class="pi pi-link"></i>
+          <span>快捷链接</span>
+        </div>
         <Button
           v-if="authStore.role === 'admin'"
-          label="管理"
           icon="pi pi-cog"
           size="small"
           text
+          rounded
+          v-tooltip.left="'管理链接'"
           @click="goToLinksPage"
         />
       </div>
-      <div class="quick-links" v-if="!isLoadingLinks && quickLinks.length > 0">
+      <div class="quick-links-body" v-if="!isLoadingLinks && quickLinks.length > 0">
         <a
           v-for="link in quickLinks"
           :key="link.id"
           :href="link.url"
           target="_blank"
           rel="noopener noreferrer"
-          class="quick-link-item"
+          class="quick-link-pill"
+          v-tooltip.top="link.url"
         >
-          <i class="pi pi-external-link text-xs"></i>
-          {{ link.title }}
+          <i class="pi pi-external-link"></i>
+          <span>{{ link.title }}</span>
         </a>
       </div>
-      <div v-else-if="isLoadingLinks" class="text-sm text-color-secondary">
-        加载中...
+      <div v-else-if="isLoadingLinks" class="quick-links-empty">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>加载中...</span>
       </div>
-      <div v-else class="text-sm text-color-secondary">
-        暂无快捷链接
+      <div v-else class="quick-links-empty">
+        <i class="pi pi-inbox"></i>
+        <span>暂无快捷链接</span>
       </div>
-    </div>
+    </ContentCard>
 
     <!-- 日程弹窗 -->
     <DashboardSchedule
@@ -259,8 +264,6 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
-import IconField from 'primevue/iconfield';
-import InputIcon from 'primevue/inputicon';
 import { useAuthStore } from '../../stores/auth';
 import { useRouter } from 'vue-router';
 import apiClient from '@/services/apiClient';
@@ -269,6 +272,9 @@ import DashboardSchedule from './DashboardSchedule.vue';
 import SalesTrendChart from './SalesTrendChart.vue';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
+import Tooltip from 'primevue/tooltip';
+
+const vTooltip = Tooltip;
 
 type GmvSummary = {
   today: number;
@@ -785,5 +791,206 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* ========================================
+   Header Filter 样式
+   ======================================== */
+.header-filter-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  transition: all var(--transition-fast);
+}
+
+.header-filter-item:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.header-filter-item:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+.filter-icon {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+}
+
+.header-filter-select {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  min-width: 140px;
+  font-size: 0.9375rem;
+}
+
+.header-filter-select :deep(.p-select-label) {
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  font-size: 0.9375rem;
+  color: var(--color-text-primary);
+}
+
+.header-filter-select :deep(.p-select-dropdown) {
+  width: 2rem;
+}
+
+.header-filter-select:disabled {
+  opacity: 0.5;
+}
+
+/* ========================================
+   日程预览
+   ======================================== */
+.schedule-preview {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.schedule-preview-header {
+  display: flex;
+  gap: 0.875rem;
+}
+
+.preview-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.preview-content {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.preview-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.625rem;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.preview-action:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.preview-action i {
+  font-size: 0.75rem;
+  transition: transform var(--transition-fast);
+}
+
+.preview-action:hover i {
+  transform: translateX(3px);
+}
+
+/* ========================================
+   快捷链接卡片
+   ======================================== */
+.quick-links-card {
+  padding: 1rem 1.25rem;
+}
+
+.quick-links-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.quick-links-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.quick-links-title i {
+  color: var(--color-accent);
+}
+
+.quick-links-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.quick-link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.quick-link-pill:hover {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.quick-link-pill i {
+  font-size: 0.6875rem;
+}
+
+.quick-links-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
 }
 </style>

@@ -2,7 +2,7 @@
   <div class="page-shell product-page">
     <PageHeader
       title="产品目录"
-      subtitle="管理所有标准产品资料，建立SKU与基本属性库"
+      subtitle="管理所有标准产品资料，建立 SKU 与基本属性库"
     >
       <template #actions>
         <button class="btn-subtle btn-primary" @click="openModal">
@@ -12,7 +12,7 @@
       </template>
     </PageHeader>
 
-    <ContentCard class="main-card">
+    <ContentCard>
       <FilterBar>
         <template #start>
           <div class="surface-input search-input">
@@ -37,146 +37,241 @@
             </select>
           </div>
         </template>
+        <template #end>
+          <button class="btn-subtle" @click="resetFilters">
+            <i class="pi pi-refresh"></i>
+            重置
+          </button>
+        </template>
       </FilterBar>
 
-      <div class="split-view-container">
-        <!-- Left Sidebar: Product List -->
-        <aside class="listing-panel">
-          <div class="panel-header">产品列表 ({{ filteredProducts.length }})</div>
-          <div class="listing-scroll custom-scrollbar">
-            <div
-              v-for="product in filteredProducts"
-              :key="product.id"
-              class="listing-item"
-              :class="{ active: selectedProduct?.id === product.id }"
-              @click="onSelectProduct(product)"
-            >
-              <div class="listing-item__media">
-                 <img v-if="product.imageUrl" :src="product.imageUrl" alt="product cover" />
-                 <div v-else class="placeholder-icon"><i class="pi pi-image"></i></div>
+      <div v-if="isLoading" class="state-text">正在加载产品列表...</div>
+      <div v-else>
+        <p v-if="errorMessage" class="state-text error">{{ errorMessage }}</p>
+
+        <EmptyState
+          v-if="filteredProducts.length === 0 && products.length === 0 && !errorMessage"
+          icon="pi pi-box"
+          title="暂无产品"
+          description="点击右上角「新建产品」即可快速创建。"
+        />
+        <EmptyState
+          v-else-if="filteredProducts.length === 0"
+          icon="pi pi-filter"
+          title="无匹配结果"
+          description="没有符合筛选条件的产品，尝试调整搜索或筛选条件。"
+        />
+
+        <div v-else class="listing-grid">
+          <aside class="listing-panel">
+            <div class="panel-header">产品列表 ({{ filteredProducts.length }})</div>
+            <div class="listing-scroll">
+              <button
+                v-for="product in paginatedProducts"
+                :key="product.id"
+                class="listing-item"
+                :class="{ active: selectedProduct?.id === product.id }"
+                @click="selectProduct(product)"
+              >
+                <div class="listing-item__media">
+                  <img
+                    v-if="product.imageUrl"
+                    :src="product.imageUrl"
+                    alt="product cover"
+                  />
+                  <i v-else class="pi pi-image"></i>
+                </div>
+                <div class="listing-item__info">
+                  <p class="title line-clamp-2">{{ product.name }}</p>
+                  <p class="meta">SKU: {{ product.sku }}</p>
+                  <p class="meta subtle">{{ product.category || '未分类' }}</p>
+                  <p class="price" v-if="product.cost !== null && product.cost !== undefined">
+                    成本 ¥{{ formatNumber(product.cost) }}
+                  </p>
+                </div>
+              </button>
+            </div>
+            <div class="panel-footer">
+              <button @click="changePage(currentPage - 1)" :disabled="currentPage <= 1">
+                ← 上一页
+              </button>
+              <span>{{ currentPage }} / {{ totalPages }}</span>
+              <button @click="changePage(currentPage + 1)" :disabled="currentPage >= totalPages">
+                下一页 →
+              </button>
+            </div>
+          </aside>
+
+          <ContentCard v-if="selectedProduct" :customClass="'detail-card'">
+            <!-- 右上角操作按钮 -->
+            <div class="detail-actions">
+              <button class="action-btn action-btn--edit" @click="handleEdit(selectedProduct)">
+                <i class="pi pi-pencil"></i>
+                编辑
+              </button>
+              <button class="action-btn action-btn--delete" @click="handleDelete(selectedProduct)">
+                <i class="pi pi-trash"></i>
+                删除
+              </button>
+            </div>
+
+            <div class="detail">
+              <div class="detail__media">
+                <img
+                  v-if="selectedProduct.imageUrl"
+                  :src="selectedProduct.imageUrl"
+                  alt="product main"
+                />
+                <div v-else class="detail__placeholder">
+                  <i class="pi pi-image"></i>
+                  <span>暂无图片</span>
+                </div>
               </div>
-              <div class="listing-item__info">
-                 <p class="title line-clamp-1">{{ product.name }}</p>
-                 <div class="flex items-center gap-2 mt-1">
-                    <span class="meta font-mono bg-gray-100 px-1.5 rounded text-gray-600 text-xs">{{ product.sku }}</span>
-                    <span v-if="product.category" class="text-xs text-blue-600 bg-blue-50 px-1.5 rounded font-medium">{{ product.category }}</span>
-                 </div>
-                 <p class="meta subtle mt-1" v-if="product.cost">¥{{ formatNumber(product.cost) }}</p>
+              <div class="detail__info">
+                <div class="badge-row">
+                  <span v-if="selectedProduct.category" class="category-pill">
+                    {{ selectedProduct.category }}
+                  </span>
+                  <span class="sku-badge">{{ selectedProduct.sku }}</span>
+                </div>
+                <h3 class="detail__title">{{ selectedProduct.name }}</h3>
+                <p v-if="selectedProduct.publicName" class="muted">
+                  外部名称：{{ selectedProduct.publicName }}
+                </p>
+                <div>
+                  <p class="label">成本价</p>
+                  <p class="price-lg">
+                    {{ selectedProduct.cost !== null && selectedProduct.cost !== undefined ? `¥${formatNumber(selectedProduct.cost)}` : '--' }}
+                  </p>
+                </div>
+                <div class="specs-quick">
+                  <div class="spec-item" v-if="selectedProduct.weightKg">
+                    <span class="spec-label">重量</span>
+                    <span class="spec-value">{{ selectedProduct.weightKg }} kg</span>
+                  </div>
+                  <div class="spec-item" v-if="formatDimensions(selectedProduct)">
+                    <span class="spec-label">尺寸</span>
+                    <span class="spec-value">{{ formatDimensions(selectedProduct) }} mm</span>
+                  </div>
+                  <div class="spec-item" v-if="selectedProduct.resolution">
+                    <span class="spec-label">分辨率</span>
+                    <span class="spec-value">{{ selectedProduct.resolution }}</span>
+                  </div>
+                  <div class="spec-item" v-if="selectedProduct.brightnessAnsi">
+                    <span class="spec-label">亮度</span>
+                    <span class="spec-value">{{ selectedProduct.brightnessAnsi }} ANSI</span>
+                  </div>
+                </div>
+                <div class="tags-row">
+                  <span v-if="selectedProduct.wifiVersion" class="tag-item">
+                    {{ selectedProduct.wifiVersion }}
+                  </span>
+                  <span v-if="selectedProduct.bluetoothVersion" class="tag-item">
+                    {{ selectedProduct.bluetoothVersion }}
+                  </span>
+                  <span v-if="selectedProduct.os" class="tag-item">
+                    {{ selectedProduct.os }}
+                  </span>
+                  <span v-if="selectedProduct.hasGimbal" class="tag-item tag-item--active">
+                    <i class="pi pi-check"></i> 云台
+                  </span>
+                  <span v-if="selectedProduct.autoObstacle" class="tag-item tag-item--active">
+                    <i class="pi pi-check"></i> 避障
+                  </span>
+                  <span v-if="selectedProduct.autoScreenFit" class="tag-item tag-item--active">
+                    <i class="pi pi-check"></i> 入幕
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </aside>
 
-        <!-- Right Content: Detail View -->
-        <main class="detail-panel custom-scrollbar" v-if="selectedProduct">
-          <div class="detail-container">
-             
-             <!-- Hero Card -->
-             <div class="content-card hero-card">
-                <div class="hero-layout">
-                    <div class="hero-image">
-                         <img v-if="selectedProduct.imageUrl" :src="selectedProduct.imageUrl" alt="product main" />
-                         <div v-else class="hero-placeholder"><i class="pi pi-image text-4xl text-gray-300"></i></div>
+            <!-- Additional Specs Accordion -->
+            <div class="specs-section" v-if="selectedProduct">
+              <div class="specs-section__header" @click="toggleSpecs">
+                <span>查看完整规格参数</span>
+                <i :class="showFullSpecs ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+              </div>
+              <div v-if="showFullSpecs" class="specs-section__content">
+                <div class="specs-grid">
+                  <div class="spec-card">
+                    <div class="spec-card__title">
+                      <i class="pi pi-desktop"></i>
+                      显示与光学
                     </div>
-                    <div class="hero-info">
-                        <div class="flex items-center justify-between mb-1">
-                             <span v-if="selectedProduct.category" class="notion-tag blue">{{ selectedProduct.category }}</span> 
-                             <div class="action-buttons">
-                                <button class="btn-sm" @click="handleEdit(selectedProduct)">编辑参数</button>
-                                <button class="btn-sm text-red-500 hover:bg-red-50" @click="handleDelete(selectedProduct)">删除</button>
-                             </div>
-                        </div>
-                        
-                        <h1 class="product-title">{{ selectedProduct.name }}</h1>
-                        <div class="text-sm text-gray-500 mb-6 flex items-center gap-2">
-                            <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-mono">Public Model</span>
-                            <span>{{ selectedProduct.publicName || '—' }}</span>
-                        </div>
-                        
-                        <!-- Core Metrics -->
-                        <div class="metrics-grid">
-                            <div class="metric-item">
-                                <div class="label">内部编号 (SKU)</div>
-                                <div class="value font-mono">{{ selectedProduct.sku }}</div>
-                            </div>
-                            <div class="metric-item">
-                                <div class="label">成本 (¥)</div>
-                                <div class="value font-mono text-gray-900">{{ formatNumber(selectedProduct.cost) || '—' }}</div>
-                            </div>
-                            <div class="metric-item">
-                                <div class="label">重量 (kg)</div>
-                                <div class="value font-mono">{{ formatNumber(selectedProduct.weightKg) || '—' }}</div>
-                            </div>
-                            <div class="metric-item">
-                                <div class="label">尺寸 (mm)</div>
-                                <div class="value font-mono">{{ formatDimensions(selectedProduct) || '—' }}</div>
-                            </div>
-                        </div>
+                    <div class="spec-card__body">
+                      <div class="spec-row">
+                        <span>分辨率</span>
+                        <span>{{ selectedProduct.resolution || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>亮度 (ANSI)</span>
+                        <span>{{ selectedProduct.brightnessAnsi || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>均匀度</span>
+                        <span>{{ selectedProduct.brightnessUniformity ? `${selectedProduct.brightnessUniformity}%` : '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>对比度</span>
+                        <span>{{ selectedProduct.contrastRatio || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>投射比</span>
+                        <span>{{ selectedProduct.throwRatio || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>投影尺寸</span>
+                        <span>{{ selectedProduct.projectionSize || '--' }}</span>
+                      </div>
                     </div>
+                  </div>
+                  <div class="spec-card">
+                    <div class="spec-card__title">
+                      <i class="pi pi-microchip"></i>
+                      硬件配置
+                    </div>
+                    <div class="spec-card__body">
+                      <div class="spec-row">
+                        <span>芯片方案</span>
+                        <span>{{ selectedProduct.chipset || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>内存/存储</span>
+                        <span>{{ selectedProduct.ramRom || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>操作系统</span>
+                        <span>{{ selectedProduct.os || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>对焦方式</span>
+                        <span>{{ selectedProduct.focusMethod || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>梯形校正</span>
+                        <span>{{ selectedProduct.keystone || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>运行噪声</span>
+                        <span>{{ selectedProduct.noiseDb ? `${selectedProduct.noiseDb} dB` : '--' }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-             </div>
-
-             <!-- 2-Column Grid for All Specs -->
-             <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                 <!-- Specs Card 1: Display & Optics -->
-                 <div class="content-card h-full flex flex-col min-h-[24rem]">
-                      <h3 class="card-title">显示与光学</h3>
-                      <div class="specs-grid">
-                            <SpecItem label="分辨率" :value="selectedProduct.resolution" />
-                            <SpecItem label="亮度 (ANSI)" :value="formatNumber(selectedProduct.brightnessAnsi)" />
-                            <SpecItem label="均匀度 (%)" :value="formatNumber(selectedProduct.brightnessUniformity)" />
-                            <SpecItem label="光源亮度 (LM)" :value="formatNumber(selectedProduct.lightSourceBrightness)" />
-                            <SpecItem label="对比度" :value="selectedProduct.contrastRatio" />
-                            <SpecItem label="投射比" :value="selectedProduct.throwRatio" />
-                            <SpecItem label="投影尺寸" :value="selectedProduct.projectionSize" />
-                            <SpecItem label="投影距离" :value="selectedProduct.projectionDistance" />
-                      </div>
-                 </div>
-
-                 <!-- Specs Card 2: Hardware -->
-                 <div class="content-card h-full flex flex-col min-h-[24rem]">
-                      <h3 class="card-title">硬件配置</h3>
-                      <div class="specs-grid">
-                             <SpecItem label="芯片" :value="selectedProduct.chipset" />
-                             <SpecItem label="内存/存储" :value="selectedProduct.ramRom" />
-                             <SpecItem label="操作系统" :value="selectedProduct.os" />
-                             <SpecItem label="对焦方式" :value="selectedProduct.focusMethod" />
-                             <SpecItem label="梯形校正" :value="selectedProduct.keystone" />
-                             <SpecItem label="WiFi 版本" :value="selectedProduct.wifiVersion" />
-                             <SpecItem label="蓝牙版本" :value="selectedProduct.bluetoothVersion" />
-                             <SpecItem label="运行噪声" :value="formatNumber(selectedProduct.noiseDb)" suffix="dB" />
-                      </div>
-                 </div>
-
-                 <!-- Specs Card 3: Features -->
-                 <div class="content-card h-full flex flex-col min-h-[24rem]">
-                      <h3 class="card-title">功能特性</h3>
-                      <div class="features-grid">
-                          <FeatureItem label="云台" :isActive="selectedProduct.hasGimbal" />
-                          <FeatureItem label="自动避障" :isActive="selectedProduct.autoObstacle" />
-                          <FeatureItem label="自动入幕" :isActive="selectedProduct.autoScreenFit" />
-                      </div>
-                 </div>
-
-                 <!-- Notes Card -->
-                 <div class="content-card h-full flex flex-col min-h-[24rem]">
-                      <h3 class="card-title">备注说明</h3>
-                      <div class="text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100 flex-1">
-                          {{ selectedProduct.description || '无备注信息' }}
-                      </div>
-                 </div>
-             </div>
-
-          </div>
-        </main>
-        
-        <EmptyState
-          v-else
-          icon="pi pi-box"
-          title="No Product Selected"
-          description="Select a product from the list to view details."
-          class="flex-1 bg-gray-50 m-4 rounded-lg border border-dashed border-gray-300"
-        />
+                <div class="note-section" v-if="selectedProduct.description">
+                  <div class="note-title">备注说明</div>
+                  <div class="note-content">{{ selectedProduct.description }}</div>
+                </div>
+              </div>
+            </div>
+          </ContentCard>
+          <EmptyState
+            v-else
+            icon="pi pi-box"
+            title="请选择产品"
+            description="点击列表查看产品详情。"
+          />
+        </div>
       </div>
     </ContentCard>
 
@@ -192,7 +287,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import apiClient from '@/services/apiClient';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
@@ -200,7 +295,6 @@ import FilterBar from '@/components/common/FilterBar.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ProductFormModal from './ProductFormModal.vue';
 
-// Define the full Product interface based on Prisma schema
 type Product = {
   id: string;
   sku: string;
@@ -240,46 +334,16 @@ const categoryOptions = ref<string[]>([]);
 const selectedProduct = ref<Product | null>(null);
 const currentProductToEditId = ref<string | null>(null);
 const isModalOpen = ref(false);
-const searchKeyword = ref('');
-const selectedCategory = ref('ALL');
+const isLoading = ref(false);
 const errorMessage = ref('');
+const searchKeyword = ref('');
+const selectedCategory = ref<string>('ALL');
+const showFullSpecs = ref(false);
 
-// Helper Component for Specs Grid Item
-const SpecItem = defineComponent({
-  props: { label: String, value: [String, Number], suffix: String },
-  setup(props) {
-      return () => h('div', { class: 'flex flex-col gap-0.5' }, [
-          h('span', { class: 'text-[11px] uppercase tracking-wider text-gray-500 font-medium' }, props.label),
-          h('span', { class: 'text-[13px] text-gray-900 font-medium border-b border-transparent hover:border-gray-200 inline-block truncate' }, props.value ? `${props.value}${props.suffix || ''}`: '—')
-      ])
-  }
-})
+const currentPage = ref(1);
+const pageSize = ref(15);
 
-// Helper for Feature Item (Minimalist Notion Style)
-const FeatureItem = defineComponent({
-    props: { label: String, isActive: Boolean },
-    setup(props) {
-        return () => h('div', { 
-            class: [
-                'flex items-center gap-2.5 py-1.5 px-2 rounded transition-colors',
-                props.isActive 
-                    ? 'text-gray-900' 
-                    : 'text-gray-400 opacity-60'
-            ] 
-        }, [
-            h('div', {
-                class: [
-                    'w-5 h-5 flex items-center justify-center rounded text-[10px]',
-                    props.isActive ? 'bg-black text-white' : 'bg-gray-200'
-                ]
-            }, h('i', { class: props.isActive ? 'pi pi-check' : 'pi pi-minus', style: 'font-size: 0.6rem' })),
-            
-            h('span', { 
-                class: 'text-sm font-medium leading-none mt-0.5' 
-            }, props.label)
-        ])
-    }
-})
+const totalPages = computed(() => Math.ceil(filteredProducts.value.length / pageSize.value) || 1);
 
 const filteredProducts = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase();
@@ -289,18 +353,27 @@ const filteredProducts = computed(() => {
       product.name?.toLowerCase().includes(keyword) ||
       product.sku?.toLowerCase().includes(keyword) ||
       product.publicName?.toLowerCase().includes(keyword);
-    const matchCategory = selectedCategory.value === 'ALL' || product.category === selectedCategory.value;
+    const matchCategory =
+      selectedCategory.value === 'ALL' ||
+      product.category === selectedCategory.value;
     return matchKeyword && matchCategory;
   });
 });
 
+const paginatedProducts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredProducts.value.slice(start, start + pageSize.value);
+});
+
 const fetchProducts = async (focusId: string | null = null) => {
-  isModalOpen.value = false;
+  isLoading.value = true;
   errorMessage.value = '';
   try {
     const response = await apiClient.get('/admin/products');
     products.value = response.data || [];
-    categoryOptions.value = Array.from(new Set(products.value.map((p) => p.category).filter(Boolean))) as string[];
+    categoryOptions.value = Array.from(
+      new Set(products.value.map((p) => p.category).filter(Boolean)),
+    ) as string[];
 
     if (!products.value.length) {
       selectedProduct.value = null;
@@ -309,8 +382,11 @@ const fetchProducts = async (focusId: string | null = null) => {
     } else if (!selectedProduct.value || !products.value.some((item) => item.id === selectedProduct.value?.id)) {
       selectedProduct.value = products.value[0];
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取产品列表失败', error);
+    errorMessage.value = error.response?.data?.error || '获取产品列表失败';
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -324,8 +400,24 @@ const closeModal = () => {
   currentProductToEditId.value = null;
 };
 
-const onSelectProduct = (product: Product) => {
+const selectProduct = (product: Product) => {
   selectedProduct.value = product;
+  showFullSpecs.value = false;
+};
+
+const changePage = (page: number) => {
+  if (page < 1 || page > totalPages.value) return;
+  currentPage.value = page;
+};
+
+const resetFilters = () => {
+  searchKeyword.value = '';
+  selectedCategory.value = 'ALL';
+  currentPage.value = 1;
+};
+
+const toggleSpecs = () => {
+  showFullSpecs.value = !showFullSpecs.value;
 };
 
 const handleProductCreated = (newProduct: Product | undefined) => {
@@ -342,22 +434,21 @@ const handleProductUpdated = (updatedProduct: Product | undefined) => {
 };
 
 const handleDelete = async (product: Product) => {
-  if (!confirm(`Delete ${product.name}?`)) return;
+  if (!confirm(`确认要删除产品「${product.name}」吗？此操作无法撤销。`)) return;
   try {
     await apiClient.delete(`/admin/products/${product.id}`);
     fetchProducts();
-    selectedProduct.value = products.value[0] || null;
   } catch (error: any) {
-    alert('Delete failed');
+    alert('删除失败');
   }
 };
 
-const formatNumber = (value?: number | null) => (value || value === 0 ? value : null);
+const formatNumber = (value?: number | null) => value || value === 0 ? value : null;
 
 const formatDimensions = (product?: Product | null) => {
   if (!product) return null;
   if (product.lengthMm && product.widthMm && product.heightMm) {
-    return `${product.lengthMm} × ${product.widthMm} × ${product.heightMm}`;
+    return `${product.lengthMm} x ${product.widthMm} x ${product.heightMm}`;
   }
   return null;
 };
@@ -368,275 +459,526 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-shell {
+.product-page {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   background: var(--color-bg-page);
-  padding: var(--space-4);
-  height: 100vh;
-  box-sizing: border-box;
 }
 
-.main-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 0;
+.state-text {
+  padding: var(--space-4);
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.state-text.error {
+  color: #dc2626;
 }
 
 .search-input,
 .category-select {
   min-width: 200px;
 }
-.surface-input {
+
+.category-select select {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+}
+
+.category-select .label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.listing-grid {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.listing-panel {
+  width: 32%;
+  min-width: 280px;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.panel-header {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  padding: 0 var(--space-1);
+}
+
+.listing-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: calc(100vh - 380px);
+}
+
+.listing-item {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-xs);
+  text-align: left;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.listing-item:hover {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.listing-item.active {
+  border-color: var(--color-accent);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.12);
+}
+
+.listing-item__media {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--color-text-muted);
+}
+
+.listing-item__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.listing-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.listing-item__info .title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.listing-item__info .meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.listing-item__info .meta.subtle {
+  color: var(--color-text-muted);
+}
+
+.listing-item__info .price {
+  margin-top: 0.25rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--color-accent);
+}
+
+.panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.panel-footer button {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: color var(--transition-fast);
+}
+
+.panel-footer button:hover:not(:disabled) {
+  color: var(--color-accent);
+}
+
+.panel-footer button:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.detail-card {
+  flex: 1;
+  position: relative;
+}
+
+.detail-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+  background: var(--color-bg-page);
+  border-color: var(--color-text-muted);
+  color: var(--color-text-primary);
+}
+
+.action-btn--edit:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.action-btn--delete:hover {
+  border-color: #fecaca;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.action-btn i {
+  font-size: 0.875rem;
+}
+
+.detail {
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.detail__media {
+  width: 180px;
+  height: 180px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.detail__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.detail__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.detail__placeholder i {
+  font-size: 2rem;
+}
+
+.detail__info {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.badge-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.6rem;
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-}
-.surface-input input, .surface-input select {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 0.9rem;
-  color: var(--color-text-primary);
-  width: 100%;
 }
 
-/* Split View Container */
-.split-view-container {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    background: #f9fafb; /* Light gray background for contrast */
-}
-
-/* Left Sidebar */
-.listing-panel {
-    width: 320px;
-    background: white;
-    border-right: 1px solid var(--color-border);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-}
-.panel-header {
-    padding: 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #9ca3af;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid #f3f4f6;
-}
-.listing-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.listing-item {
-    display: flex;
-    gap: 12px;
-    padding: 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-}
-.listing-item:hover {
-    background: #f9fafb;
-    border-color: #f3f4f6;
-}
-.listing-item.active {
-    background: white;
-    box-shadow: 0 0 0 2px #3b82f6; /* Focus ring style */
-    border-color: transparent;
-}
-.listing-item__media img {
-    width: 48px;
-    height: 48px;
-    border-radius: 6px;
-    border: 1px solid #e5e7eb;
-    object-fit: contain;
-    background: white;
-}
-.listing-item__info {
-    flex: 1;
-    overflow: hidden;
-}
-.listing-item__info .title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #1f2937;
-}
-.listing-item__info .meta {
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-/* Right Detail Panel */
-.detail-panel {
-    flex: 1;
-    overflow-y: auto;
-    padding: 2rem;
-    display: flex;
-    justify-content: center; /* Center Content */
-}
-.detail-container {
-    width: 100%;
-    width: 100%;
-    /* max-width removed to fill screen */
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-/* Content Cards */
-.content-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: none; /* Removed shadow for cleaner flat look */
-}
-.content-card.hero-card {
-    border: none;
-    padding: 0 0 1rem 0;
-    border-bottom: 1px solid #e5e7eb;
-    border-radius: 0;
-}
-.card-title {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #9ca3af;
-    text-transform: uppercase;
-    margin-bottom: 1.25rem;
-    letter-spacing: 0.05em;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-.card-title::before {
-    content: '';
-    display: block;
-    width: 4px;
-    height: 4px;
-    background: #e5e7eb;
-    border-radius: 50%;
-}
-
-/* Hero Card Layout */
-.hero-layout {
-    display: flex;
-    gap: 3rem;
-    align-items: flex-start;
-}
-.hero-image {
-    width: 140px;
-    height: 140px;
-    flex-shrink: 0;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-    padding: 4px;
-    background: white;
-}
-.hero-image img { width: 100%; height: 100%; object-fit: contain; }
-.hero-placeholder {
-    width: 100%; height: 100%; background: #f9fafb;
-    display: flex; alignItems: center; justifyContent: center;
-}
-.hero-info { flex: 1; }
-
-.product-title {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #111827;
-    margin-bottom: 0.5rem;
-    line-height: 1.1;
-}
-
-.metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-    padding: 1rem 0;
-    margin-top: 1.5rem;
-    border-top: 1px solid #f3f4f6;
-    /* Removed background and border-radius for cleaner look */
-}
-.metric-item .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 4px; }
-.metric-item .value { font-size: 1.25rem; font-weight: 600; color: #111827; letter-spacing: -0.02em; }
-
-/* Specs Grid */
-.specs-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem 1rem;
-}
-/* Features Grid - Wider items */
-.features-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-}
-
-@media (max-width: 900px) {
-    .specs-grid { grid-template-columns: repeat(2, 1fr); }
-    .features-grid { grid-template-columns: repeat(2, 1fr); }
-    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 600px) {
-    .features-grid { grid-template-columns: 1fr; }
-}
-
-/* Tags */
-.notion-tag { 
-    font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; 
-}
-.notion-tag.blue { background: #e0f2fe; color: #0369a1; }
-
-/* Buttons */
-.btn-sm {
-    padding: 4px 12px;
-    font-size: 0.85rem;
-    border-radius: 6px;
-    border: 1px solid #e5e7eb;
-    background: white;
-    color: #4b5563;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-sm:hover { border-color: #d1d5db; color: #1f2937; }
-
-.btn-subtle {
+.category-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.sku-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  font-size: 0.8rem;
   font-weight: 600;
-  transition: all 0.2s;
+  color: var(--color-text-secondary);
+  font-family: 'SF Mono', monospace;
+}
+
+.detail__title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.muted {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.label {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.price-lg {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.specs-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.spec-item {
+  padding: 0.5rem 0.75rem;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.spec-label {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.spec-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.tag-item--active {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.btn-subtle.danger {
+  border-color: #fecdd3;
+  color: #dc2626;
+  background: #fff1f2;
+}
+
+/* Specs Section */
+.specs-section {
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.specs-section__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  background: var(--color-bg-page);
   cursor: pointer;
-  border: 1px solid #e2e8f0;
-  background: white;
-  color: #475569;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  transition: background var(--transition-fast);
 }
-.btn-subtle.btn-primary {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
+
+.specs-section__header:hover {
+  background: #f1f5f9;
 }
-.btn-subtle.btn-primary:hover { opacity: 0.9; }
+
+.specs-section__content {
+  padding: 1rem;
+  background: var(--color-bg-card);
+}
+
+.specs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.spec-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.spec-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-page);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.spec-card__title i {
+  color: var(--color-accent);
+}
+
+.spec-card__body {
+  padding: 0.75rem 1rem;
+}
+
+.spec-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+}
+
+.spec-row:last-child {
+  border-bottom: none;
+}
+
+.spec-row span:first-child {
+  color: var(--color-text-secondary);
+}
+
+.spec-row span:last-child {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.note-section {
+  margin-top: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.note-title {
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-page);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.note-content {
+  padding: 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 1024px) {
+  .listing-grid {
+    flex-direction: column;
+  }
+
+  .listing-panel {
+    width: 100%;
+  }
+
+  .listing-scroll {
+    max-height: 300px;
+  }
+
+  .detail {
+    flex-direction: column;
+  }
+
+  .specs-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

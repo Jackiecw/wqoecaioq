@@ -203,6 +203,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import Dialog from 'primevue/dialog';
 import Calendar from 'primevue/calendar';
 import Dropdown from 'primevue/dropdown';
@@ -212,7 +213,7 @@ import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
 import apiClient from '@/services/apiClient';
-import useManagedCountries from '@/composables/useManagedCountries';
+import { useCountriesStore } from '@/stores/countries';
 
 type CountryOption = {
   code: string;
@@ -260,7 +261,8 @@ const billingOptions = [
   { label: '一次性费用', value: 'FLAT_FEE' },
 ];
 
-const { countries, fetchCountries, countriesError, isLoadingCountries } = useManagedCountries();
+const countriesStore = useCountriesStore();
+const { countries, isLoading: isLoadingCountries, error: countriesError } = storeToRefs(countriesStore);
 
 const createDefaultForm = (): FormState => ({
   orderDate: new Date(),
@@ -332,7 +334,7 @@ const fetchOptions = async () => {
   errorMessage.value = '';
   try {
     if (!countries.value.length && !isLoadingCountries.value) {
-      await fetchCountries();
+      await countriesStore.fetchCountries();
     }
     const productsRes = await apiClient.get('/admin/products');
     const products = Array.isArray(productsRes.data) ? productsRes.data : [];

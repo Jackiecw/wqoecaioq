@@ -3,7 +3,6 @@
     <!-- Form Header -->
     <div class="form-header">
       <div class="header-left">
-        <span class="form-badge">WEEKLY ENTRY</span>
         <h2>填写周报</h2>
         <p>用统一的结构记录本周成果、下周计划以及遇到的阻碍</p>
       </div>
@@ -235,7 +234,7 @@ const handleSubmit = async () => {
 .header-left h2 {
   font-size: 1.5rem;
   font-weight: 700;
-  margin: 0.5rem 0 0.25rem 0;
+  margin: 0 0 0.25rem 0;
   color: var(--surface-900);
 }
 
@@ -243,17 +242,6 @@ const handleSubmit = async () => {
   font-size: 0.875rem;
   color: var(--surface-500);
   margin: 0;
-}
-
-.form-badge {
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--primary-color);
-  background: var(--primary-50);
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.25rem;
 }
 
 .week-badge {
@@ -388,12 +376,20 @@ const handleSubmit = async () => {
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  min-height: 120px;
+  resize: vertical;
 }
 
 .field-card :deep(.p-inputtextarea:focus) {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+/* 确保 Textarea 容器也占满宽度 */
+.field-card :deep(.p-textarea) {
+  width: 100%;
 }
 
 .field-footer {

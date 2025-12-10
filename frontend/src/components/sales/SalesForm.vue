@@ -1,39 +1,40 @@
 <template>
-  <div class="bg-white p-6 rounded-lg shadow-lg">
-    <h2 class="text-2xl font-bold text-stone-900 mb-6">录入销售数据</h2>
-    
-    <form @submit.prevent="handleSubmit">
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <div class="space-y-2">
-          <label for="recordDate" class="form-label">记录日期 *</label>
-          <input type="date" id="recordDate" v-model="formOtherData.recordDate" required 
-                 class="form-input" />
+  <div class="sales-form">
+    <!-- Step 1: Select Product -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="step-indicator">
+          <span class="step-number">1</span>
+          <span class="step-label">选择商品</span>
         </div>
+        <p class="section-hint">依次选择平台、店铺，然后选择要录入销售数据的商品链接</p>
+      </div>
 
-        <!-- Country selection moved to parent -->
-        <div class="space-y-2" v-if="!selectedCountry">
-           <p class="text-red-500 text-sm font-bold">请先在上方选择国家</p>
-        </div>
-        
-        <div class="space-y-2">
-          <label for="platform" class="form-label">平台 *</label>
-          <select id="platform" v-model="selectedPlatform" required 
-                  :disabled="!selectedCountry" 
-                  class="form-input disabled:bg-gray-100 disabled:cursor-not-allowed">
+      <div v-if="!selectedCountry" class="country-warning">
+        <i class="pi pi-info-circle"></i>
+        <span>请先在上方选择国家</span>
+      </div>
+
+      <div v-else class="fields-grid fields-grid--3col">
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-desktop"></i>
+            平台 <span class="required">*</span>
+          </label>
+          <select v-model="selectedPlatform" class="field-select" :disabled="!selectedCountry">
             <option disabled value="">请选择平台...</option>
             <option v-for="platform in platformOptions" :key="platform" :value="platform">
               {{ platform }}
             </option>
           </select>
         </div>
-        
-        <div class="space-y-2">
-          <label for="store" class="form-label">店铺名称 *</label>
-          <select id="store" v-model="selectedStoreId" required 
-                  :disabled="!selectedPlatform"
-                  class="form-input disabled:bg-gray-100 disabled:cursor-not-allowed">
+
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-shop"></i>
+            店铺 <span class="required">*</span>
+          </label>
+          <select v-model="selectedStoreId" class="field-select" :disabled="!selectedPlatform">
             <option disabled value="">请选择店铺...</option>
             <option v-for="store in storeOptions" :key="store.id" :value="store.id">
               {{ store.name }}
@@ -41,82 +42,148 @@
           </select>
         </div>
 
-        <div class="space-y-2 md:col-span-2">
-          <label for="listing" class="form-label">
-            选择商品链接 (Listing) *
-            <span class="text-xs font-normal text-stone-500 ml-1">格式: [商品代码] 标题 (SKU)</span>
+        <div class="field-group field-group--full">
+          <label class="field-label">
+            <i class="pi pi-link"></i>
+            商品链接 (Listing) <span class="required">*</span>
+            <span class="field-hint">格式: [商品代码] 标题 (SKU)</span>
           </label>
           <select 
-            id="listing" 
             v-model="selectedListingId" 
-            required 
+            class="field-select" 
             :disabled="!selectedStoreId || isLoadingListings"
-            class="form-input disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             <option disabled value="">
               {{ isLoadingListings ? '加载链接中...' : '请选择具体链接...' }}
             </option>
             <option v-for="listing in storeListings" :key="listing.id" :value="listing.id">
-              <template v-if="listing.productCode">
-                [{{ listing.productCode }}]
-              </template>
-              {{ listing.storeTitle || '未命名链接' }} 
-              ({{ listing.product.sku }})
+              <template v-if="listing.productCode">[{{ listing.productCode }}]</template>
+              {{ listing.storeTitle || '未命名链接' }} ({{ listing.product.sku }})
             </option>
           </select>
-          <p v-if="storeListings.length === 0 && selectedStoreId && !isLoadingListings" class="text-xs text-red-500">
+          <p v-if="storeListings.length === 0 && selectedStoreId && !isLoadingListings" class="field-error">
+            <i class="pi pi-exclamation-triangle"></i>
             该店铺下暂无上架商品，请先去「店铺在售」板块上架。
           </p>
         </div>
+      </div>
+    </div>
 
-        <div class="space-y-2">
-          <label for="salesVolume" class="form-label">销量 *</label>
-          <input type="number" id="salesVolume" v-model="formOtherData.salesVolume" required 
-                 class="form-input" />
+    <!-- Step 2: Order Details -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="step-indicator">
+          <span class="step-number">2</span>
+          <span class="step-label">订单信息</span>
         </div>
-        
-        <div class="space-y-2">
-          <label for="revenue" class="form-label">销售额 *</label>
-          <div class="relative rounded-md shadow-sm">
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-              <span class="text-gray-500 sm:text-sm font-bold">{{ formOtherData.currency || 'CNY' }}</span>
-            </div>
-            <input type="number" step="0.01" id="revenue" v-model="formOtherData.revenue" required 
-                 class="form-input pr-12 text-right font-mono text-lg" placeholder="0.00" />
+        <p class="section-hint">填写订单的基本信息</p>
+      </div>
+
+      <div class="fields-grid fields-grid--4col">
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-calendar"></i>
+            记录日期 <span class="required">*</span>
+          </label>
+          <input 
+            type="date" 
+            v-model="formOtherData.recordDate" 
+            class="field-input" 
+            required 
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-hashtag"></i>
+            平台订单号 <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            v-model="formOtherData.platformOrderId" 
+            class="field-input" 
+            placeholder="例: 230101ABC..." 
+            required 
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-box"></i>
+            销量 <span class="required">*</span>
+          </label>
+          <input 
+            type="number" 
+            v-model="formOtherData.salesVolume" 
+            class="field-input" 
+            placeholder="0" 
+            required 
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-dollar"></i>
+            销售额 <span class="required">*</span>
+          </label>
+          <div class="input-with-suffix">
+            <input 
+              type="number" 
+              step="0.01" 
+              v-model="formOtherData.revenue" 
+              class="field-input field-input--currency" 
+              placeholder="0.00" 
+              required 
+            />
+            <span class="input-suffix">{{ formOtherData.currency || 'CNY' }}</span>
           </div>
         </div>
 
-        <div class="space-y-2">
-          <label for="platformOrderId" class="form-label">平台订单号 *</label>
-          <input type="text" id="platformOrderId" v-model="formOtherData.platformOrderId" required
-                 class="form-input" placeholder="例如: 230101ABC..." />
-        </div>
-
-        <div class="space-y-2">
-          <label for="orderStatus" class="form-label">订单状态 *</label>
-          <select id="orderStatus" v-model="formOtherData.orderStatus" required class="form-input">
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-tag"></i>
+            订单状态 <span class="required">*</span>
+          </label>
+          <select v-model="formOtherData.orderStatus" class="field-select" required>
             <option value="" disabled>请选择状态...</option>
             <option v-for="status in orderStatusOptions" :key="status" :value="status">
               {{ status }}
             </option>
           </select>
         </div>
-        
-        <div class="space-y-2 md:col-span-2">
-          <label for="notes" class="form-label">备注 (可选)</label>
-          <textarea id="notes" rows="2" v-model="formOtherData.notes"
-                    class="form-input"></textarea>
+
+        <div class="field-group field-group--span3">
+          <label class="field-label">
+            <i class="pi pi-pencil"></i>
+            备注 (可选)
+          </label>
+          <textarea 
+            v-model="formOtherData.notes" 
+            class="field-textarea" 
+            rows="2" 
+            placeholder="添加备注信息..."
+          ></textarea>
         </div>
       </div>
+    </div>
 
-      <button type="submit" 
-              class="mt-8 inline-flex justify-center rounded-lg border border-transparent bg-indigo-600 px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+    <!-- Submit Section -->
+    <div class="form-actions">
+      <div class="form-messages">
+        <p v-if="successMessage" class="message message--success">
+          <i class="pi pi-check-circle"></i>
+          {{ successMessage }}
+        </p>
+        <p v-if="errorMessage" class="message message--error">
+          <i class="pi pi-times-circle"></i>
+          {{ errorMessage }}
+        </p>
+      </div>
+      <button type="button" class="btn-submit" @click="handleSubmit">
+        <i class="pi pi-check"></i>
         提交录入
       </button>
-
-      <p v-if="successMessage" class="text-green-600 mt-4 text-sm font-medium">{{ successMessage }}</p>
-      <p v-if="errorMessage" class="text-red-600 mt-4 text-sm">{{ errorMessage }}</p>
-    </form>
+    </div>
   </div>
 </template>
 
@@ -289,31 +356,276 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.form-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #333;
-  font-weight: bold;
+/* ========================================
+   Sales Form - Clean Modern Design
+   ======================================== */
+.sales-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Section */
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.step-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.section-hint {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  padding-left: 2.5rem;
+}
+
+/* Country Warning */
+.country-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-md);
+  color: #92400e;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.country-warning i {
+  font-size: 1.125rem;
+}
+
+/* Fields Grid */
+.fields-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.fields-grid--3col {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.fields-grid--4col {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1024px) {
+  .fields-grid--3col,
+  .fields-grid--4col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .fields-grid--3col,
+  .fields-grid--4col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Field Group */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-group--full {
+  grid-column: 1 / -1;
+}
+
+.field-group--span3 {
+  grid-column: span 3;
+}
+
+@media (max-width: 640px) {
+  .field-group--span3 {
+    grid-column: span 1;
+  }
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.field-label i {
+  color: var(--color-accent);
   font-size: 0.875rem;
 }
-.form-input {
-  display: block;
-  width: 100%;
-  border-radius: 0.375rem;
-  border: 1px solid #d4d4d4;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  background-color: #fff;
+
+.field-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
 }
-.form-input:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+
+.required {
+  color: #ef4444;
+}
+
+/* Inputs */
+.field-input,
+.field-select,
+.field-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  transition: all var(--transition-fast);
+}
+
+.field-input:focus,
+.field-select:focus,
+.field-textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
   outline: none;
 }
-.form-input:disabled {
-  background-color: #f3f4f6;
-  color: #9ca3af;
+
+.field-input:disabled,
+.field-select:disabled,
+.field-textarea:disabled {
+  background: var(--color-bg-page);
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
+
+.field-input::placeholder,
+.field-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.field-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Input with suffix */
+.input-with-suffix {
+  position: relative;
+}
+
+.field-input--currency {
+  padding-right: 3.5rem;
+  text-align: right;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.input-suffix {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* Field Error */
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: #ef4444;
+  margin: 0;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.form-messages {
+  flex: 1;
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.message--success {
+  color: #10b981;
+}
+
+.message--error {
+  color: #ef4444;
+}
+
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-submit:hover {
+  filter: brightness(0.95);
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
+}
 </style>
+

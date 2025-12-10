@@ -12,7 +12,7 @@
          <div class="toolbar-left">
             <IconField class="search-field">
                 <InputIcon class="pi pi-search" />
-                <InputText placeholder="搜索订单..." class="search-input" disabled v-tooltip="'搜索功能开发中'" />
+                <InputText v-model="searchQuery" placeholder="搜索订单号..." class="search-input" @keyup.enter="fetchData(true)" />
             </IconField>
             
              <span class="divider">|</span>
@@ -143,7 +143,13 @@
 
         <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
-        <Column v-if="visibleColumns.includes('recordDate')" field="recordDate" header="日期" sortable style="width: 9rem">
+        <Column v-if="visibleColumns.includes('platformOrderId')" field="platformOrderId" header="订单号" style="min-width: 10rem">
+          <template #body="{ data }">
+            <span class="order-number">{{ data.platformOrderId || '-' }}</span>
+          </template>
+        </Column>
+
+        <Column v-if="visibleColumns.includes('recordDate')" field="recordDate" header="日期" sortable style="width: 8rem">
           <template #body="{ data }">
             <span class="date-cell">{{ formatDate(data.recordDate) }}</span>
           </template>
@@ -155,9 +161,12 @@
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('store')" header="店铺" style="width: 10rem">
+        <Column v-if="visibleColumns.includes('store')" header="店铺" style="min-width: 10rem">
           <template #body="{ data }">
-            <span class="store-cell" :title="data.store?.name">{{ data.store?.name || '-' }}</span>
+            <div class="store-info">
+              <span class="store-name" :title="data.store?.name">{{ data.store?.name || '-' }}</span>
+              <span class="store-platform">{{ data.store?.platform || '' }}</span>
+            </div>
           </template>
         </Column>
 
@@ -207,7 +216,7 @@
 
         <Column header="操作" style="width: 5rem" frozen alignFrozen="right" headerClass="text-center" class="text-center action-col">
           <template #body="{ data }">
-            <div v-if="data.canManage" class="action-buttons opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div v-if="data.canManage" class="action-buttons">
               <Button
                 icon="pi pi-pencil"
                 severity="secondary"
@@ -311,6 +320,7 @@ type OrderStatus = 'PENDING' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'COMP
 
 type SalesRow = {
   id: string;
+  platformOrderId?: string | null;
   recordDate: string;
   storeId: string;
   store?: { id?: string; name?: string; country?: CountryOption; countryCode: string; platform: string };
@@ -335,6 +345,7 @@ type SalesQueryParams = {
   platform?: string;
   storeId?: string;
   orderStatus?: string;
+  search?: string;
 };
 
 type PaginatedResponse<T> = { data: T[]; total: number; page: number };
@@ -363,6 +374,7 @@ const total = ref(0);
 const showColumnMenu = ref(false);
 
 const toggleableColumns = [
+  { field: 'platformOrderId', header: '订单号' },
   { field: 'recordDate', header: '日期' },
   { field: 'country', header: '国家' },
   { field: 'store', header: '店铺' },
@@ -396,6 +408,8 @@ type Filters = {
   storeId: string | null;
   orderStatus: OrderStatus | null;
 };
+
+const searchQuery = ref('');
 
 const defaultFilters = (): Filters => ({
   startDate: null,
@@ -491,6 +505,7 @@ const buildParams = (): SalesQueryParams => {
   if (platform) params.platform = platform;
   if (storeId) params.storeId = storeId;
   if (orderStatus) params.orderStatus = orderStatus;
+  if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
   return params;
 };
 
@@ -802,30 +817,48 @@ onMounted(async () => {
   font-size: 0.85rem;
   color: var(--surface-600);
 }
+.order-number {
+  font-family: monospace;
+  font-weight: 500;
+  color: var(--surface-900);
+}
 
 .country-cell {
   font-weight: 600;
   color: var(--surface-900);
 }
 
-.store-cell {
+.store-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.store-name {
+  font-weight: 500;
+  color: var(--surface-800);
+  font-size: 0.875rem;
   max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--surface-600);
+}
+
+.store-platform {
+  font-size: 0.75rem;
+  color: var(--surface-400);
 }
 
 .product-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.125rem;
 }
 
 .product-code {
   font-weight: 500;
   color: var(--surface-900);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .product-sku {
@@ -837,7 +870,7 @@ onMounted(async () => {
 .status-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.125rem 0.5rem;
+    padding: 0.25rem 0.625rem;
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 500;
@@ -875,6 +908,13 @@ onMounted(async () => {
 .action-buttons {
   display: flex;
   gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* Show on row hover */
+.modern-table :deep(.p-datatable-tbody > tr:hover .action-buttons) {
+  opacity: 1;
 }
 
 /* Empty State */

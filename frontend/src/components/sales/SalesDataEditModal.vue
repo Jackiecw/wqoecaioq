@@ -2,161 +2,210 @@
   <Dialog
     :visible="isOpen"
     modal
-    :style="{ width: '640px' }"
-    :breakpoints="{ '960px': '75vw', '640px': '90vw' }"
+    :showHeader="false"
+    :style="{ width: '720px' }"
+    :breakpoints="{ '960px': '85vw', '640px': '95vw' }"
     :dismissableMask="true"
     :draggable="false"
-    header="修改销售数据"
-    class="p-dialog-custom"
+    :pt="{
+      root: { class: 'sales-edit-dialog' },
+      content: { class: 'sales-edit-content' },
+      mask: { class: 'sales-edit-mask' }
+    }"
     @update:visible="onDialogToggle"
   >
-    <div v-if="isLoading" class="p-8 text-center text-[var(--color-text-secondary)]">
-      <i class="pi pi-spin pi-spinner text-2xl mb-2"></i>
-      <p>正在加载表单选项...</p>
+    <div class="modal-wrapper">
+      <!-- Custom Header -->
+      <div class="modal-header">
+        <div class="header-left">
+          <div class="header-icon">
+            <i class="pi pi-pencil"></i>
+          </div>
+          <div>
+            <h3 class="modal-title">修改销售数据</h3>
+            <p class="modal-subtitle">编辑销售记录的详细信息</p>
+          </div>
+        </div>
+        <button class="close-btn" @click="closeModal">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-state">
+        <i class="pi pi-spin pi-spinner"></i>
+        <p>正在加载表单选项...</p>
+      </div>
+
+      <!-- Form -->
+      <form v-else class="modal-body" @submit.prevent="handleSubmit">
+        <Toast />
+
+        <!-- Section: 基本信息 -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="pi pi-calendar"></i>
+            <span>基本信息</span>
+          </div>
+          <div class="form-grid">
+            <!-- Date -->
+            <div class="form-field">
+              <label for="edit_recordDate">记录日期 <span class="required">*</span></label>
+              <Calendar
+                input-id="edit_recordDate"
+                v-model="formData.recordDate"
+                date-format="yy-mm-dd"
+                show-icon
+                class="w-full"
+                :pt="{ input: { class: 'w-full' } }"
+              />
+            </div>
+
+            <!-- Country -->
+            <div class="form-field">
+              <label>国家 <span class="required">*</span></label>
+              <Dropdown
+                v-model="selectedCountry"
+                :options="countryOptions"
+                option-label="name"
+                option-value="code"
+                placeholder="请选择国家..."
+                class="w-full"
+              />
+            </div>
+
+            <!-- Platform -->
+            <div class="form-field">
+              <label>平台 <span class="required">*</span></label>
+              <Dropdown
+                v-model="selectedPlatform"
+                :options="platformOptions"
+                placeholder="请选择平台..."
+                :disabled="!selectedCountry"
+                class="w-full"
+              />
+            </div>
+
+            <!-- Store -->
+            <div class="form-field">
+              <label>店铺名称 <span class="required">*</span></label>
+              <Dropdown
+                v-model="formData.storeId"
+                :options="storeOptions"
+                option-label="name"
+                option-value="id"
+                placeholder="请选择店铺..."
+                :disabled="!selectedPlatform"
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: 商品链接 -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="pi pi-link"></i>
+            <span>商品链接</span>
+          </div>
+          <div class="form-field full-width">
+            <label>
+              选择商品链接 (Listing) <span class="required">*</span>
+              <span class="label-hint">格式: [商品代码] 标题 (SKU)</span>
+            </label>
+            <Dropdown
+              v-model="formData.listingId"
+              :options="listingOptions"
+              option-label="displayLabel"
+              option-value="id"
+              placeholder="请选择具体链接..."
+              :disabled="!formData.storeId || isLoadingListings"
+              :loading="isLoadingListings"
+              class="w-full"
+              panel-class="listing-dropdown-panel"
+            >
+              <template #option="slotProps">
+                <div class="listing-option">
+                  <span class="listing-title">{{ slotProps.option.displayLabel }}</span>
+                  <span v-if="slotProps.option.product?.sku" class="listing-sku">SKU: {{ slotProps.option.product.sku }}</span>
+                </div>
+              </template>
+            </Dropdown>
+            <div v-if="!saleDataToEdit?.listingId && !formData.listingId" class="field-hint warning">
+              <i class="pi pi-info-circle"></i>
+              <span>提示：这是旧数据，请重新关联到一个具体的商品链接</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: 销售数据 -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="pi pi-chart-line"></i>
+            <span>销售数据</span>
+          </div>
+          <div class="form-grid cols-3">
+            <!-- Sales Volume -->
+            <div class="form-field">
+              <label for="edit_salesVolume">销量 <span class="required">*</span></label>
+              <InputNumber
+                input-id="edit_salesVolume"
+                v-model="formData.salesVolume"
+                :min="0"
+                class="w-full"
+                input-class="w-full"
+              />
+            </div>
+
+            <!-- Revenue -->
+            <div class="form-field">
+              <label for="edit_revenue">销售额 <span class="required">*</span></label>
+              <InputNumber
+                input-id="edit_revenue"
+                v-model="formData.revenue"
+                :min="0"
+                :step="0.01"
+                mode="decimal"
+                :max-fraction-digits="2"
+                class="w-full"
+                input-class="w-full"
+              />
+            </div>
+
+            <!-- Order Status -->
+            <div class="form-field">
+              <label>订单状态</label>
+              <Dropdown
+                v-model="formData.orderStatus"
+                :options="orderStatusOptions"
+                option-label="label"
+                option-value="value"
+                placeholder="未设置"
+                show-clear
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: 备注 -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="pi pi-file-edit"></i>
+            <span>备注</span>
+          </div>
+          <div class="form-field full-width">
+            <Textarea id="edit_notes" v-model="formData.notes" rows="3" auto-resize class="w-full" placeholder="输入备注信息（可选）..." />
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+          <Button type="button" label="取消" severity="secondary" outlined @click="closeModal" />
+          <Button type="submit" label="保存修改" icon="pi pi-check" :loading="isSubmitting" />
+        </div>
+      </form>
     </div>
-
-    <form v-else class="flex flex-col gap-6 pt-1" @submit.prevent="handleSubmit">
-      <Toast />
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Date -->
-        <div class="flex flex-col gap-2">
-          <label for="edit_recordDate" class="text-sm font-medium text-[var(--color-text-secondary)]">记录日期 <span class="text-red-500">*</span></label>
-          <Calendar
-            input-id="edit_recordDate"
-            v-model="formData.recordDate"
-            date-format="yy-mm-dd"
-            show-icon
-            class="w-full"
-            :pt="{ input: { class: 'w-full' } }"
-          />
-        </div>
-
-        <!-- Country -->
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-[var(--color-text-secondary)]">国家 <span class="text-red-500">*</span></label>
-          <Dropdown
-            v-model="selectedCountry"
-            :options="countryOptions"
-            option-label="name"
-            option-value="code"
-            placeholder="请选择国家..."
-            filter
-            class="w-full"
-          />
-        </div>
-
-        <!-- Platform -->
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-[var(--color-text-secondary)]">平台 <span class="text-red-500">*</span></label>
-          <Dropdown
-            v-model="selectedPlatform"
-            :options="platformOptions"
-            placeholder="请选择平台..."
-            :disabled="!selectedCountry"
-            filter
-            class="w-full"
-          />
-        </div>
-
-        <!-- Store -->
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-[var(--color-text-secondary)]">店铺名称 <span class="text-red-500">*</span></label>
-          <Dropdown
-            v-model="formData.storeId"
-            :options="storeOptions"
-            option-label="name"
-            option-value="id"
-            placeholder="请选择店铺..."
-            :disabled="!selectedPlatform"
-            filter
-            class="w-full"
-          />
-        </div>
-
-        <!-- Listing (Full Width) -->
-        <div class="col-span-1 md:col-span-2 flex flex-col gap-2">
-          <label class="text-sm font-medium text-[var(--color-text-secondary)] flex items-center gap-2">
-            选择商品链接 (Listing) <span class="text-red-500">*</span>
-            <span class="text-xs font-normal text-gray-400">格式: [商品代码] 标题 (SKU)</span>
-          </label>
-          <Dropdown
-            v-model="formData.listingId"
-            :options="listingOptions"
-            option-label="displayLabel"
-            option-value="id"
-            placeholder="请选择具体链接..."
-            :disabled="!formData.storeId || isLoadingListings"
-            :loading="isLoadingListings"
-            filter
-            class="w-full"
-            panel-class="max-w-[600px]"
-          >
-             <template #option="slotProps">
-              <div class="flex flex-col py-1">
-                <span class="font-medium text-sm text-[var(--color-text-primary)]">{{ slotProps.option.displayLabel }}</span>
-                <span v-if="slotProps.option.product?.sku" class="text-xs text-[var(--color-text-secondary)] mt-0.5">SKU: {{ slotProps.option.product.sku }}</span>
-              </div>
-            </template>
-          </Dropdown>
-           <p v-if="!saleDataToEdit?.listingId && !formData.listingId" class="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
-            <i class="pi pi-info-circle mr-1"></i>
-            提示：这是旧数据，请重新关联到一个具体的商品链接
-          </p>
-        </div>
-
-        <!-- Sales Volume -->
-        <div class="flex flex-col gap-2">
-          <label for="edit_salesVolume" class="text-sm font-medium text-[var(--color-text-secondary)]">销量 <span class="text-red-500">*</span></label>
-          <InputNumber
-            input-id="edit_salesVolume"
-            v-model="formData.salesVolume"
-            :min="0"
-            class="w-full"
-            input-class="w-full"
-          />
-        </div>
-
-        <!-- Revenue -->
-        <div class="flex flex-col gap-2">
-          <label for="edit_revenue" class="text-sm font-medium text-[var(--color-text-secondary)]">销售额 <span class="text-red-500">*</span></label>
-          <InputNumber
-            input-id="edit_revenue"
-            v-model="formData.revenue"
-            :min="0"
-            :step="0.01"
-            mode="decimal"
-            :max-fraction-digits="2"
-            class="w-full"
-            input-class="w-full"
-          />
-        </div>
-
-        <!-- Order Status -->
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-[var(--color-text-secondary)]">订单状态</label>
-          <Dropdown
-            v-model="formData.orderStatus"
-            :options="orderStatusOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="未设置"
-            show-clear
-            class="w-full"
-          />
-        </div>
-
-        <!-- Notes (Full Width) -->
-        <div class="col-span-1 md:col-span-2 flex flex-col gap-2">
-          <label for="edit_notes" class="text-sm font-medium text-[var(--color-text-secondary)]">备注（可选）</label>
-          <Textarea id="edit_notes" v-model="formData.notes" rows="3" auto-resize class="w-full" />
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
-        <Button type="button" label="取消" severity="secondary" text @click="closeModal" />
-        <Button type="submit" label="保存修改" icon="pi pi-check" :loading="isSubmitting" />
-      </div>
-    </form>
   </Dialog>
 </template>
 
@@ -478,3 +527,231 @@ const closeModal = () => {
   emit('close');
 };
 </script>
+
+<style scoped>
+.modal-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.header-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.125rem;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.modal-subtitle {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin: 0.25rem 0 0 0;
+}
+
+.close-btn {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.close-btn:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--color-text-secondary);
+  gap: 0.75rem;
+}
+
+.loading-state i {
+  font-size: 1.5rem;
+}
+
+/* Form Body */
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Form Sections */
+.form-section {
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-title i {
+  color: var(--color-accent);
+  font-size: 0.875rem;
+}
+
+/* Form Grid */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.form-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 640px) {
+  .form-grid,
+  .form-grid.cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Form Fields */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.required {
+  color: #ef4444;
+}
+
+.label-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 0.5rem;
+}
+
+/* Field Hints */
+.field-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  margin-top: 0.25rem;
+}
+
+.field-hint.warning {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+.field-hint i {
+  font-size: 0.75rem;
+}
+
+/* Listing Dropdown */
+.listing-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.25rem 0;
+}
+
+.listing-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.listing-sku {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+</style>
+
+<style>
+/* Global Dialog Styles */
+.sales-edit-dialog .p-dialog-content {
+  padding: 1.5rem;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+}
+
+.sales-edit-mask {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.listing-dropdown-panel {
+  max-width: 600px;
+}
+</style>

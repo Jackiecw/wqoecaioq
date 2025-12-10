@@ -303,6 +303,7 @@ const customEndDate = ref<Date | null>(new Date());
 const selectedCountry = ref<string>('ALL');
 const stats = ref<SalesStats>({ ...EMPTY_STATS });
 const lastRefreshTime = ref<Date | null>(null);
+const hasFetched = ref(false);
 
 const countryOptions = computed(() => {
   const options: { code: string; name: string }[] = [];
@@ -527,19 +528,30 @@ watch(
     const current = options.some((opt) => opt.code === selectedCountry.value)
       ? selectedCountry.value
       : options[0].code;
-    selectedCountry.value = current;
+    
+    if (selectedCountry.value !== current) {
+      selectedCountry.value = current;
+    }
+    
+    // Trigger initial fetch only once when options are ready
+    if (!hasFetched.value) {
+      hasFetched.value = true;
+      fetchStats();
+    }
   },
   { immediate: true },
 );
 
 watch(currentRange, (range) => {
-  if (range !== 'custom') {
+  if (range !== 'custom' && hasFetched.value) {
     fetchStats();
   }
 });
 
 watch(compareMode, () => {
-  fetchStats();
+  if (hasFetched.value) {
+    fetchStats();
+  }
 });
 
 watch(
@@ -553,10 +565,12 @@ watch(
 
 watch(
   selectedCountry,
-  () => {
-    fetchStats();
+  (newVal, oldVal) => {
+    // Only fetch when value actually changes (not on initial undefined -> value)
+    if (oldVal !== undefined && newVal !== oldVal) {
+      fetchStats();
+    }
   },
-  { immediate: true },
 );
 
 const resolveRange = () => {

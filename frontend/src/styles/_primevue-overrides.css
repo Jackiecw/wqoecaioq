@@ -1,0 +1,273 @@
+/**
+ * PrimeVue 组件覆盖样式 (Notion Style)
+ */
+
+/* Dialog */
+.p-dialog {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+}
+
+.p-dialog .p-dialog-header {
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    border-bottom: none;
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+}
+
+.p-dialog .p-dialog-header .p-dialog-title {
+    font-weight: 600;
+    font-size: 1.125rem;
+    letter-spacing: -0.01em;
+}
+
+.p-dialog .p-dialog-content {
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+    padding: 0 1.5rem 1.75rem 1.5rem;
+    border-radius: 0;
+}
+
+.p-dialog .p-dialog-footer {
+    background: var(--color-bg-page);
+    border-top: 1px solid var(--color-border);
+    padding: 1rem 1.5rem;
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* InputText */
+.p-inputtext {
+    font-family: inherit;
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+    background: var(--color-bg-card);
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-xs);
+}
+
+.p-inputtext:enabled:hover {
+    border-color: var(--color-text-secondary);
+}
+
+.p-inputtext:enabled:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent-soft);
+    outline: none;
+}
+
+.p-inputtext::placeholder {
+    color: var(--color-text-muted);
+}
+
+.p-inputtext:disabled {
+    background: var(--color-bg-page);
+    color: var(--color-text-muted);
+}
+
+.p-inputnumber-input {
+    border-radius: var(--radius-sm);
+}
+
+/* Dropdown */
+.p-dropdown {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-xs);
+    align-items: center;
+}
+
+.p-dropdown:not(.p-disabled):hover {
+    border-color: var(--color-text-secondary);
+}
+
+.p-dropdown.p-focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent-soft);
+}
+
+.p-dropdown .p-dropdown-label {
+    padding: 0.625rem 0.875rem;
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+}
+
+.p-dropdown .p-dropdown-label.p-placeholder {
+    color: var(--color-text-muted);
+}
+
+.p-dropdown-panel {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+    padding: 0.625rem 1rem;
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+    border-radius: 0;
+    transition: background-color var(--transition-fast);
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item:not(.p-highlight):not(.p-disabled):hover {
+    background: var(--color-bg-page);
+    color: var(--color-text-primary);
+}
+
+/* Button */
+.p-button {
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    font-size: 0.875rem;
+    padding: 0.625rem 1rem;
+    transition: all var(--transition-fast);
+}
+
+.p-button.p-button-secondary.p-button-outlined {
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    box-shadow: var(--shadow-xs);
+}
+
+.p-button.p-button-secondary.p-button-outlined:hover {
+    background: var(--color-bg-page);
+    color: var(--color-text-primary);
+    border-color: var(--color-text-muted);
+}
+
+/* Secondary Button (solid) - 更好看的淡蓝色调 */
+.p-button.p-button-secondary:not(.p-button-outlined):not(.p-button-text) {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+.p-button.p-button-secondary:not(.p-button-outlined):not(.p-button-text):hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+/* Text Button (text variant) - 取消按钮等 */
+.p-button.p-button-text {
+    background: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+}
+
+.p-button.p-button-text:hover {
+    background: #f1f5f9;
+    color: var(--color-text-primary);
+}
+
+.p-button.p-button-secondary.p-button-text {
+    color: #64748b;
+}
+
+.p-button.p-button-secondary.p-button-text:hover {
+    background: #f8fafc;
+    color: #475569;
+}
+
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-link):not(.p-button-secondary) {
+    background: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    box-shadow: var(--shadow-xs);
+    color: white;
+}
+
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-link):not(.p-button-secondary):hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+}
+
+/* Message */
+.p-message {
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    min-width: 100%;
+}
+
+.p-message .p-message-content {
+    padding: 0;
+    gap: 0.75rem;
+}
+
+.p-message .p-message-text {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+}
+
+.p-message .p-message-icon {
+    font-size: 1.125rem;
+}
+
+.p-message.p-message-info {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+}
+
+.p-message.p-message-info .p-message-icon {
+    color: #3b82f6;
+}
+
+/* InputSwitch - 修复圆球脱离胶囊的问题 */
+.p-inputswitch {
+    width: 2.75rem;
+    height: 1.5rem;
+}
+
+.p-inputswitch .p-inputswitch-slider {
+    background: #e2e8f0;
+    border-radius: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+.p-inputswitch .p-inputswitch-slider:before {
+    width: 1.125rem;
+    height: 1.125rem;
+    left: 0.1875rem;
+    margin-top: -0.5625rem;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s;
+}
+
+.p-inputswitch.p-inputswitch-checked .p-inputswitch-slider {
+    background: var(--color-accent);
+}
+
+.p-inputswitch.p-inputswitch-checked .p-inputswitch-slider:before {
+    transform: translateX(1.25rem);
+}
+
+.p-inputswitch:not(.p-disabled):hover .p-inputswitch-slider {
+    background: #cbd5e1;
+}
+
+.p-inputswitch.p-inputswitch-checked:not(.p-disabled):hover .p-inputswitch-slider {
+    filter: brightness(0.95);
+}

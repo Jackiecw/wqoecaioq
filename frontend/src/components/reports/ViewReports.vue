@@ -1,51 +1,63 @@
 <template>
   <div class="view-reports">
     <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h2>周报查看</h2>
-        <p>查看团队成员提交的周报记录与历史归档</p>
+    <div class="reports-header">
+      <div class="header-info">
+        <h2 class="header-title">
+          <i class="pi pi-file-edit"></i>
+          周报查看
+        </h2>
+        <p class="header-desc">查看团队成员提交的周报记录与历史归档</p>
       </div>
       <Button
         icon="pi pi-refresh"
-        label="刷新"
         severity="secondary"
-        outlined
+        text
+        rounded
         @click="fetchReports"
         :loading="isLoading"
+        v-tooltip.left="'刷新列表'"
       />
     </div>
 
     <!-- Filters -->
-    <div class="filter-bar">
-      <div class="filter-item">
-        <label>提交人</label>
-        <Select
-          v-model="filterAuthor"
-          :options="authorOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="全部用户"
-          showClear
-          class="filter-select"
-        />
-      </div>
-      <div class="filter-item">
-        <label>日期范围</label>
-        <Calendar
-          v-model="filterDateRange"
-          selectionMode="range"
-          dateFormat="yy-mm-dd"
-          placeholder="选择日期范围"
-          showIcon
-          showButtonBar
-          class="filter-calendar"
-        />
+    <div class="filter-section">
+      <div class="filter-group">
+        <div class="filter-field">
+          <label class="filter-label">
+            <i class="pi pi-user"></i>
+            提交人
+          </label>
+          <Select
+            v-model="filterAuthor"
+            :options="authorOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="全部用户"
+            showClear
+            class="filter-select"
+          />
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">
+            <i class="pi pi-calendar"></i>
+            日期范围
+          </label>
+          <Calendar
+            v-model="filterDateRange"
+            selectionMode="range"
+            dateFormat="yy-mm-dd"
+            placeholder="选择日期范围"
+            showIcon
+            showButtonBar
+            class="filter-calendar"
+          />
+        </div>
       </div>
       <Button
         v-if="hasActiveFilters"
         icon="pi pi-filter-slash"
-        label="清除"
+        label="重置筛选"
         severity="secondary"
         text
         size="small"
@@ -53,8 +65,27 @@
       />
     </div>
 
+    <!-- Stats Summary -->
+    <div class="stats-bar" v-if="reports.length > 0">
+      <div class="stat-item">
+        <i class="pi pi-file stat-icon"></i>
+        <span class="stat-value">{{ reports.length }}</span>
+        <span class="stat-label">总周报</span>
+      </div>
+      <div class="stat-item">
+        <i class="pi pi-users stat-icon"></i>
+        <span class="stat-value">{{ authorOptions.length }}</span>
+        <span class="stat-label">贡献者</span>
+      </div>
+      <div class="stat-item">
+        <i class="pi pi-filter stat-icon"></i>
+        <span class="stat-value">{{ filteredReports.length }}</span>
+        <span class="stat-label">筛选结果</span>
+      </div>
+    </div>
+
     <!-- Table -->
-    <div class="table-container">
+    <div class="table-wrapper">
       <DataTable
         :value="filteredReports"
         :loading="isLoading"
@@ -62,60 +93,69 @@
         :rows="10"
         :rowsPerPageOptions="[10, 20, 50]"
         tableStyle="min-width: 50rem"
-        stripedRows
+        class="reports-table"
+        :pt="{
+          table: { class: 'reports-data-table' },
+          headerRow: { class: 'table-header-row' },
+          bodyRow: { class: 'table-body-row' }
+        }"
       >
         <template #empty>
           <div class="empty-state">
-            <div class="empty-icon">
-              <i class="pi pi-folder-open"></i>
+            <div class="empty-icon-wrapper">
+              <i class="pi pi-inbox"></i>
             </div>
             <p class="empty-title">暂无周报记录</p>
             <p class="empty-desc">提交的周报将显示在这里</p>
           </div>
         </template>
 
-        <Column field="weekStartDate" header="开始日期" sortable style="width: 15%">
+        <Column field="weekStartDate" header="周期" sortable style="width: 15%">
           <template #body="{ data }">
-            <span class="date-cell">{{ formatDate(data.weekStartDate) }}</span>
-          </template>
-        </Column>
-
-        <Column field="author.nickname" header="提交人" sortable style="width: 15%">
-          <template #body="{ data }">
-            <div class="author-cell">
-              <Avatar
-                icon="pi pi-user"
-                shape="circle"
-                class="author-avatar"
-              />
-              <span>{{ data.author?.nickname ?? '未知用户' }}</span>
+            <div class="date-badge">
+              <i class="pi pi-calendar"></i>
+              <span>{{ formatDate(data.weekStartDate) }}</span>
             </div>
           </template>
         </Column>
 
-        <Column field="createdAt" header="提交时间" sortable style="width: 20%">
+        <Column field="author.nickname" header="提交人" sortable style="width: 18%">
           <template #body="{ data }">
-            <span class="time-cell">{{ formatDateTime(data.createdAt) }}</span>
+            <div class="author-info">
+              <Avatar
+                :label="getInitial(data.author?.nickname)"
+                shape="circle"
+                class="author-avatar"
+              />
+              <span class="author-name">{{ data.author?.nickname ?? '未知用户' }}</span>
+            </div>
           </template>
         </Column>
 
-        <Column header="摘要" style="width: 30%">
+        <Column field="createdAt" header="提交时间" sortable style="width: 18%">
           <template #body="{ data }">
-            <p class="summary-cell" :title="data.summaryThisWeek">
-              {{ data.summaryThisWeek || '无摘要' }}
+            <span class="time-text">{{ formatDateTime(data.createdAt) }}</span>
+          </template>
+        </Column>
+
+        <Column header="本周摘要" style="width: 34%">
+          <template #body="{ data }">
+            <p class="summary-text" :title="data.summaryThisWeek">
+              {{ data.summaryThisWeek || '未填写摘要' }}
             </p>
           </template>
         </Column>
 
-        <Column header="操作" style="width: 20%; text-align: right" bodyClass="text-right">
+        <Column header="" style="width: 15%" bodyClass="actions-column">
           <template #body="{ data }">
-            <div class="action-cell">
+            <div class="row-actions">
               <Button
                 icon="pi pi-eye"
-                label="详情"
                 size="small"
                 severity="secondary"
-                outlined
+                text
+                rounded
+                v-tooltip.top="'查看详情'"
                 @click="openReportModal(data)"
               />
               <Button
@@ -124,6 +164,8 @@
                 size="small"
                 severity="danger"
                 text
+                rounded
+                v-tooltip.top="'删除'"
                 @click="handleDeleteReport(data.id)"
               />
             </div>
@@ -152,6 +194,9 @@ import Avatar from 'primevue/avatar';
 import Select from 'primevue/select';
 import Calendar from 'primevue/calendar';
 import { useToast } from 'primevue/usetoast';
+import Tooltip from 'primevue/tooltip';
+
+const vTooltip = Tooltip;
 
 const reports = ref<WeeklyReport[]>([]);
 const isLoading = ref(true);
@@ -244,6 +289,11 @@ const handleDeleteReport = async (reportId: string) => {
   }
 };
 
+const getInitial = (name?: string) => {
+  if (!name) return '?';
+  return name.charAt(0).toUpperCase();
+};
+
 const formatDate = (dateString?: string) => {
   if (!dateString) return 'N/A';
   return new Date(dateString).toISOString().split('T')[0];
@@ -253,7 +303,6 @@ const formatDateTime = (dateString?: string) => {
   if (!dateString) return 'N/A';
   return new Date(dateString).toLocaleString('zh-CN', {
     hour12: false,
-    year: 'numeric',
     month: 'numeric',
     day: 'numeric',
     hour: '2-digit',
@@ -266,49 +315,74 @@ const formatDateTime = (dateString?: string) => {
 .view-reports {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 /* Header */
-.page-header {
+.reports-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-title {
+  display: flex;
   align-items: center;
-}
-
-.page-header h2 {
-  font-size: 1.25rem;
+  gap: 0.625rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  margin: 0 0 0.25rem 0;
-  color: var(--surface-900);
-}
-
-.page-header p {
-  font-size: 0.8rem;
-  color: var(--surface-500);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
-/* Filters */
-.filter-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--surface-50);
-  border-radius: 0.75rem;
+.header-title i {
+  color: var(--color-accent);
+  font-size: 1.25rem;
 }
 
-.filter-item {
+.header-desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin: 0.375rem 0 0 0;
+}
+
+/* Filter Section */
+.filter-section {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.filter-group {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.filter-field {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
 }
 
-.filter-item label {
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--surface-600);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.filter-label i {
+  font-size: 0.75rem;
+  color: var(--color-accent);
 }
 
 .filter-select,
@@ -316,84 +390,176 @@ const formatDateTime = (dateString?: string) => {
   min-width: 180px;
 }
 
-/* Table */
-.table-container {
-  background: white;
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-}
-
-.empty-icon {
-  width: 4rem;
-  height: 4rem;
-  margin: 0 auto 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 1rem;
+/* Stats Bar */
+.stats-bar {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  gap: 2rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, var(--color-accent-soft) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-radius: var(--radius-md);
 }
 
-.empty-icon i {
-  font-size: 1.5rem;
-  color: white;
-}
-
-.empty-title {
-  font-weight: 600;
-  color: var(--surface-700);
-  margin: 0 0 0.25rem 0;
-}
-
-.empty-desc {
-  font-size: 0.875rem;
-  color: var(--surface-500);
-  margin: 0;
-}
-
-/* Cells */
-.date-cell {
-  font-weight: 600;
-  color: var(--surface-900);
-}
-
-.author-cell {
+.stat-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.stat-icon {
+  font-size: 0.875rem;
+  color: var(--color-accent);
+}
+
+.stat-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* Table */
+.table-wrapper {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.reports-table :deep(.p-datatable-header-cell) {
+  background: var(--color-bg-page);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.reports-table :deep(.p-datatable-row-cell) {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.reports-table :deep(.p-datatable-tbody > tr:hover) {
+  background: var(--color-bg-page);
+}
+
+.reports-table :deep(.p-datatable-tbody > tr:last-child td) {
+  border-bottom: none;
+}
+
+/* Date Badge */
+.date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.date-badge i {
+  font-size: 0.75rem;
+}
+
+/* Author Info */
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
 }
 
 .author-avatar {
   width: 2rem;
   height: 2rem;
-  background: var(--primary-50);
-  color: var(--primary-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #8b5cf6 100%);
+  color: white;
 }
 
-.time-cell {
-  color: var(--surface-500);
+.author-name {
   font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
-.summary-cell {
-  max-width: 280px;
+/* Time Text */
+.time-text {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+/* Summary Text */
+.summary-text {
+  max-width: 320px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--surface-600);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
-.action-cell {
+/* Row Actions */
+.row-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.reports-table :deep(tr:hover) .row-actions {
+  opacity: 1;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.empty-icon-wrapper {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-icon-wrapper i {
+  font-size: 1.5rem;
+  color: var(--color-accent);
+}
+
+.empty-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.empty-desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* Actions Column */
+:deep(.actions-column) {
+  text-align: right;
 }
 </style>

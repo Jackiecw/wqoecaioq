@@ -90,7 +90,7 @@ async function fetchListings(storeId: string, force = false) {
     listingLoading.value.set(storeId, true);
     listingError.value.set(storeId, '');
     try {
-        const response = await apiClient.get(`/stores/${storeId}/listings`);
+        const response = await apiClient.get(`/admin/store-listings/by-store/${storeId}`);
         const data = Array.isArray(response.data) ? response.data : [];
         listingCache.value.set(storeId, data);
         return data;
