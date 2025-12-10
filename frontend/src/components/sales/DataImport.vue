@@ -6,24 +6,7 @@
       subtitle="批量导入平台报表，或手动录入单条销售数据"
     />
 
-    <!-- Country Selection -->
-    <ContentCard v-if="currentTab !== '导入记录'" class="mb-6">
-      <h3 class="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">选择国家</h3>
-      <div class="flex flex-wrap gap-3">
-        <button
-          v-for="country in availableCountries"
-          :key="country.code"
-          @click="selectedCountry = country.code"
-          class="pill-tab"
-          :class="{ 'is-active': selectedCountry === country.code }"
-        >
-          {{ country.name }}
-        </button>
-        <div v-if="availableCountries.length === 0 && !storesLoading" class="text-sm text-[var(--color-text-secondary)] py-2">
-          暂无可用国家数据
-        </div>
-      </div>
-    </ContentCard>
+    <!-- Country selector is now inside each component -->
 
     <!-- Tab Navigation -->
     <div class="pill-tab-group mb-6">

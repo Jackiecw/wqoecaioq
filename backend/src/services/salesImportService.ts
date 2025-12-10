@@ -127,6 +127,7 @@ export class SalesImportService {
                         },
                         update: {
                             orderStatus: item.orderStatus,
+                            cancelReason: item.cancelReason || null,  // 新增
                             revenue: item.revenue,
                             listingId: item.listingId,
                             productId: listing.productId,
@@ -150,6 +151,7 @@ export class SalesImportService {
 
                             platformOrderId: item.platformOrderId,
                             orderStatus: item.orderStatus,
+                            cancelReason: item.cancelReason || null,  // 新增
                             importBatchId: importBatch.id,
                             currency: currency,
                             platform: platform as any,

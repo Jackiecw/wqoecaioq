@@ -11,26 +11,41 @@
       </div>
 
       <div class="upload-grid">
-        <!-- Store Selection -->
+        <!-- Country & Store Selection (Combined) -->
         <div class="store-select-card">
-          <label class="field-label">
-            <i class="pi pi-shop"></i>
-            所属店铺
-          </label>
-          <select v-model="selectedStoreId" class="store-select" :disabled="!selectedCountry">
-            <option value="" disabled>请选择店铺</option>
-            <option v-for="store in filteredStores" :key="store.id" :value="store.id">
-              {{ store.name }}
-            </option>
-          </select>
-          <p v-if="!selectedCountry" class="field-error">
-            <i class="pi pi-info-circle"></i>
-            请先在上方选择国家
-          </p>
-          <p v-else-if="selectedStoreId" class="field-success">
-            <i class="pi pi-check-circle"></i>
-            已选择店铺
-          </p>
+          <div class="field-group">
+            <label class="field-label">
+              <i class="pi pi-globe"></i>
+              国家
+            </label>
+            <select v-model="localSelectedCountry" class="store-select">
+              <option value="" disabled>请选择国家</option>
+              <option v-for="country in availableCountries" :key="country.code" :value="country.code">
+                {{ country.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">
+              <i class="pi pi-shop"></i>
+              所属店铺
+            </label>
+            <select v-model="selectedStoreId" class="store-select" :disabled="!localSelectedCountry">
+              <option value="" disabled>请选择店铺</option>
+              <option v-for="store in filteredStores" :key="store.id" :value="store.id">
+                {{ store.name }}
+              </option>
+            </select>
+            <p v-if="!localSelectedCountry" class="field-error">
+              <i class="pi pi-info-circle"></i>
+              请先选择国家
+            </p>
+            <p v-else-if="selectedStoreId" class="field-success">
+              <i class="pi pi-check-circle"></i>
+              已选择店铺
+            </p>
+          </div>
         </div>
 
         <!-- File Upload -->
@@ -151,6 +166,7 @@
                         <th scope="col" class="table-th">订单号</th>
                         <th scope="col" class="table-th">日期</th>
                         <th scope="col" class="table-th">状态</th>
+                        <th scope="col" class="table-th">取消/退货原因</th>
                         <th scope="col" class="table-th">商品标题</th>
                         <th scope="col" class="table-th">SKU</th>
                         <th scope="col" class="table-th">数量</th>
@@ -176,6 +192,7 @@
                             </div>
                             <span v-else>{{ item.orderStatus }}</span>
                         </td>
+                        <td class="table-td text-stone-500 max-w-[150px] truncate" :title="item.cancelReason || ''">{{ item.cancelReason || '-' }}</td>
                         <td class="table-td text-stone-500 max-w-xs truncate" :title="item.title">{{ item.title }}</td>
                         <td class="table-td text-stone-500">{{ item.sku }}</td>
                         <td class="table-td text-stone-500">{{ item.quantity }}</td>
@@ -230,21 +247,21 @@ import { useAuthStore } from '../../stores/auth';
 const props = defineProps(['selectedCountry']);
 
 const authStore = useAuthStore();
-// const selectedCountry = ref(''); // Removed, using prop
+const localSelectedCountry = ref('');
 const selectedStoreId = ref('');
-const selectedFile = ref(null);
+const selectedFile = ref<File | null>(null);
 const isDragging = ref(false);
 const loading = ref(false);
 const submitting = ref(false);
-const previewData = ref([]);
-const stores = ref([]); 
+const previewData = ref<any[]>([]);
+const stores = ref<any[]>([]); 
 
 // Pagination State
 const currentPage = ref(1);
 const pageSize = ref(10);
 
 const showMappingModal = ref(false);
-const currentMappingItem = ref(null);
+const currentMappingItem = ref<any>(null);
 
 const selectedCount = computed(() => previewData.value.filter(i => i.selected).length);
 const selectedUnmatchedCount = computed(() => previewData.value.filter(i => i.selected && !i.listingId).length);
@@ -263,22 +280,55 @@ watch(previewData, () => {
     currentPage.value = 1;
 });
 
+// Available countries from stores
+const availableCountries = computed(() => {
+    const uniqueCountriesMap = new Map();
+    stores.value.forEach((store: any) => {
+        if (store.country) {
+            uniqueCountriesMap.set(store.country.code, store.country);
+        }
+    });
+    
+    const allUniqueCountries = Array.from(uniqueCountriesMap.values())
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (authStore.role === 'admin') {
+        return allUniqueCountries;
+    }
+    
+    const userCountryCodes = authStore.operatedCountries || [];
+    return allUniqueCountries.filter((country: any) => 
+        userCountryCodes.includes(country.code)
+    );
+});
+
 // Computed: Filtered Stores based on selected country
 const filteredStores = computed(() => {
-    if (!props.selectedCountry) return [];
-    return stores.value.filter(store => store.countryCode === props.selectedCountry);
+    if (!localSelectedCountry.value) return [];
+    return stores.value.filter((store: any) => store.countryCode === localSelectedCountry.value);
 });
 
 // Watch: Reset store when country changes
-watch(() => props.selectedCountry, () => {
+watch(localSelectedCountry, () => {
     selectedStoreId.value = '';
 });
+
+// Sync with prop if provided
+watch(() => props.selectedCountry, (newVal) => {
+    if (newVal) {
+        localSelectedCountry.value = newVal;
+    }
+}, { immediate: true });
 
 // Fetch stores and batches on mount
 onMounted(async () => {
     try {
         const response = await apiClient.get('/admin/stores');
         stores.value = response.data;
+        // Auto-select if only one country
+        if (availableCountries.value.length === 1) {
+            localSelectedCountry.value = availableCountries.value[0].code;
+        }
     } catch (e) {
         console.error("Failed to fetch stores", e);
     }
@@ -523,7 +573,13 @@ const formatFileSize = (bytes: number) => {
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .field-label {

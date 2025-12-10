@@ -5,27 +5,17 @@ import * as xlsx from 'xlsx';
 
 // --- Constants ---
 const STATUS_FLOW = [
+    ProductionOrderStatus.PENDING,
     ProductionOrderStatus.IN_PRODUCTION,
-    ProductionOrderStatus.PRODUCTION_DONE,
-    ProductionOrderStatus.SHIPPED_OUT,
-    ProductionOrderStatus.CONTAINER_LOADED,
-    ProductionOrderStatus.EXPORTED,
-    ProductionOrderStatus.IN_TRANSIT,
-    ProductionOrderStatus.IMPORTED,
-    ProductionOrderStatus.DELIVERING,
-    ProductionOrderStatus.WAREHOUSED,
+    ProductionOrderStatus.READY,
+    ProductionOrderStatus.SHIPPED,
 ];
 
 const STATUS_LABELS: Record<string, string> = {
+    PENDING: '待下单',
     IN_PRODUCTION: '生产中',
-    PRODUCTION_DONE: '生产完成',
-    SHIPPED_OUT: '已出库',
-    CONTAINER_LOADED: '已装柜',
-    EXPORTED: '出口',
-    IN_TRANSIT: '运输',
-    IMPORTED: '进口',
-    DELIVERING: '派送',
-    WAREHOUSED: '已入仓',
+    READY: '待出库',
+    SHIPPED: '已出库',
 };
 
 // --- Helper Functions ---
@@ -166,9 +156,9 @@ export class LogisticsService {
         };
 
         if (view === 'completed') {
-            where.status = ProductionOrderStatus.WAREHOUSED;
+            where.status = ProductionOrderStatus.SHIPPED;
         } else if (view === 'in-progress') {
-            where.status = { not: ProductionOrderStatus.WAREHOUSED };
+            where.status = { not: ProductionOrderStatus.SHIPPED };
         }
 
         if (keyword) {
@@ -231,8 +221,8 @@ export class LogisticsService {
         const { view, keyword, startDate, endDate, countryCode } = filters;
         const where: Prisma.ProductionOrderWhereInput = { deletedAt: null };
 
-        if (view === 'completed') where.status = ProductionOrderStatus.WAREHOUSED;
-        else if (view === 'in-progress') where.status = { not: ProductionOrderStatus.WAREHOUSED };
+        if (view === 'completed') where.status = ProductionOrderStatus.SHIPPED;
+        else if (view === 'in-progress') where.status = { not: ProductionOrderStatus.SHIPPED };
 
         if (keyword) {
             where.OR = [
@@ -348,7 +338,7 @@ export class LogisticsService {
                         orderCode,
                         orderSequence,
                         orderDate: input.orderDate,
-                        status: ProductionOrderStatus.IN_PRODUCTION,
+                        status: ProductionOrderStatus.PENDING,
                         productId: input.productId,
                         skuName: product?.sku || input.skuName,
                         productColor: input.productColor,
@@ -374,7 +364,7 @@ export class LogisticsService {
                         batchId: batch.id,
                         statusEvents: {
                             create: {
-                                status: ProductionOrderStatus.IN_PRODUCTION,
+                                status: ProductionOrderStatus.PENDING,
                                 occurredAt: input.orderDate,
                                 createdById: adminId,
                             },
@@ -421,7 +411,7 @@ export class LogisticsService {
                         orderCode,
                         orderSequence: cursor,
                         orderDate: input.orderDate,
-                        status: ProductionOrderStatus.IN_PRODUCTION,
+                        status: ProductionOrderStatus.PENDING,
                         productId: input.productId,
                         skuName: product?.sku || input.skuName,
                         productColor: input.productColor,
@@ -434,7 +424,7 @@ export class LogisticsService {
                         batchId: batch.id,
                         statusEvents: {
                             create: {
-                                status: ProductionOrderStatus.IN_PRODUCTION,
+                                status: ProductionOrderStatus.PENDING,
                                 occurredAt: input.orderDate,
                                 createdById: adminId,
                             },
@@ -461,7 +451,7 @@ export class LogisticsService {
         if (nextIdx < currentIdx) throw new AppError('状态不可回退', 400);
 
         const dataToUpdate: any = { status: payload.status };
-        if (payload.status === ProductionOrderStatus.WAREHOUSED) {
+        if (payload.status === ProductionOrderStatus.SHIPPED) {
             dataToUpdate.warehouseDate = payload.occurredAt;
         }
 
@@ -513,7 +503,7 @@ export class LogisticsService {
 
         await prisma.$transaction(async (tx) => {
             const updateData: any = { status };
-            if (status === ProductionOrderStatus.WAREHOUSED) {
+            if (status === ProductionOrderStatus.SHIPPED) {
                 updateData.warehouseDate = occurredAt;
             }
             await tx.productionOrder.updateMany({
@@ -537,15 +527,15 @@ export class LogisticsService {
         const order = await prisma.productionOrder.findUnique({ where: { id } });
         if (!order) throw new AppError('订单不存在', 404);
 
-        const isWarehoused = order.status === ProductionOrderStatus.WAREHOUSED;
+        const isShipped = order.status === ProductionOrderStatus.SHIPPED;
         const isSensitiveChange =
             payload.quantity !== undefined ||
             payload.unitPrice !== undefined ||
             payload.totalPrice !== undefined ||
             payload.logisticsFee !== undefined;
 
-        if (isWarehoused && isSensitiveChange) {
-            throw new AppError('订单已入仓，禁止修改数量、单价或物流费用。', 403);
+        if (isShipped && isSensitiveChange) {
+            throw new AppError('订单已出库，禁止修改数量、单价或物流费用。', 403);
         }
 
         const updates = { ...payload };

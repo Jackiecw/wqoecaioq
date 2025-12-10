@@ -2,32 +2,38 @@
   <div class="page-shell">
     <!-- 头部 -->
     <PageHeader 
-      title="生产与物流管理" 
-      subtitle="订单状态全链路追踪与控制中心"
+      title="生产管理" 
+      subtitle="产品生产批次与订单管理"
     />
 
     <!-- 统计卡片 (KPI) -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <ContentCard class="flex items-center gap-4 py-4 px-5">
-        <div class="w-10 h-10 rounded-lg bg-[var(--color-bg-page)] flex items-center justify-center text-[var(--color-text-secondary)] border border-[var(--color-border)]">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">
           <i class="pi pi-box"></i>
         </div>
-        <div>
-          <div class="text-xs text-[var(--color-text-secondary)] uppercase tracking-wider mb-0.5">进行中订单</div>
-          <div class="text-xl font-bold text-[var(--color-text-primary)]">{{ summary.totalQuantity }}</div>
+        <div class="stat-content">
+          <div class="stat-label">进行中批次</div>
+          <div class="stat-value">{{ activeBatchCount }}</div>
         </div>
-      </ContentCard>
+      </div>
 
-      <ContentCard class="flex items-center gap-4 py-4 px-5 relative overflow-hidden">
-        <div class="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-accent)]"></div>
-        <div class="w-10 h-10 rounded-lg bg-[var(--color-accent-soft)] flex items-center justify-center text-[var(--color-accent)]">
+      <div class="stat-card stat-card--accent">
+        <div class="stat-icon stat-icon--accent">
           <i class="pi pi-wallet"></i>
         </div>
-        <div>
-          <div class="text-xs text-[var(--color-text-secondary)] uppercase tracking-wider mb-0.5">在途货值</div>
-          <div class="text-xl font-bold text-[var(--color-text-primary)]">¥{{ formatNumber(summary.totalPrice) }}</div>
+        <div class="stat-content">
+          <div class="stat-label">在途货值</div>
+          <div class="stat-value">¥{{ formatNumber(overall.totalPrice) }}</div>
         </div>
-      </ContentCard>
+      </div>
+
+      <div class="stat-card stat-card--action">
+        <button v-if="canManage" class="btn-add-batch" @click="isCreateModalOpen = true">
+          <i class="pi pi-plus"></i>
+          新建批次
+        </button>
+      </div>
     </div>
 
     <!-- 筛选与工具栏 -->
@@ -38,10 +44,11 @@
             v-for="tab in tabs"
             :key="tab.key"
             class="pill-tab"
-            :class="{ 'is-active': filter.view === tab.key }"
-            @click="filter.view = tab.key"
+            :class="{ 'is-active': filter.status === tab.key }"
+            @click="filter.status = tab.key"
           >
             {{ tab.label }}
+            <span v-if="tab.count !== undefined" class="pill-count">{{ tab.count }}</span>
           </button>
         </div>
         
@@ -50,8 +57,7 @@
           <input 
             v-model="filter.keyword"
             type="text" 
-            placeholder="SKU / 订单号 / 批次号"
-            @keyup.enter="fetchData(1)"
+            placeholder="搜索批次号 / SKU"
           >
         </div>
 
@@ -67,242 +73,92 @@
       </template>
 
       <template #right>
-        <Button label="刷新" icon="pi pi-refresh" severity="secondary" outlined size="small" @click="fetchData(1)" :pt="{ root: { class: 'h-[40px]' } }" />
-        <Button v-if="isAdmin" label="导出" icon="pi pi-download" severity="secondary" outlined size="small" @click="handleExport" :pt="{ root: { class: 'h-[40px]' } }" />
-        <Button v-if="isAdmin" label="新建批次" icon="pi pi-plus" size="small" @click="isCreateModalOpen = true" :pt="{ root: { class: 'h-[40px] bg-[var(--color-accent)] border-[var(--color-accent)]' } }" />
+        <Button label="刷新" icon="pi pi-refresh" severity="secondary" outlined size="small" @click="fetchBatches" :pt="{ root: { class: 'h-[40px]' } }" />
       </template>
     </FilterBar>
 
-    <!-- 批量操作栏 -->
-    <div v-if="selectedOrderIds.length > 0 && isAdmin" class="mb-4 bg-[var(--color-accent-soft)] border border-[var(--color-accent)] rounded-lg p-3 flex items-center justify-between animate-fade-in-up">
-      <div class="flex items-center gap-2 text-[var(--color-accent)] text-sm font-medium">
-        <i class="pi pi-check-square"></i>
-        <span>已选择 <strong>{{ selectedOrderIds.length }}</strong> 个订单</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <Dropdown
-          v-model="batchActionStatus"
-          :options="statusSteps"
-          optionLabel="label"
-          optionValue="key"
-          placeholder="选择更新状态..."
-          class="w-48"
-          :pt="{ root: { class: 'bg-white border-0 h-9 flex items-center' } }"
-        />
-        <Button
-          label="批量更新"
-          icon="pi pi-sync"
-          size="small"
-          :disabled="!batchActionStatus"
-          @click="executeBatchUpdate"
-        />
-        <Button
-          label="取消"
-          text
-          size="small"
-          severity="secondary"
-          @click="selectedRows = []"
-        />
-      </div>
+    <!-- 批次卡片列表 -->
+    <div v-if="isLoading" class="loading-state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>加载中...</span>
     </div>
 
-    <!-- 订单列表表格 -->
-    <ContentCard class="p-0 overflow-hidden">
-      <DataTable
-        v-model:selection="selectedRows"
-        :value="orders"
-        :loading="isLoading"
-        :paginator="true"
-        :rows="pagination.pageSize"
-        :totalRecords="pagination.total"
-        :lazy="true"
-        :rowsPerPageOptions="[10, 20, 50]"
-        dataKey="id"
-        stripedRows
-        :pt="{
-            table: { class: 'w-full' },
-            headerRow: { class: 'bg-[var(--color-bg-page)] text-[var(--color-text-secondary)] text-xs uppercase tracking-wider border-b border-[var(--color-border)]' },
-            row: { class: 'border-b border-[var(--color-border)] hover:bg-[var(--color-bg-page)] transition-colors' },
-            column: { headerCell: { class: 'py-3 px-4 font-medium' }, bodyCell: { class: 'py-3 px-4 text-sm text-[var(--color-text-primary)]' } }
-        }"
-        @page="onPageChange"
-      >
-        <!-- 多选列 -->
-        <Column v-if="isAdmin" selectionMode="multiple" headerStyle="width: 3rem" />
+    <div v-else-if="filteredBatches.length === 0" class="empty-state">
+      <i class="pi pi-inbox"></i>
+      <span>暂无批次数据</span>
+      <button v-if="canManage" class="btn-empty-action" @click="isCreateModalOpen = true">
+        <i class="pi pi-plus"></i>
+        创建第一个批次
+      </button>
+    </div>
 
-        <!-- 批次/编号 -->
-        <Column field="orderCode" header="批次/编号" style="min-width: 160px">
-          <template #body="{ data }">
-            <div class="font-medium text-[var(--color-text-primary)]">{{ data.orderCode }}</div>
-            <div class="text-xs text-[var(--color-text-secondary)] mt-0.5">批次: {{ data.batchCode }}</div>
-            <div class="text-xs text-[var(--color-text-muted)] mt-0.5">{{ formatDate(data.orderDate) }}</div>
-          </template>
-        </Column>
+    <div v-else class="batch-grid">
+      <ProductionBatchCard
+        v-for="batch in filteredBatches"
+        :key="batch.id"
+        :batch="batch"
+        @add-order="handleAddOrder"
+        @update-status="handleUpdateBatchStatus"
+        @delete-batch="handleDeleteBatch"
+        @view-order="openDetail"
+        @delete-order="handleDeleteOrder"
+      />
+    </div>
 
-        <!-- SKU / 名称 -->
-        <Column field="skuName" header="SKU / 名称" style="min-width: 180px">
-          <template #body="{ data }">
-            <div class="font-medium text-[var(--color-text-primary)]">{{ data.skuName }}</div>
-            <div class="text-xs text-[var(--color-text-secondary)] mt-0.5">{{ data.productName }}</div>
-          </template>
-        </Column>
-
-        <!-- 规格 / 地区 -->
-        <Column field="productSpec" header="规格 / 地区" style="min-width: 160px">
-          <template #body="{ data }">
-            <div class="text-sm text-[var(--color-text-primary)]">{{ data.productColor }}</div>
-            <div class="text-xs text-[var(--color-text-secondary)]">{{ data.productSpec }} · {{ data.plugSpec }}</div>
-            <Tag :value="data.salesRegion" severity="secondary" class="mt-1 text-[10px]" />
-          </template>
-        </Column>
-
-        <!-- 当前状态 -->
-        <Column field="status" header="当前状态" style="min-width: 120px">
-          <template #body="{ data }">
-            <Tag :value="statusLabel(data.status)" :severity="getStatusSeverity(data.status)" class="text-xs font-normal" />
-            <div v-if="data.statusDate" class="text-xs text-[var(--color-text-muted)] mt-1">
-              {{ formatDate(data.statusDate) }}
-            </div>
-          </template>
-        </Column>
-
-        <!-- 数量 -->
-        <Column field="quantity" header="数量" style="min-width: 80px">
-          <template #body="{ data }">
-            <span class="font-medium">{{ data.quantity }}</span>
-          </template>
-        </Column>
-
-        <!-- 总价 -->
-        <Column field="totalPrice" header="总价" style="min-width: 120px">
-          <template #body="{ data }">
-            <div class="font-medium">{{ formatCurrency(data.totalPrice) }}</div>
-            <div class="text-xs text-[var(--color-text-muted)]">@ {{ data.unitPrice }}</div>
-          </template>
-        </Column>
-
-        <!-- 物流费用 -->
-        <Column field="logisticsFee" header="物流费用" style="min-width: 100px">
-          <template #body="{ data }">
-            <span class="text-sm">
-              {{ data.logisticsFee ? formatCurrency(data.logisticsFee) : '-' }}
-            </span>
-          </template>
-        </Column>
-
-        <!-- 物流信息 -->
-        <Column field="logisticsProvider" header="物流信息" style="min-width: 140px">
-          <template #body="{ data }">
-            <div v-if="data.logisticsProvider" class="text-xs text-[var(--color-text-secondary)]">物流: {{ data.logisticsProvider }}</div>
-            <div v-if="data.cartonCount" class="text-xs text-[var(--color-text-secondary)]">箱数: {{ data.cartonCount }}</div>
-            <div v-if="data.totalCbm" class="text-xs text-[var(--color-text-secondary)]">Vol: {{ data.totalCbm }} m³</div>
-            <span v-if="!data.logisticsProvider && !data.cartonCount && !data.totalCbm" class="text-[var(--color-text-muted)]">-</span>
-          </template>
-        </Column>
-
-        <!-- 操作 -->
-        <Column header="操作" style="min-width: 120px" frozen alignFrozen="right">
-          <template #body="{ data }">
-            <div class="flex gap-2">
-              <Button
-                label="详情"
-                text
-                size="small"
-                @click="openDetail(data)"
-                :pt="{ root: { class: 'text-blue-600 hover:bg-blue-50 px-2 py-1 h-auto text-xs' } }"
-              />
-              <Button
-                v-if="isAdmin"
-                icon="pi pi-trash"
-                text
-                size="small"
-                severity="danger"
-                @click="handleDelete(data.id)"
-                :pt="{ root: { class: 'text-red-500 hover:bg-red-50 px-2 py-1 h-auto w-auto' } }"
-              />
-            </div>
-          </template>
-        </Column>
-
-        <!-- 空状态 -->
-        <template #empty>
-          <div class="flex flex-col items-center justify-center py-12 text-[var(--color-text-secondary)]">
-            <i class="pi pi-inbox text-4xl mb-4 text-[var(--color-text-muted)]"></i>
-            <p>暂无数据</p>
-          </div>
-        </template>
-      </DataTable>
-    </ContentCard>
-
-    <!-- 详情弹窗 -->
-    <LogisticsDetailModal
-      v-if="detailModalOpen"
-      :order-id="selectedDetailId"
-      :is-open="detailModalOpen"
-      @close="closeDetail"
+    <!-- Create Batch Modal -->
+    <LogisticsBatchFormModal
+      :isOpen="isCreateModalOpen"
+      @close="isCreateModalOpen = false"
+      @created="onBatchCreated"
     />
 
-    <!-- 新建批次弹窗 -->
-    <LogisticsBatchFormModal
-      :is-open="isCreateModalOpen"
-      @close="isCreateModalOpen = false"
-      @batch-created="fetchData(1)"
+    <!-- Order Detail Modal -->
+    <LogisticsDetailModal
+      v-if="detailModalOpen"
+      :isOpen="detailModalOpen"
+      :orderId="selectedDetailId"
+      @close="closeDetail"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import apiClient from '@/services/apiClient';
-import { useAuthStore } from '@/stores/auth';
-
-// Primitives & Styles
-import PageHeader from '@/components/common/PageHeader.vue';
-import ContentCard from '@/components/common/ContentCard.vue';
-import FilterBar from '@/components/common/FilterBar.vue';
-
-// PrimeVue Components
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
-import Tag from 'primevue/tag';
+import Button from 'primevue/button';
+import PageHeader from '@/components/common/PageHeader.vue';
+import FilterBar from '@/components/common/FilterBar.vue';
+import ProductionBatchCard from '@/components/production/ProductionBatchCard.vue';
+import LogisticsBatchFormModal from '@/components/logistics/LogisticsBatchFormModal.vue';
+import LogisticsDetailModal from '@/components/logistics/LogisticsDetailModal.vue';
+import { useAuthStore } from '@/stores/auth';
+import apiClient from '@/services/apiClient';
 
-// Local Components
-import LogisticsBatchFormModal from '../components/logistics/LogisticsBatchFormModal.vue';
-import LogisticsDetailModal from '../components/logistics/LogisticsDetailModal.vue';
+type StatusKey = 'PENDING' | 'IN_PRODUCTION' | 'READY' | 'SHIPPED';
 
-type TabKey = 'in-progress' | 'completed' | 'all';
-type StatusKey =
-  | 'IN_PRODUCTION'
-  | 'PRODUCTION_DONE'
-  | 'SHIPPED_OUT'
-  | 'CONTAINER_LOADED'
-  | 'EXPORTED'
-  | 'IN_TRANSIT'
-  | 'IMPORTED'
-  | 'DELIVERING'
-  | 'WAREHOUSED';
-
-type OrderId = string | number;
-
-interface FilterState {
-  view: TabKey;
-  keyword: string;
-  countryCode: string;
-  startDate: string;
-  endDate: string;
-}
-
-interface PaginationState {
-  page: number;
-  pageSize: number;
-  total: number;
-}
-
-interface SummaryState {
-  totalQuantity: number;
+interface Order {
+  id: string | number;
+  orderCode: string;
+  skuName: string;
+  productColor?: string;
+  productSpec?: string;
+  quantity: number;
   totalPrice: number;
+}
+
+interface Batch {
+  id: string;
+  countryCode: string;
+  batchSequence: number;
+  batchNumber: string;
+  status: StatusKey;
+  notes?: string;
+  orders?: Order[];
+  batchCode?: string;
+  stats?: {
+    totalQuantity: number;
+    totalPrice: number;
+  };
 }
 
 interface CountryOption {
@@ -310,201 +166,140 @@ interface CountryOption {
   name: string;
 }
 
-interface OrderRecord {
-  id: OrderId;
-  orderCode?: string;
-  batchCode?: string;
-  orderDate?: string;
-  skuName?: string;
-  productName?: string;
-  productColor?: string;
-  productSpec?: string;
-  plugSpec?: string;
-  salesRegion?: string;
-  status?: StatusKey | string;
-  statusDate?: string;
-  quantity?: number;
-  totalPrice?: number;
-  unitPrice?: number;
-  logisticsFee?: number;
-  logisticsProvider?: string;
-  cartonCount?: number;
-  totalCbm?: number;
-}
-
 const authStore = useAuthStore();
-const isAdmin = computed(() => authStore.role === 'admin');
+const canManage = computed(() => {
+  const role = authStore.role?.toLowerCase() || '';
+  return role === 'admin' || role.includes('管理员') || role.includes('admin');
+});
 
-const tabs: Array<{ key: TabKey; label: string }> = [
-  { key: 'in-progress', label: '进行中' },
-  { key: 'completed', label: '已完成' },
-  { key: 'all', label: '全部' },
-];
+const tabs = computed(() => [
+  { key: '', label: '全部', count: batches.value.length },
+  { key: 'PENDING', label: '待下单', count: batches.value.filter(b => b.status === 'PENDING').length },
+  { key: 'IN_PRODUCTION', label: '生产中', count: batches.value.filter(b => b.status === 'IN_PRODUCTION').length },
+  { key: 'READY', label: '待出库', count: batches.value.filter(b => b.status === 'READY').length },
+  { key: 'SHIPPED', label: '已出库', count: batches.value.filter(b => b.status === 'SHIPPED').length },
+]);
 
-const filter = ref<FilterState>({
-  view: 'in-progress',
+const filter = ref({
+  status: '' as StatusKey | '',
   keyword: '',
   countryCode: '',
-  startDate: '',
-  endDate: '',
 });
 
-const pagination = ref<PaginationState>({
-  page: 1,
-  pageSize: 20,
-  total: 0,
-});
-
-const summary = ref<SummaryState>({ totalQuantity: 0, totalPrice: 0 });
-const orders = ref<OrderRecord[]>([]);
+const batches = ref<Batch[]>([]);
+const overall = ref({ totalQuantity: 0, totalPrice: 0 });
 const isLoading = ref(false);
 const countryOptions = ref<CountryOption[]>([]);
 
 const isCreateModalOpen = ref(false);
-const selectedOrderIds = ref<OrderId[]>([]);
-const selectedRows = ref<OrderRecord[]>([]);
-const batchActionStatus = ref<StatusKey | ''>('');
-
 const detailModalOpen = ref(false);
-const selectedDetailId = ref<OrderId | null>(null);
+const selectedDetailId = ref<string | number | null>(null);
 
-const statusSteps: Array<{ key: StatusKey; label: string }> = [
-  { key: 'IN_PRODUCTION', label: '生产中' },
-  { key: 'PRODUCTION_DONE', label: '生产完成' },
-  { key: 'SHIPPED_OUT', label: '已出库' },
-  { key: 'CONTAINER_LOADED', label: '已装柜' },
-  { key: 'EXPORTED', label: '出口' },
-  { key: 'IN_TRANSIT', label: '运输' },
-  { key: 'IMPORTED', label: '进口' },
-  { key: 'DELIVERING', label: '派送' },
-  { key: 'WAREHOUSED', label: '已入仓' },
-];
-
-// 带"全部"选项的国家列表
 const countryOptionsWithAll = computed(() => [
   { code: '', name: '全部' },
   ...countryOptions.value,
 ]);
 
-// 同步 selectedRows 与 selectedOrderIds
-watch(selectedRows, (newRows) => {
-  selectedOrderIds.value = newRows.map((r) => r.id);
+const filteredBatches = computed(() => {
+  let result = batches.value;
+  
+  if (filter.value.status) {
+    result = result.filter(b => b.status === filter.value.status);
+  }
+  
+  if (filter.value.countryCode) {
+    result = result.filter(b => b.countryCode === filter.value.countryCode);
+  }
+  
+  if (filter.value.keyword) {
+    const kw = filter.value.keyword.toLowerCase();
+    result = result.filter(b => 
+      b.batchCode?.toLowerCase().includes(kw) ||
+      b.batchNumber?.toLowerCase().includes(kw) ||
+      b.orders?.some(o => 
+        o.orderCode.toLowerCase().includes(kw) ||
+        o.skuName?.toLowerCase().includes(kw)
+      )
+    );
+  }
+  
+  return result;
 });
 
-// 监听筛选器变化以触发数据刷新
-watch(
-  () => [filter.value.view, filter.value.countryCode],
-  () => {
-    fetchData(1);
-  }
+const activeBatchCount = computed(() => 
+  batches.value.filter(b => b.status !== 'SHIPPED').length
 );
 
-const fetchOptions = async () => {
-  try {
-    const res = await apiClient.get<CountryOption[]>('/admin/countries');
-    countryOptions.value = res.data;
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const fetchData = async (page = 1) => {
+const fetchBatches = async () => {
   isLoading.value = true;
-  selectedRows.value = [];
   try {
-    const params = {
-      page,
-      pageSize: pagination.value.pageSize,
-      view: filter.value.view,
-      keyword: filter.value.keyword,
-      countryCode: filter.value.countryCode,
-      startDate: filter.value.startDate,
-      endDate: filter.value.endDate,
-    };
-    const res = await apiClient.get('/production/orders', { params });
-    const data = res.data;
-    orders.value = (data.data || []) as OrderRecord[];
-    pagination.value.page = data.page ?? page;
-    pagination.value.total = data.total ?? 0;
-    summary.value = data.summary ?? summary.value;
+    const res = await apiClient.get('/production/batches');
+    batches.value = res.data.batches || [];
+    overall.value = res.data.overall || { totalQuantity: 0, totalPrice: 0 };
   } catch (error) {
-    console.error('加载失败', error);
+    console.error('Failed to fetch batches:', error);
   } finally {
     isLoading.value = false;
   }
 };
 
-const onPageChange = (event: { page: number; rows: number }) => {
-  pagination.value.page = event.page + 1;
-  pagination.value.pageSize = event.rows;
-  fetchData(pagination.value.page);
-};
-
-const handleExport = async () => {
+const fetchCountries = async () => {
   try {
-    const params = {
-      view: filter.value.view,
-      keyword: filter.value.keyword,
-      countryCode: filter.value.countryCode,
-      startDate: filter.value.startDate,
-      endDate: filter.value.endDate,
-    };
-    const response = await apiClient.get('/admin/production/export', {
-      params,
-      responseType: 'blob',
-    });
-    const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Production_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    link.click();
+    const res = await apiClient.get('/countries');
+    countryOptions.value = res.data || [];
   } catch (error) {
-    alert('导出失败');
+    console.error('Failed to fetch countries:', error);
   }
 };
 
-const executeBatchUpdate = async () => {
-  if (!batchActionStatus.value) return;
-  if (!confirm(`确定将选中的 ${selectedOrderIds.value.length} 个订单更新为"${statusLabel(batchActionStatus.value)}"吗？`)) return;
+const handleAddOrder = (batch: Batch) => {
+  // TODO: Open add order modal for specific batch
+  alert(`添加订单到批次 ${batch.batchCode} - 功能待实现`);
+};
 
+const handleUpdateBatchStatus = async ({ batch, status }: { batch: Batch; status: StatusKey }) => {
+  if (!batch.orders?.length) {
+    alert('批次内没有订单，无法更新状态');
+    return;
+  }
+  
   try {
+    const orderIds = batch.orders.map(o => o.id);
     await apiClient.post('/admin/production/orders/batch-status', {
-      orderIds: selectedOrderIds.value,
-      status: batchActionStatus.value,
+      orderIds,
+      status,
       occurredAt: new Date().toISOString(),
     });
-    alert('批量更新成功');
-    selectedRows.value = [];
-    batchActionStatus.value = '';
-    fetchData(pagination.value.page);
-  } catch (error: any) {
-    alert(error.response?.data?.error || '更新失败');
-  }
-};
-
-const handleDelete = async (id: OrderId) => {
-  if (!confirm('确定删除该订单？（软删除）')) return;
-  try {
-    await apiClient.delete(`/admin/production/orders/${id}`);
-    fetchData(pagination.value.page);
+    await fetchBatches();
   } catch (error) {
-    alert('删除失败');
+    console.error('Failed to update batch status:', error);
+    alert('更新状态失败');
   }
 };
 
-const formatNumber = (v?: number) => (v ?? 0).toLocaleString();
-const formatCurrency = (v?: number) => (v ? `￥${v.toLocaleString()}` : '-');
-const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : '-');
-const statusLabel = (s: StatusKey | string) => statusSteps.find((step) => step.key === s)?.label || s;
-
-const getStatusSeverity = (s: StatusKey | string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined => {
-  if (s === 'WAREHOUSED') return 'success';
-  if (s === 'IN_PRODUCTION') return 'warn';
-  if (s === 'IN_TRANSIT' || s === 'DELIVERING') return 'info';
-  return 'secondary';
+const handleDeleteBatch = async (batch: Batch) => {
+  try {
+    await apiClient.delete(`/admin/production/batches/${batch.id}`);
+    await fetchBatches();
+  } catch (error) {
+    console.error('Failed to delete batch:', error);
+    alert('删除批次失败');
+  }
 };
 
-const openDetail = (order: OrderRecord) => {
+const handleDeleteOrder = async (order: Order) => {
+  if (!confirm(`确定删除订单 ${order.orderCode} 吗？`)) return;
+  
+  try {
+    await apiClient.delete(`/admin/production/orders/${order.id}`);
+    await fetchBatches();
+  } catch (error) {
+    console.error('Failed to delete order:', error);
+    alert('删除订单失败');
+  }
+};
+
+const openDetail = (order: Order) => {
   selectedDetailId.value = order.id;
   detailModalOpen.value = true;
 };
@@ -514,26 +309,259 @@ const closeDetail = () => {
   selectedDetailId.value = null;
 };
 
+const onBatchCreated = () => {
+  isCreateModalOpen.value = false;
+  fetchBatches();
+};
+
+const formatNumber = (v?: number) => (v ?? 0).toLocaleString();
+
 onMounted(() => {
-  fetchOptions();
-  fetchData();
+  fetchBatches();
+  fetchCountries();
 });
 </script>
 
 <style scoped>
-/* Scoped styles mainly for specific overrides if needed */
-.animate-fade-in-up {
-  animation: fadeInUp 0.3s ease-out;
+.page-shell {
+  padding: 1.5rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* Stats Row */
+.stats-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  min-width: 180px;
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
+  color: var(--color-text-muted);
+  font-size: 1.25rem;
+}
+
+.stat-icon--accent {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.125rem;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stat-card--accent .stat-value {
+  color: var(--color-accent);
+}
+
+.stat-card--action {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.btn-add-batch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-add-batch:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
+
+/* Pill Tabs with Count */
+.pill-tab-group {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--color-bg-page);
+  padding: 0.25rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+}
+
+.pill-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pill-tab:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
+}
+
+.pill-tab.is-active {
+  background: var(--color-accent);
+  color: white;
+}
+
+.pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.pill-tab:not(.is-active) .pill-count {
+  background: var(--color-border);
+}
+
+/* Surface Input */
+.surface-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  height: 40px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.surface-input input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+/* Batch Grid */
+.batch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 1rem;
+}
+
+/* Loading & Empty State */
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 4rem 2rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+}
+
+.loading-state i,
+.empty-state i {
+  font-size: 2.5rem;
+}
+
+.btn-empty-action {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 1rem;
+  margin-top: 0.5rem;
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-empty-action:hover {
+  filter: brightness(0.95);
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    padding: 1rem;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  
+  .stats-row {
+    flex-wrap: wrap;
+  }
+  
+  .stat-card {
+    min-width: 140px;
+    flex: 1;
+  }
+  
+  .stat-card--action {
+    width: 100%;
+  }
+  
+  .btn-add-batch {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .batch-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .pill-tab-group {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 </style>
+

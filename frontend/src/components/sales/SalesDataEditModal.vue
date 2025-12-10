@@ -188,6 +188,58 @@
           </div>
         </div>
 
+        <!-- Section: 结算信息 -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="pi pi-wallet"></i>
+            <span>结算信息</span>
+          </div>
+          <div class="form-grid cols-2">
+            <!-- Settlement Date -->
+            <div class="form-field">
+              <label for="edit_settlementDate">结算时间</label>
+              <Calendar
+                input-id="edit_settlementDate"
+                v-model="formData.settlementDate"
+                date-format="yy/mm/dd"
+                show-icon
+                class="w-full"
+                :pt="{ input: { class: 'w-full' } }"
+                placeholder="选择结算日期"
+              />
+            </div>
+
+            <!-- Settlement Amount -->
+            <div class="form-field">
+              <label for="edit_settlementAmount">结算金额</label>
+              <InputNumber
+                input-id="edit_settlementAmount"
+                v-model="formData.settlementAmount"
+                :min="0"
+                :step="0.01"
+                mode="decimal"
+                :max-fraction-digits="2"
+                class="w-full"
+                input-class="w-full"
+                placeholder="输入结算金额"
+              />
+            </div>
+          </div>
+
+          <!-- Cancel Reason -->
+          <div class="form-field full-width" style="margin-top: 1rem;">
+            <label for="edit_cancelReason">取消/退货原因</label>
+            <Textarea
+              id="edit_cancelReason"
+              v-model="formData.cancelReason"
+              rows="2"
+              auto-resize
+              class="w-full"
+              placeholder="如有取消或退货，请填写原因（可选）..."
+            />
+          </div>
+        </div>
+
         <!-- Section: 备注 -->
         <div class="form-section">
           <div class="section-title">
@@ -260,9 +312,13 @@ type SaleData = {
     platform: string;
   };
   salesVolume: number;
-  revenue: number;
+  revenue: number | string;
   notes?: string | null;
   orderStatus?: string | null;
+  // 新增字段
+  cancelReason?: string | null;
+  settlementDate?: string | null;
+  settlementAmount?: number | string | null;
 };
 
 type SaleFormState = {
@@ -273,6 +329,10 @@ type SaleFormState = {
   revenue: number;
   notes: string;
   orderStatus: string | null;
+  // 新增字段
+  cancelReason: string;
+  settlementDate: Date | null;
+  settlementAmount: number | null;
 };
 
 const ORDER_STATUS_OPTIONS = [
@@ -308,6 +368,9 @@ const formData = ref<SaleFormState>({
   revenue: 0,
   notes: '',
   orderStatus: null,
+  cancelReason: '',
+  settlementDate: null,
+  settlementAmount: null,
 });
 
 const isLoading = ref(false);
@@ -463,6 +526,9 @@ const handleSubmit = async () => {
     revenue: Number.isFinite(formData.value.revenue) ? formData.value.revenue : 0,
     notes: formData.value.notes?.trim() || null,
     orderStatus: formData.value.orderStatus || null,
+    cancelReason: formData.value.cancelReason?.trim() || null,
+    settlementDate: formData.value.settlementDate ? formatDate(formData.value.settlementDate) : null,
+    settlementAmount: Number.isFinite(formData.value.settlementAmount) ? formData.value.settlementAmount : null,
   };
 
   isSubmitting.value = true;
@@ -482,14 +548,22 @@ const hydrateForm = (data: SaleData) => {
   selectedCountry.value = data.store?.countryCode || '';
   selectedPlatform.value = data.store?.platform || '';
 
+  const revenueNum = typeof data.revenue === 'string' ? parseFloat(data.revenue) : (data.revenue ?? 0);
+  const settlementAmountNum = data.settlementAmount 
+    ? (typeof data.settlementAmount === 'string' ? parseFloat(data.settlementAmount) : data.settlementAmount)
+    : null;
+
   formData.value = {
     recordDate: parseDateInput(data.recordDate),
     storeId: data.storeId,
     listingId: data.listingId || '',
     salesVolume: data.salesVolume ?? 0,
-    revenue: data.revenue ?? 0,
+    revenue: Number.isFinite(revenueNum) ? revenueNum : 0,
     notes: data.notes || '',
     orderStatus: data.orderStatus || null,
+    cancelReason: data.cancelReason || '',
+    settlementDate: parseDateInput(data.settlementDate),
+    settlementAmount: Number.isFinite(settlementAmountNum) ? settlementAmountNum : null,
   };
 };
 

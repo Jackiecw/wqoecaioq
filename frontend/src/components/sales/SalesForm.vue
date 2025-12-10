@@ -7,21 +7,30 @@
           <span class="step-number">1</span>
           <span class="step-label">选择商品</span>
         </div>
-        <p class="section-hint">依次选择平台、店铺，然后选择要录入销售数据的商品链接</p>
+        <p class="section-hint">依次选择国家、平台、店铺，然后选择要录入销售数据的商品链接</p>
       </div>
 
-      <div v-if="!selectedCountry" class="country-warning">
-        <i class="pi pi-info-circle"></i>
-        <span>请先在上方选择国家</span>
-      </div>
+      <div class="fields-grid fields-grid--4col">
+        <!-- Country Selector - Now in form -->
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-globe"></i>
+            国家 <span class="required">*</span>
+          </label>
+          <select v-model="localSelectedCountry" class="field-select">
+            <option disabled value="">请选择国家...</option>
+            <option v-for="country in availableCountries" :key="country.code" :value="country.code">
+              {{ country.name }}
+            </option>
+          </select>
+        </div>
 
-      <div v-else class="fields-grid fields-grid--3col">
         <div class="field-group">
           <label class="field-label">
             <i class="pi pi-desktop"></i>
             平台 <span class="required">*</span>
           </label>
-          <select v-model="selectedPlatform" class="field-select" :disabled="!selectedCountry">
+          <select v-model="selectedPlatform" class="field-select" :disabled="!localSelectedCountry">
             <option disabled value="">请选择平台...</option>
             <option v-for="platform in platformOptions" :key="platform" :value="platform">
               {{ platform }}
@@ -80,13 +89,13 @@
       </div>
 
       <div class="fields-grid fields-grid--4col">
-        <div class="field-group">
+        <div class="field-group field-group--span2">
           <label class="field-label">
             <i class="pi pi-calendar"></i>
-            记录日期 <span class="required">*</span>
+            下单时间 <span class="required">*</span>
           </label>
           <input 
-            type="date" 
+            type="datetime-local" 
             v-model="formOtherData.recordDate" 
             class="field-input" 
             required 
@@ -135,7 +144,7 @@
               placeholder="0.00" 
               required 
             />
-            <span class="input-suffix">{{ formOtherData.currency || 'CNY' }}</span>
+            <span class="input-suffix">{{ currencyDisplay }}</span>
           </div>
         </div>
 
@@ -146,13 +155,36 @@
           </label>
           <select v-model="formOtherData.orderStatus" class="field-select" required>
             <option value="" disabled>请选择状态...</option>
-            <option v-for="status in orderStatusOptions" :key="status" :value="status">
-              {{ status }}
+            <option v-for="status in orderStatusOptions" :key="status.value" :value="status.value">
+              {{ status.label }}
             </option>
           </select>
         </div>
 
-        <div class="field-group field-group--span3">
+        <!-- Cancel Reason - Only show when status is CANCELLED or RETURNED -->
+        <div v-if="showCancelReasonField" class="field-group field-group--span2">
+          <label class="field-label">
+            <i class="pi pi-exclamation-circle"></i>
+            取消/退货原因
+          </label>
+          <div class="combobox-wrapper">
+            <input 
+              type="text" 
+              v-model="formOtherData.cancelReason" 
+              class="field-input combobox-input" 
+              :placeholder="cancelReasonPlaceholder"
+              list="cancel-reason-datalist"
+            />
+            <datalist id="cancel-reason-datalist">
+              <option v-for="reason in cancelReasonOptions" :key="reason" :value="reason">
+                {{ reason }}
+              </option>
+            </datalist>
+          </div>
+        </div>
+
+        <!-- Notes - Adjust span based on cancel reason visibility -->
+        <div :class="['field-group', showCancelReasonField ? 'field-group--full' : 'field-group--span3']">
           <label class="field-label">
             <i class="pi pi-pencil"></i>
             备注 (可选)
@@ -163,6 +195,48 @@
             rows="2" 
             placeholder="添加备注信息..."
           ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Settlement Info (Optional) -->
+    <div class="form-section">
+      <div class="section-header">
+        <div class="step-indicator">
+          <span class="step-number">3</span>
+          <span class="step-label">结算信息 (可选)</span>
+        </div>
+        <p class="section-hint">填写结算相关信息</p>
+      </div>
+
+      <div class="fields-grid fields-grid--2col">
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-calendar-plus"></i>
+            结算时间
+          </label>
+          <input 
+            type="date" 
+            v-model="formOtherData.settlementDate" 
+            class="field-input"
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-wallet"></i>
+            结算金额
+          </label>
+          <div class="input-with-suffix">
+            <input 
+              type="number" 
+              step="0.01" 
+              v-model="formOtherData.settlementAmount" 
+              class="field-input field-input--currency" 
+              placeholder="0.00"
+            />
+            <span class="input-suffix">{{ currencyDisplay }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -191,44 +265,168 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import useStoreListings from '../../composables/useStoreListings';
 import apiClient from '@/services/apiClient';
+import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
   selectedCountry: String
 });
 
+const authStore = useAuthStore();
+
 const {
+  stores,
   fetchStores,
   storesLoading,
   storesError,
   getStoresByCountry,
   getStoresByCountryAndPlatform,
-  permittedCountries,
   fetchListings,
 } = useStoreListings();
 const isLoadingStores = storesLoading;
 
-// const selectedCountry = ref(''); // Removed, using prop
+// Local country state (can be synced with prop or independent)
+const localSelectedCountry = ref('');
 const selectedPlatform = ref('');
 const selectedStoreId = ref('');
 const selectedListingId = ref('');
-const storeListings = ref([]);
+const storeListings = ref<any[]>([]);
 const isLoadingListings = ref(false);
 
 const formOtherData = ref({
-  recordDate: new Date().toISOString().split('T')[0],
-  salesVolume: null,
-  revenue: null,
+  recordDate: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:MM format for datetime-local
+  salesVolume: null as number | null,
+  revenue: null as number | null,
   currency: 'CNY',
   notes: '',
   platformOrderId: '',
-  orderStatus: ''
+  orderStatus: '',
+  cancelReason: '',
+  settlementDate: '',
+  settlementAmount: null as number | null,
 });
 
 const successMessage = ref('');
 const errorMessage = ref('');
 
-onMounted(() => {
-  fetchStores();
+// 订单状态选项（中文）
+const orderStatusOptions = [
+  { value: 'PENDING', label: '待付款' },
+  { value: 'READY_TO_SHIP', label: '待发货' },
+  { value: 'SHIPPED', label: '已发货' },
+  { value: 'DELIVERED', label: '已送达' },
+  { value: 'COMPLETED', label: '已完成' },
+  { value: 'CANCELLED', label: '已取消' },
+  { value: 'RETURNED', label: '已退货' },
+];
+
+// 虾皮取消原因选项
+const shopeeCancelReasons = [
+  '买家取消：其他/改变主意',
+  '买家取消：修改现有订单',
+  '买家取消：支付流程困难',
+  '买家取消：需更改收货地址',
+  '系统自动取消：卖家未及时安排发货',
+  '系统自动取消：订单未付款',
+  '买家取消：其他原因',
+  '系统自动取消：配送失败',
+  '买家取消：需修改订单',
+  '买家取消：不想再购买',
+];
+
+// TikTok取消原因选项
+const tiktokCancelReasons = [
+  '其他渠道价格更优',
+  '买家逾期未付款',
+  '运费过高',
+  '需更改颜色或尺寸',
+  '需更改支付方式',
+  '需更改收货地址',
+  '不再需要',
+  '缺货',
+  '包裹配送失败',
+  '支付方式不可用',
+  '价格错误',
+  '买家取消',
+  '卖家取消',
+  '系统取消',
+];
+
+// 货币映射
+const currencyMap: Record<string, string> = {
+  'ID': 'IDR',
+  'TH': 'THB',
+  'VN': 'VND',
+  'MY': 'MYR',
+  'PH': 'PHP',
+  'SG': 'SGD',
+  'TW': 'TWD',
+  'BR': 'BRL',
+  'US': 'USD',
+  'UK': 'GBP',
+  'CN': 'CNY',
+};
+
+// 显示取消原因字段的条件
+const showCancelReasonField = computed(() => {
+  return formOtherData.value.orderStatus === 'CANCELLED' || formOtherData.value.orderStatus === 'RETURNED';
+});
+
+// 根据当前平台选择取消原因选项
+const cancelReasonOptions = computed(() => {
+  if (selectedPlatform.value === 'SHOPEE') {
+    return shopeeCancelReasons;
+  } else if (selectedPlatform.value === 'TIKTOK_SHOP') {
+    return tiktokCancelReasons;
+  }
+  return [...shopeeCancelReasons, ...tiktokCancelReasons];
+});
+
+const cancelReasonPlaceholder = computed(() => {
+  if (selectedPlatform.value === 'SHOPEE') {
+    return '选择或输入虾皮取消原因...';
+  } else if (selectedPlatform.value === 'TIKTOK_SHOP') {
+    return '选择或输入TikTok取消原因...';
+  }
+  return '选择或输入取消原因...';
+});
+
+// 货币显示
+const currencyDisplay = computed(() => {
+  return currencyMap[localSelectedCountry.value] || 'CNY';
+});
+
+// 可用国家列表
+const availableCountries = computed(() => {
+  const uniqueCountriesMap = new Map();
+  stores.value.forEach((store: any) => {
+    if (store.country) {
+      uniqueCountriesMap.set(store.country.code, store.country);
+    }
+  });
+  
+  const allUniqueCountries = Array.from(uniqueCountriesMap.values())
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (authStore.role === 'admin') {
+    return allUniqueCountries;
+  }
+  
+  const userCountryCodes = authStore.operatedCountries || [];
+  return allUniqueCountries.filter((country: any) => 
+    userCountryCodes.includes(country.code)
+  );
+});
+
+onMounted(async () => {
+  await fetchStores();
+  // 如果只有一个国家，自动选中
+  if (availableCountries.value.length === 1) {
+    localSelectedCountry.value = availableCountries.value[0].code;
+  }
+  // 如果有外部传入的国家，使用它
+  if (props.selectedCountry) {
+    localSelectedCountry.value = props.selectedCountry;
+  }
 });
 
 watch(() => storesError.value, (val) => {
@@ -237,38 +435,27 @@ watch(() => storesError.value, (val) => {
   }
 });
 
+// 同步外部传入的 selectedCountry
+watch(() => props.selectedCountry, (newVal) => {
+  if (newVal) {
+    localSelectedCountry.value = newVal;
+  }
+});
+
 const platformOptions = computed(() => {
-  if (!props.selectedCountry) return [];
-  const platforms = getStoresByCountry(props.selectedCountry).map((store) => store.platform);
+  if (!localSelectedCountry.value) return [];
+  const platforms = getStoresByCountry(localSelectedCountry.value).map((store: any) => store.platform);
   return [...new Set(platforms)].sort();
 });
 
 const storeOptions = computed(() => {
-  if (!props.selectedCountry || !selectedPlatform.value) return [];
-  return getStoresByCountryAndPlatform(props.selectedCountry, selectedPlatform.value).sort((a, b) =>
+  if (!localSelectedCountry.value || !selectedPlatform.value) return [];
+  return getStoresByCountryAndPlatform(localSelectedCountry.value, selectedPlatform.value).sort((a: any, b: any) =>
     a.name.localeCompare(b.name)
   );
 });
 
-const currencyMap = {
-  'ID': 'IDR',
-  'TH': 'THB',
-  'VN': 'VND',
-  'MY': 'MYR',
-  'PH': 'PHP',
-  'SG': 'SGD',
-  'OTHER': 'USD'
-};
-
-const orderStatusOptions = [
-  'Completed',
-  'Pending',
-  'Cancelled',
-  'Refunded',
-  'Returned'
-];
-
-watch(() => props.selectedCountry, (newVal) => {
+watch(localSelectedCountry, (newVal) => {
   selectedPlatform.value = '';
   selectedStoreId.value = '';
   selectedListingId.value = '';
@@ -285,6 +472,8 @@ watch(selectedPlatform, () => {
   selectedStoreId.value = '';
   selectedListingId.value = '';
   storeListings.value = [];
+  // 清空取消原因，因为平台切换了
+  formOtherData.value.cancelReason = '';
 });
 
 watch(selectedStoreId, async (newStoreId) => {
@@ -297,11 +486,18 @@ watch(selectedStoreId, async (newStoreId) => {
   isLoadingListings.value = true;
   try {
     storeListings.value = await fetchListings(newStoreId);
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取链接失败:', error);
     errorMessage.value = error.message || '获取链接失败，请稍后重试';
   } finally {
     isLoadingListings.value = false;
+  }
+});
+
+// 当订单状态不是取消或退货时，清空取消原因
+watch(() => formOtherData.value.orderStatus, (newStatus) => {
+  if (newStatus !== 'CANCELLED' && newStatus !== 'RETURNED') {
+    formOtherData.value.cancelReason = '';
   }
 });
 
@@ -314,7 +510,7 @@ const handleSubmit = async () => {
     return;
   }
 
-  const targetListing = storeListings.value.find((l) => l.id === selectedListingId.value);
+  const targetListing = storeListings.value.find((l: any) => l.id === selectedListingId.value);
   if (!targetListing) {
     errorMessage.value = '未找到目标商品';
     return;
@@ -325,12 +521,15 @@ const handleSubmit = async () => {
     storeId: selectedStoreId.value,
     listingId: selectedListingId.value,
     productId: targetListing.product.id,
-    salesVolume: parseInt(formOtherData.value.salesVolume, 10) || 0,
-    revenue: parseFloat(formOtherData.value.revenue) || 0,
+    salesVolume: parseInt(String(formOtherData.value.salesVolume), 10) || 0,
+    revenue: parseFloat(String(formOtherData.value.revenue)) || 0,
     currency: formOtherData.value.currency || 'CNY',
     notes: formOtherData.value.notes || null,
     platformOrderId: formOtherData.value.platformOrderId || null,
     orderStatus: formOtherData.value.orderStatus || null,
+    cancelReason: formOtherData.value.cancelReason || null,
+    settlementDate: formOtherData.value.settlementDate || null,
+    settlementAmount: formOtherData.value.settlementAmount ? parseFloat(String(formOtherData.value.settlementAmount)) : null,
   };
 
   if (!payload.platformOrderId || !payload.orderStatus) {
@@ -342,9 +541,13 @@ const handleSubmit = async () => {
     const response = await apiClient.post('/sales', payload);
     successMessage.value = `录入成功！ID: ${response.data.id}`;
 
+    // Reset form partially
     formOtherData.value.salesVolume = null;
     formOtherData.value.revenue = null;
-  } catch (error) {
+    formOtherData.value.cancelReason = '';
+    formOtherData.value.settlementDate = '';
+    formOtherData.value.settlementAmount = null;
+  } catch (error: any) {
     console.error('录入失败:', error.response);
     if (error.response && error.response.data.error) {
       errorMessage.value = error.response.data.error;
@@ -410,32 +613,18 @@ const handleSubmit = async () => {
   padding-left: 2.5rem;
 }
 
-/* Country Warning */
-.country-warning {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.25rem;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: var(--radius-md);
-  color: #92400e;
-  font-size: 0.9375rem;
-  font-weight: 500;
-}
-
-.country-warning i {
-  font-size: 1.125rem;
-}
-
 /* Fields Grid */
 .fields-grid {
   display: grid;
   gap: 1rem;
 }
 
-.fields-grid--3col {
+.fields-grid--2col {
   grid-template-columns: repeat(2, 1fr);
+}
+
+.fields-grid--3col {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .fields-grid--4col {
@@ -450,6 +639,7 @@ const handleSubmit = async () => {
 }
 
 @media (max-width: 640px) {
+  .fields-grid--2col,
   .fields-grid--3col,
   .fields-grid--4col {
     grid-template-columns: 1fr;
@@ -467,11 +657,16 @@ const handleSubmit = async () => {
   grid-column: 1 / -1;
 }
 
+.field-group--span2 {
+  grid-column: span 2;
+}
+
 .field-group--span3 {
   grid-column: span 3;
 }
 
 @media (max-width: 640px) {
+  .field-group--span2,
   .field-group--span3 {
     grid-column: span 1;
   }
@@ -540,6 +735,15 @@ const handleSubmit = async () => {
 .field-textarea {
   resize: vertical;
   min-height: 60px;
+}
+
+/* Combobox */
+.combobox-wrapper {
+  position: relative;
+}
+
+.combobox-input {
+  width: 100%;
 }
 
 /* Input with suffix */
@@ -628,4 +832,3 @@ const handleSubmit = async () => {
   transform: scale(0.98);
 }
 </style>
-

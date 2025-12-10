@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 export interface ParsedOrder {
     platformOrderId: string;
     orderStatus: string | null;
+    cancelReason: string | null;  // 新增：取消/退货原因
     title: string | null;
     sku: string | null;
     quantity: number;
@@ -89,6 +90,53 @@ class ExcelParser {
         return STATUS_MAP[platform]?.[status] || status; // Fallback to raw status if not mapped
     }
 
+    /**
+     * 取消/退货原因翻译映射
+     */
+    static mapCancelReason(platform: string, rawReason: string | null | undefined): string | null {
+        if (!rawReason) return null;
+        const reason = rawReason.trim();
+        if (!reason) return null;
+
+        const SHOPEE_CANCEL_REASON_MAP: Record<string, string> = {
+            'Dibatalkan oleh Pembeli. Alasan: Lainnya/ berubah pikiran': '买家取消：其他/改变主意',
+            'Dibatalkan oleh Pembeli. Alasan: Ubah Pesanan yang Ada': '买家取消：修改现有订单',
+            'Dibatalkan oleh Pembeli. Alasan: Proses pembayaran sulit': '买家取消：支付流程困难',
+            'Dibatalkan oleh Pembeli. Alasan: Need to change delivery address': '买家取消：需更改收货地址',
+            'Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Penjual tidak mengatur pengiriman tepat waktu': '系统自动取消：卖家未及时安排发货',
+            'Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Pesanan belum dibayar': '系统自动取消：订单未付款',
+            'Dibatalkan oleh Pembeli. Alasan: Lainnya': '买家取消：其他原因',
+            'Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Pengiriman gagal': '系统自动取消：配送失败',
+            'Dibatalkan oleh Pembeli. Alasan: Perlu mengubah pesanan': '买家取消：需修改订单',
+            'Dibatalkan oleh Pembeli. Alasan: Tidak ingin membeli lagi': '买家取消：不想再购买',
+        };
+
+        const TIKTOK_CANCEL_REASON_MAP: Record<string, string> = {
+            'Better price available': '其他渠道价格更优',
+            'Customer overdue to pay': '买家逾期未付款',
+            'High delivery costs': '运费过高',
+            'Need to change color or size': '需更改颜色或尺寸',
+            'Need to change payment method': '需更改支付方式',
+            'Need to change shipping address': '需更改收货地址',
+            'No longer needed': '不再需要',
+            'Out of stock': '缺货',
+            'Package delivery failed': '包裹配送失败',
+            'Payment method not available': '支付方式不可用',
+            'Pricing error': '价格错误',
+            'Buyer cancelled': '买家取消',
+            'Seller cancelled': '卖家取消',
+            'System cancelled': '系统取消',
+        };
+
+        if (platform === 'SHOPEE') {
+            return SHOPEE_CANCEL_REASON_MAP[reason] || reason;
+        } else if (platform === 'TIKTOK_SHOP') {
+            return TIKTOK_CANCEL_REASON_MAP[reason] || reason;
+        }
+
+        return reason;
+    }
+
     static parseShopee(data: any[]): ParsedOrder[] {
         return data.map(row => {
             // Shopee: "2.866.250" -> need to remove dots
@@ -101,9 +149,13 @@ class ExcelParser {
                 orderDate = new Date(row['Waktu Pesanan Dibuat']);
             }
 
+            // 取消原因: "Alasan Pembatalan" 列
+            const rawCancelReason = row['Alasan Pembatalan'] || null;
+
             return {
                 platformOrderId: String(row['No. Pesanan']).trim(),
                 orderStatus: this.mapStatus('SHOPEE', row['Status Pesanan']),
+                cancelReason: this.mapCancelReason('SHOPEE', rawCancelReason),
                 title: row['Nama Produk'] ? String(row['Nama Produk']).trim() : null,
                 sku: row['Nomor Referensi SKU'] ? String(row['Nomor Referensi SKU']).trim() : (row['SKU Induk'] ? String(row['SKU Induk']).trim() : null),
                 quantity: parseInt(row['Jumlah'] || '1', 10),
@@ -134,9 +186,13 @@ class ExcelParser {
                     orderDate = new Date(row['Order Created Time']);
                 }
 
+                // 取消原因: "Cancel Reason" 列
+                const rawCancelReason = row['Cancel Reason'] || null;
+
                 return {
                     platformOrderId: String(row['Order ID']).trim(), // Ensure string
                     orderStatus: this.mapStatus('TIKTOK_SHOP', row['Order Status']),
+                    cancelReason: this.mapCancelReason('TIKTOK_SHOP', rawCancelReason),
                     title: row['Product Name'] ? String(row['Product Name']).trim() : null,
                     sku: row['Seller SKU'] ? String(row['Seller SKU']).trim() : null,
                     quantity: parseInt(row['Quantity'] || '1', 10),

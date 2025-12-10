@@ -4,80 +4,135 @@
       {{ errorMessage }}
     </Message>
 
+    <!-- Filter Section - Matches DataImport style -->
+    <ContentCard class="mb-4">
+      <!-- Country Selection as Pill Tabs -->
+      <div class="filter-section">
+        <h3 class="filter-section-title">选择国家</h3>
+        <div class="pill-tab-group">
+          <button
+            v-for="country in countryOptions"
+            :key="country.code"
+            @click="selectCountry(country.code)"
+            class="pill-tab"
+            :class="{ 'is-active': filters.countryCode === country.code }"
+          >
+            {{ country.name }}
+          </button>
+          <button
+            v-if="filters.countryCode"
+            @click="selectCountry(null)"
+            class="pill-tab pill-tab--clear"
+          >
+            <i class="pi pi-times"></i>
+            清除
+          </button>
+        </div>
+      </div>
+
+      <!-- Other Filters in Inline Style -->
+      <div class="inline-filters">
+        <div class="filter-group">
+          <label class="filter-group-label">店铺</label>
+          <Dropdown
+            v-model="filters.storeId"
+            :options="storeOptions"
+            option-label="name"
+            option-value="id"
+            :placeholder="filters.countryCode ? '选择店铺' : '请先选择国家'"
+            class="filter-dropdown"
+            panelClass="clean-dropdown-panel no-filter"
+            :show-clear="!!filters.storeId"
+            :disabled="!filters.countryCode"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-group-label">日期范围</label>
+          <div class="date-range-inline">
+            <Calendar 
+              v-model="filters.startDate" 
+              date-format="yy-mm-dd" 
+              placeholder="开始日期" 
+              inputClass="filter-input" 
+              :showIcon="true"
+              iconDisplay="input"
+              showButtonBar
+            />
+            <span class="date-range-sep">至</span>
+            <Calendar 
+              v-model="filters.endDate" 
+              date-format="yy-mm-dd" 
+              placeholder="结束日期" 
+              inputClass="filter-input" 
+              :showIcon="true"
+              iconDisplay="input"
+              showButtonBar
+            />
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-group-label">订单状态</label>
+          <Dropdown
+            v-model="filters.orderStatus"
+            :options="statusOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="全部状态"
+            class="filter-dropdown"
+            panelClass="clean-dropdown-panel no-filter"
+            :show-clear="!!filters.orderStatus"
+          />
+        </div>
+
+        <div class="filter-group filter-group--search">
+          <label class="filter-group-label">订单搜索</label>
+          <IconField>
+            <InputIcon class="pi pi-search" />
+            <InputText 
+              v-model="searchQuery" 
+              placeholder="输入订单号..." 
+              class="filter-search-input" 
+              @keyup.enter="fetchData(true)" 
+            />
+          </IconField>
+        </div>
+
+        <div class="filter-group filter-group--actions">
+          <span class="filter-group-label">&nbsp;</span>
+          <div class="action-buttons-row">
+            <Button
+              label="应用筛选"
+              icon="pi pi-check"
+              severity="primary"
+              size="small"
+              @click="fetchData(true)"
+            />
+            <Button
+              v-if="hasActiveFilters"
+              label="重置"
+              icon="pi pi-refresh"
+              text
+              severity="secondary"
+              size="small"
+              @click="resetFilters"
+            />
+          </div>
+        </div>
+      </div>
+    </ContentCard>
+
     <!-- Data Table Card -->
     <div class="table-card">
-      <!-- Toolbar: Redesigned for minimal Notion style -->
+      <!-- Toolbar: Actions only -->
       <div class="table-toolbar">
-         <!-- Left: Primary Filters (Compact) -->
          <div class="toolbar-left">
-            <IconField class="search-field">
-                <InputIcon class="pi pi-search" />
-                <InputText v-model="searchQuery" placeholder="搜索订单号..." class="search-input" @keyup.enter="fetchData(true)" />
-            </IconField>
-            
-             <span class="divider">|</span>
-
-            <!-- Compact Date Picker (Text button style trigger ideally, but keeping Calendar for now, styled cleaner) -->
-            <div class="filter-item">
-                 <Calendar v-model="filters.startDate" date-format="yy-mm-dd" placeholder="开始日期" inputClass="clean-input" :showIcon="false" />
-                 <span class="text-gray-400">-</span>
-                 <Calendar v-model="filters.endDate" date-format="yy-mm-dd" placeholder="结束日期" inputClass="clean-input" :showIcon="false" />
-            </div>
-
-            <Dropdown
-              v-model="filters.countryCode"
-              :options="countryOptions"
-              option-label="name"
-              option-value="code"
-              placeholder="国家"
-              class="clean-dropdown"
-              panelClass="clean-dropdown-panel"
-              :show-clear="!!filters.countryCode"
-            />
-
-            <Dropdown
-              v-model="filters.storeId"
-              :options="storeOptions"
-              option-label="name"
-              option-value="id"
-              placeholder="店铺"
-              class="clean-dropdown"
-              panelClass="clean-dropdown-panel"
-              :show-clear="!!filters.storeId"
-              filter
-            />
-            
-            <Dropdown
-              v-model="filters.orderStatus"
-              :options="statusOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="状态"
-              class="clean-dropdown"
-              panelClass="clean-dropdown-panel"
-              :show-clear="!!filters.orderStatus"
-            />
+           <span class="table-info">共 {{ total }} 条记录</span>
          </div>
 
          <!-- Right: Actions -->
          <div class="toolbar-right">
-             <Button
-               v-if="hasActiveFilters"
-               label="清除筛选"
-               icon="pi pi-filter-slash"
-               text
-               severity="secondary"
-               size="small"
-               @click="resetFilters"
-             />
-             <Button
-               label="应用"
-               icon="pi pi-refresh"
-               text
-               severity="primary"
-               size="small"
-               @click="fetchData(true)"
-             />
              
             <span class="divider">|</span>
 
@@ -126,11 +181,13 @@
         :loading="isLoading"
         :paginator="true"
         :rows="pageSize"
+        :rowsPerPageOptions="[10, 20, 50]"
         :total-records="total"
         :lazy="true"
         :first="(page - 1) * pageSize"
         rowHover
         class="modern-table"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
         @page="onPage"
         @sort="onSort"
       >
@@ -149,9 +206,9 @@
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('recordDate')" field="recordDate" header="日期" sortable style="width: 8rem">
+        <Column v-if="visibleColumns.includes('recordDate')" field="recordDate" header="下单时间" sortable style="width: 10rem">
           <template #body="{ data }">
-            <span class="date-cell">{{ formatDate(data.recordDate) }}</span>
+            <span class="date-cell">{{ formatDateTime(data.recordDate) }}</span>
           </template>
         </Column>
 
@@ -190,6 +247,12 @@
           </template>
         </Column>
 
+        <Column v-if="visibleColumns.includes('cancelReason')" header="取消/退货原因" style="min-width: 10rem">
+          <template #body="{ data }">
+            <span class="notes-cell" :title="data.cancelReason || ''">{{ data.cancelReason || '-' }}</span>
+          </template>
+        </Column>
+
         <Column v-if="visibleColumns.includes('salesVolume')" field="salesVolume" header="销量" sortable class="text-right" headerClass="text-right" style="width: 6rem">
           <template #body="{ data }">
             <span class="number-cell">{{ data.salesVolume }}</span>
@@ -199,6 +262,18 @@
         <Column v-if="visibleColumns.includes('revenue')" field="revenue" header="销售额" sortable class="text-right" headerClass="text-right" style="width: 8rem">
           <template #body="{ data }">
             <span class="revenue-cell">{{ formatNumber(data.revenue) }}</span>
+          </template>
+        </Column>
+
+        <Column v-if="visibleColumns.includes('settlementDate')" field="settlementDate" header="结算时间" style="width: 8rem">
+          <template #body="{ data }">
+            <span class="date-cell">{{ formatDate(data.settlementDate) }}</span>
+          </template>
+        </Column>
+
+        <Column v-if="visibleColumns.includes('settlementAmount')" field="settlementAmount" header="结算金额" class="text-right" headerClass="text-right" style="width: 8rem">
+          <template #body="{ data }">
+            <span class="revenue-cell">{{ formatNumber(data.settlementAmount) }}</span>
           </template>
         </Column>
 
@@ -296,6 +371,11 @@
     font-size: 0.875rem;
     border-radius: 0.375rem;
 }
+
+/* Hide filter search box when using no-filter class */
+.clean-dropdown-panel.no-filter .p-dropdown-filter-container {
+    display: none;
+}
 </style>
 
 <script setup lang="ts">
@@ -312,6 +392,7 @@ import InputIcon from 'primevue/inputicon';
 import { useAuthStore } from '@/stores/auth';
 import useStoreListings from '@/composables/useStoreListings';
 import SalesDataEditModal from './SalesDataEditModal.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
 import { salesService } from '@/services/salesService';
 
 type CountryOption = { code: string; name: string };
@@ -328,10 +409,14 @@ type SalesRow = {
   product?: { sku?: string | null };
   orderStatus?: OrderStatus | null;
   salesVolume: number;
-  revenue: number;
+  revenue: number | string;  // Decimal returns as string from backend
   notes?: string | null;
   enteredBy?: { nickname?: string | null };
   canManage?: boolean;
+  // 新增字段
+  cancelReason?: string | null;
+  settlementDate?: string | null;
+  settlementAmount?: number | string | null;  // Decimal returns as string from backend
 };
 
 type SalesQueryParams = {
@@ -375,13 +460,16 @@ const showColumnMenu = ref(false);
 
 const toggleableColumns = [
   { field: 'platformOrderId', header: '订单号' },
-  { field: 'recordDate', header: '日期' },
+  { field: 'recordDate', header: '下单时间' },
   { field: 'country', header: '国家' },
   { field: 'store', header: '店铺' },
   { field: 'product', header: '商品/SKU' },
   { field: 'orderStatus', header: '状态' },
+  { field: 'cancelReason', header: '取消/退货原因' },
   { field: 'salesVolume', header: '销量' },
   { field: 'revenue', header: '销售额' },
+  { field: 'settlementDate', header: '结算时间' },
+  { field: 'settlementAmount', header: '结算金额' },
   { field: 'notes', header: '备注' },
   { field: 'enteredBy', header: '录入人' },
 ];
@@ -463,8 +551,45 @@ watch(() => storesError.value, (val) => {
   filters.value.storeId = null;
 });
 
-const formatNumber = (value: number) => (Number.isFinite(value) ? value.toFixed(2) : '0.00');
-const formatDate = (dateString: string) => (!dateString ? '-' : new Date(dateString).toISOString().split('T')[0]);
+// Cascading filter: reset store when country changes
+watch(() => filters.value.countryCode, () => {
+  filters.value.storeId = null;
+});
+
+// Select country from pill tabs
+const selectCountry = (code: string | null) => {
+  filters.value.countryCode = code;
+};
+
+const formatNumber = (value: number | string | null | undefined) => {
+  if (value === null || value === undefined) return '-';
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  return Number.isFinite(num) ? num.toFixed(2) : '-';
+};
+
+// 格式化下单时间为 2025/12/9 7:43
+const formatDateTime = (dateString: string) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '-';
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+};
+
+// 格式化结算日期为 2025/12/9
+const formatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '-';
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  return `${year}/${month}/${day}`;
+};
 
 const statusClass = (status: string) => {
   switch (status) {
@@ -603,7 +728,172 @@ onMounted(async () => {
 .sales-management {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
+}
+
+/* Filter Section Styling */
+.filter-section {
+  margin-bottom: 1.25rem;
+}
+
+.filter-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+/* Pill Tab Clear Button */
+.pill-tab--clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-text-secondary, #6b7280);
+  border: 1px dashed var(--surface-300, #d1d5db);
+  background: transparent;
+}
+
+.pill-tab--clear:hover {
+  color: var(--red-600, #dc2626);
+  border-color: var(--red-300, #fca5a5);
+  background: var(--red-50, #fef2f2);
+}
+
+.pill-tab--clear i {
+  font-size: 0.75rem;
+}
+
+/* Inline Filters Layout */
+.inline-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch; /* Stretch to match heights */
+  gap: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--surface-100, #f3f4f6);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+}
+
+.filter-group-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #6b7280);
+  height: 1.25rem; /* Fixed height for alignment */
+  line-height: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.filter-group--search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.filter-group--actions {
+  display: flex;
+  flex-direction: column;
+  margin-left: auto;
+}
+
+.action-buttons-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Filter Dropdown Styling */
+.filter-dropdown {
+  min-width: 160px;
+}
+
+:deep(.filter-dropdown) {
+  background: white;
+  border: 1px solid var(--surface-200, #e5e7eb);
+  border-radius: 0.5rem;
+  height: 2.5rem;
+  transition: all 0.2s;
+}
+
+:deep(.filter-dropdown:hover) {
+  border-color: var(--surface-300, #d1d5db);
+}
+
+:deep(.filter-dropdown.p-focus) {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+:deep(.filter-dropdown .p-dropdown-label) {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+:deep(.filter-dropdown .p-dropdown-trigger) {
+  width: 2.25rem;
+  color: var(--surface-400);
+}
+
+/* Date Range Inline */
+.date-range-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-range-sep {
+  color: var(--surface-400, #9ca3af);
+  font-size: 0.875rem;
+}
+
+:deep(.filter-input) {
+  background: white;
+  border: 1px solid var(--surface-200, #e5e7eb);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  width: 130px;
+  transition: all 0.2s;
+}
+
+:deep(.filter-input:hover) {
+  border-color: var(--surface-300, #d1d5db);
+}
+
+:deep(.filter-input:focus) {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+/* Filter Search Input */
+:deep(.filter-search-input) {
+  background: white;
+  border: 1px solid var(--surface-200, #e5e7eb);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  font-size: 0.875rem;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+:deep(.filter-search-input:hover) {
+  border-color: var(--surface-300, #d1d5db);
+}
+
+:deep(.filter-search-input:focus) {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 2px var(--primary-100);
+}
+
+.table-info {
+  font-size: 0.875rem;
+  color: var(--surface-500);
 }
 
 /* Table Card */
@@ -904,16 +1194,10 @@ onMounted(async () => {
   color: var(--surface-400);
 }
 
-/* Action Buttons */
+/* Action Buttons - Always visible */
 .action-buttons {
   display: flex;
   gap: 0.25rem;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-/* Show on row hover */
-.modern-table :deep(.p-datatable-tbody > tr:hover .action-buttons) {
   opacity: 1;
 }
 

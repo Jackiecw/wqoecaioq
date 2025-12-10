@@ -134,7 +134,7 @@ export function appendManagePermission(rows: any[], supervisedCountries: any[] =
 
 class SalesService {
     async create(data: any, userId: string) {
-        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus } = data;
+        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus, cancelReason, settlementDate, settlementAmount } = data;
 
         const store = await prisma.store.findUnique({
             where: { id: storeId },
@@ -163,12 +163,15 @@ class SalesService {
                     notes: notes || null,
                     platformOrderId: platformOrderId || null,
                     orderStatus: orderStatus || null,
+                    cancelReason: cancelReason || null,
+                    settlementDate: settlementDate ? new Date(settlementDate) : null,
+                    settlementAmount: settlementAmount ?? null,
                     enteredById: userId,
                     storeId,
                     productId,
                     listingId: listingId || null,
                     importBatchId: importBatch.id,
-                    platform: store.platform, // Add platform from store
+                    platform: store.platform,
                 },
             });
         } catch (error: any) {
@@ -237,7 +240,7 @@ class SalesService {
     async update(id: string, data: any, userId: string) {
         await this.checkPermission(userId, id);
 
-        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus } = data;
+        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus, cancelReason, settlementDate, settlementAmount } = data;
 
         try {
             const updated = await prisma.salesData.update({
@@ -253,6 +256,9 @@ class SalesService {
                     notes: notes || null,
                     platformOrderId: platformOrderId || null,
                     orderStatus: orderStatus || null,
+                    cancelReason: cancelReason || null,
+                    settlementDate: settlementDate ? new Date(settlementDate) : null,
+                    settlementAmount: settlementAmount ?? null,
                 },
                 include: salesDataInclude,
             });

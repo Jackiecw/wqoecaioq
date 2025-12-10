@@ -99,9 +99,16 @@ model SalesData {
   id          String   @id @default(cuid())
   recordDate  DateTime
   salesVolume Int
-  revenue     Float
+  revenue     Decimal  @db.Decimal(12, 2)
   currency    String?  @default("CNY")
   notes       String?
+
+  // 取消/退货原因
+  cancelReason String? @db.Text
+
+  // 结算信息
+  settlementDate   DateTime? @db.Date
+  settlementAmount Decimal?  @db.Decimal(12, 2)
 
   platformOrderId String? @unique
   orderStatus     String?
@@ -462,15 +469,17 @@ model ProductionBatch {
 
   batchSequence Int // 同一国家内的批次序号（1 起）
   batchNumber   String // 例如 "01"
+  status        ProductionOrderStatus @default(PENDING) // 批次状态
   notes         String?   @db.Text
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime? // ⬅️ 【新增】软删除标记
+  deletedAt     DateTime? // 软删除标记
 
   orders ProductionOrder[]
 
   @@unique([countryCode, batchSequence])
   @@index([countryCode])
+  @@index([status])
 }
 
 model ProductionOrder {
@@ -478,7 +487,7 @@ model ProductionOrder {
   orderCode     String                @unique // 编号，例如 ID0101
   orderSequence Int // 批次内序号（1 起）
   orderDate     DateTime              @db.Date
-  status        ProductionOrderStatus @default(IN_PRODUCTION)
+  status        ProductionOrderStatus @default(PENDING)
 
   // 关联 Product
   product   Product @relation(fields: [productId], references: [id])
@@ -765,15 +774,10 @@ enum MilestoneType {
 }
 
 enum ProductionOrderStatus {
-  IN_PRODUCTION
-  PRODUCTION_DONE
-  SHIPPED_OUT
-  CONTAINER_LOADED
-  EXPORTED
-  IN_TRANSIT
-  IMPORTED
-  DELIVERING
-  WAREHOUSED
+  PENDING       // 待下单
+  IN_PRODUCTION // 生产中
+  READY         // 待出库
+  SHIPPED       // 已出库
 }
 
 enum LogisticsBillingMethod {

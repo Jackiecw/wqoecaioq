@@ -9,9 +9,7 @@
       </template>
     </PageHeader>
 
-    <ContentCard>
-      <SalesDataManagement />
-    </ContentCard>
+    <SalesDataManagement />
   </div>
 </template>
 
