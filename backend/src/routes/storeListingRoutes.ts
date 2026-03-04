@@ -56,4 +56,9 @@ router.delete('/store-listings/:id', storeListingController.deleteListing);
 // If we mount this router at /api/admin, we can add this route here.
 router.put('/listings/:id', storeListingController.syncPrice);
 
+// Listing Mappings
+router.get('/store-listings/:id/mappings', storeListingController.getMappings);
+router.post('/store-listings/:id/mappings', storeListingController.createMapping);
+router.delete('/store-listings/mappings/:mappingId', storeListingController.deleteMapping);
+
 export default router;

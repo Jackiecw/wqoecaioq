@@ -1,35 +1,32 @@
 <template>
-
-  <div class="common-links-page">
-
+  <div class="page-shell common-links-page">
     <!-- Page Header -->
-    <header class="page-header">
-      <div class="header-content">
-        <div class="header-text">
-          <span class="page-badge">QUICK ACCESS</span>
-          <h1 class="page-title">常用链接</h1>
-          <p class="page-subtitle">收藏常用的后台、文档与协作工具，快速跳转</p>
-        </div>
+    <PageHeader
+      title="常用链接"
+      subtitle="收藏常用的后台、文档与协作工具，快速跳转"
+    >
+      <template #actions>
         <button
           v-if="isAdmin"
           @click="handleCreate"
-          class="create-btn"
+          class="btn-subtle btn-primary"
         >
-          <PlusIcon class="h-5 w-5 inline-block -mt-1 mr-1" />
+          <i class="pi pi-plus"></i>
           新建链接
         </button>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
-    <p v-if="isLoading" class="loading-text">正在加载链接列表...</p>
-    <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
+    <ContentCard>
+      <p v-if="isLoading" class="loading-text">正在加载链接列表...</p>
+      <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
 
-    <div v-if="!isLoading && links.length === 0 && !errorMessage" class="empty-state">
-      <p>
-        目前还没有常用链接
-        <span v-if="isAdmin">点击右上角按钮添加一个吧</span>
-      </p>
-    </div>
+    <EmptyState
+      v-if="!isLoading && links.length === 0 && !errorMessage"
+      icon="pi pi-link"
+      title="暂无常用链接"
+      :description="isAdmin ? '目前还没有常用链接，点击右上角添加一个吧。' : '目前还没有常用链接。'"
+    />
 
     <div v-if="!isLoading && links.length > 0" class="links-grid">
       <div
@@ -52,6 +49,7 @@
         </div>
       </div>
     </div>
+    </ContentCard>
 
     <LinkModal
       :is-open="isModalOpen"
@@ -70,66 +68,6 @@
   gap: 2rem;
 }
 
-/* Page Header */
-.page-header {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.header-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.page-badge {
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.35em;
-  color: var(--color-accent);
-}
-
-.page-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.page-subtitle {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
-}
-
-.create-btn {
-  background: var(--color-accent);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
-}
-
-.create-btn:hover {
-  filter: brightness(0.95);
-  box-shadow: var(--shadow-md);
-}
-
 /* States */
 .loading-text {
   color: var(--color-text-secondary);
@@ -139,15 +77,6 @@
 .error-text {
   color: #dc2626;
   font-size: 0.875rem;
-}
-
-.empty-state {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-  text-align: center;
-  color: var(--color-text-secondary);
 }
 
 /* Links Grid */
@@ -236,7 +165,10 @@ import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import apiClient from '@/services/apiClient';
 import LinkModal from './LinkModal.vue';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import { PencilIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import PageHeader from '@/components/common/PageHeader.vue';
+import EmptyState from '@/components/common/EmptyState.vue';
+import ContentCard from '@/components/common/ContentCard.vue';
 
 const isLoading = ref(true);
 const errorMessage = ref('');

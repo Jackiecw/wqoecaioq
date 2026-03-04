@@ -1,0 +1,49 @@
+{
+  "shopee_statuses": [
+    "Selesai",
+    "Batal",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-06.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-04.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-09.",
+    "Telah Dikirim",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-03.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-05.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-10.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-08.",
+    "Sedang Dikirim",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-12.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-07.",
+    "Perlu Dikirim",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-13.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-11.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-14.",
+    "Pesanan Diterima",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-15.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-16.",
+    "Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga 2026-03-17."
+  ],
+  "shopee_cancel_reasons": [
+    "Dibatalkan oleh Pembeli. Alasan: Perlu mengubah pesanan",
+    "Dibatalkan oleh Pembeli. Alasan: Ubah Pesanan yang Ada",
+    "Dibatalkan oleh Pembeli. Alasan: Lainnya/ berubah pikiran",
+    "Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Pesanan belum dibayar",
+    "Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Penjual tidak mengatur pengiriman tepat waktu",
+    "Dibatalkan oleh Pembeli. Alasan: Need to change delivery address",
+    "Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Pengiriman gagal",
+    "Dibatalkan oleh Pembeli. Alasan: Perlu mengubah alamat pengiriman",
+    "Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Paket hilang di perjalanan. Kompensasi yang memenuhi syarat telah dikreditkan ke Saldo Penjual-mu.",
+    "Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Lainnya",
+    "Dibatalkan oleh Pembeli. Alasan: Perlu mengubah Voucher"
+  ],
+  "tk_statuses": [
+    "Current order status.",
+    "To ship",
+    "Canceled",
+    "Shipped"
+  ],
+  "tk_cancel_reasons": [
+    "The order cancel reason.",
+    "No longer needed",
+    "Need to change shipping address"
+  ]
+}

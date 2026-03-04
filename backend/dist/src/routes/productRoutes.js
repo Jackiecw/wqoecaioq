@@ -42,6 +42,7 @@ const upload = (0, multer_1.default)({
 // Routes
 router.use(adminMiddleware_1.default);
 router.get('/products', productController_1.default.getAllProducts);
+router.get('/products/:id', productController_1.default.getProductById);
 router.get('/product-options', productController_1.default.getProductOptions);
 router.post('/products', upload.single('imageUrl'), productController_1.default.createProduct);
 router.put('/products/:id', upload.single('imageUrl'), productController_1.default.updateProduct);

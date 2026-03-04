@@ -48,6 +48,14 @@ const priceSyncSchema = z.object({
     currentPrice: z.coerce.number().min(0, "价格不能为负数")
 });
 
+const createMappingSchema = z.object({
+    platform: z.enum(['SHOPEE', 'TIKTOK_SHOP', 'LAZADA', 'WEBSITE', 'OTHER']).optional(),
+    externalTitle: z.string().optional().nullable(),
+    externalSku: z.string().optional().nullable(),
+    platformSkuId: z.string().optional().nullable(),
+    variationName: z.string().optional().nullable(),
+});
+
 export class StoreListingController {
     async getStoreListings(req: Request, res: Response, next: NextFunction) {
         try {
@@ -222,6 +230,63 @@ export class StoreListingController {
             });
 
             res.json(updatedListing);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // --- Listing Mappings ---
+
+    async getMappings(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { id: listingId } = req.params;
+            const listing = await storeListingService.getListingById(listingId);
+            if (listing.store && !ensureCountryAccess(listing.store.countryCode, req)) {
+                throw new AppError('权限不足：无法查看该上架商品的别名映射', 403);
+            }
+
+            const mappings = await storeListingService.getMappings(listingId);
+            res.json(mappings);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async createMapping(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { id: listingId } = req.params;
+            const listing = await storeListingService.getListingById(listingId);
+            if (listing.store && !ensureCountryAccess(listing.store.countryCode, req)) {
+                throw new AppError('权限不足：无法为该商品添加映射', 403);
+            }
+
+            const validation = createMappingSchema.safeParse(req.body);
+            if (!validation.success) {
+                throw new AppError(`输入数据无效: ${JSON.stringify(validation.error.errors)}`, 400);
+            }
+            // By default, assume the mapping platform is the same as the store's platform if not explicitly provided
+            // Store is not directly available with platform without fetching, but we can handle it in the service
+            const newMapping = await storeListingService.createMapping(listingId, validation.data);
+            res.status(201).json(newMapping);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async deleteMapping(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { mappingId } = req.params;
+            // Get mapping to check access control via listing -> store -> country
+            const mapping = await storeListingService.getMappingById(mappingId);
+            if (!mapping) {
+                throw new AppError('未找到该别名映射', 404);
+            }
+            if (mapping.listing.store && !ensureCountryAccess(mapping.listing.store.countryCode, req)) {
+                throw new AppError('权限不足：无法删除该映射', 403);
+            }
+
+            await storeListingService.deleteMapping(mappingId);
+            res.status(204).send();
         } catch (error) {
             next(error);
         }

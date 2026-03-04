@@ -34,7 +34,13 @@ class SalesImportService {
             const { platform: detectedPlatform, data } = parseResult;
             // 2. Match Listings
             const previewData = await Promise.all(data.map(async (item) => {
-                const matchResult = await ListingMatcher_1.default.match(detectedPlatform, item.title, item.sku);
+                const matchResult = await ListingMatcher_1.default.match({
+                    platform: detectedPlatform,
+                    title: item.title,
+                    sku: item.sku,
+                    variationName: item.variationName,
+                    platformSkuId: item.platformSkuId
+                });
                 return {
                     ...item,
                     ...matchResult // listingId, matchType
@@ -106,6 +112,30 @@ class SalesImportService {
                     });
                     if (!listing)
                         throw new Error(`Listing ${item.listingId} not found`);
+                    // 自动学习人工映射关系
+                    if (item.matchType === 'MANUAL') {
+                        const existingMapping = await prisma.listingMapping.findFirst({
+                            where: {
+                                platform: platform,
+                                platformSkuId: item.platformSkuId || undefined,
+                                externalTitle: item.title || undefined,
+                                externalSku: item.sku || undefined,
+                                variationName: item.variationName || undefined
+                            }
+                        });
+                        if (!existingMapping) {
+                            await prisma.listingMapping.create({
+                                data: {
+                                    platform: platform,
+                                    listingId: item.listingId,
+                                    externalTitle: item.title,
+                                    externalSku: item.sku,
+                                    variationName: item.variationName || null,
+                                    platformSkuId: item.platformSkuId || null
+                                }
+                            });
+                        }
+                    }
                     const countryCode = listing.store.countryCode;
                     let currency = item.currency || 'CNY';
                     if (!item.currency) {
@@ -122,6 +152,7 @@ class SalesImportService {
                         },
                         update: {
                             orderStatus: item.orderStatus,
+                            cancelReason: item.cancelReason || null, // 新增
                             revenue: item.revenue,
                             listingId: item.listingId,
                             productId: listing.productId,
@@ -130,7 +161,9 @@ class SalesImportService {
                             currency: currency,
                             platform: platform,
                             externalTitle: item.title,
-                            externalSku: item.sku
+                            externalSku: item.sku,
+                            variationName: item.variationName || null,
+                            platformSkuId: item.platformSkuId || null
                         },
                         create: {
                             recordDate: new Date(item.orderDate || new Date()),
@@ -143,11 +176,14 @@ class SalesImportService {
                             listingId: item.listingId,
                             platformOrderId: item.platformOrderId,
                             orderStatus: item.orderStatus,
+                            cancelReason: item.cancelReason || null, // 新增
                             importBatchId: importBatch.id,
                             currency: currency,
                             platform: platform,
                             externalTitle: item.title,
-                            externalSku: item.sku
+                            externalSku: item.sku,
+                            variationName: item.variationName || null,
+                            platformSkuId: item.platformSkuId || null
                         }
                     });
                     results.success++;

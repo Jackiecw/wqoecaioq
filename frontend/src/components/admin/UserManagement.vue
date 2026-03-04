@@ -41,10 +41,10 @@
         <div class="flex justify-end mb-4">
           <button 
             @click="openModal"
-            class="bg-[#2463EB] hover:bg-[#1d4ed8] text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+            class="btn-subtle btn-primary"
           >
-            <i class="pi pi-plus text-xs"></i>
-            <span>新建用户</span>
+            <i class="pi pi-plus"></i>
+            新建用户
           </button>
         </div>
         
@@ -101,10 +101,10 @@
         <div class="flex justify-end mb-4">
           <button 
             @click="openRoleModal"
-            class="bg-[#2463EB] hover:bg-[#1d4ed8] text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+            class="btn-subtle btn-primary"
           >
-            <i class="pi pi-plus text-xs"></i>
-            <span>新建角色</span>
+            <i class="pi pi-plus"></i>
+            新建角色
           </button>
         </div>
         <DataTable

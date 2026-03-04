@@ -39,7 +39,7 @@ app.use((req, res, next) => {
     next();
 });
 // Static Files
-app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, 'uploads')));
+app.use('/uploads', express_1.default.static(path_1.default.join(process.cwd(), 'uploads')));
 // Health Check
 app.get('/', (req, res) => {
     res.status(200).json({ status: 'success', message: 'Backend API is running' });

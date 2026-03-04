@@ -13,13 +13,20 @@ const productSchema = zod_1.z.object({
     sku: zod_1.z.string().min(1, "SKU 不能为空"),
     name: zod_1.z.string().min(1, "商品名称不能为空"),
     description: zod_1.z.string().optional().nullable(),
-    category: zod_1.z.nativeEnum(client_1.ProductCategory),
+    category: zod_1.z.nativeEnum(client_1.ProductCategory, {
+        errorMap: () => ({ message: "产品分类不能为空或格式有误" })
+    }),
     publicName: zod_1.z.string().optional().nullable(),
     cost: zod_1.z.preprocess(val => parseFloat(val) || null, zod_1.z.number().optional().nullable()),
     weightKg: zod_1.z.preprocess(val => parseFloat(val) || null, zod_1.z.number().optional().nullable()),
     lengthMm: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
     widthMm: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
     heightMm: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
+    outerBoxLength: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
+    outerBoxWidth: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
+    outerBoxHeight: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
+    pcsPerBox: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
+    outerBoxWeight: zod_1.z.preprocess(val => parseFloat(val) || null, zod_1.z.number().optional().nullable()),
     resolution: zod_1.z.string().optional().nullable(),
     brightnessAnsi: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
     brightnessUniformity: zod_1.z.preprocess(val => parseInt(val) || null, zod_1.z.number().int().optional().nullable()),
@@ -45,6 +52,19 @@ class ProductController {
         try {
             const products = await productService_1.default.getAllProducts();
             res.json(products);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async getProductById(req, res, next) {
+        try {
+            const { id } = req.params;
+            const product = await productService_1.default.getProductById(id);
+            if (!product) {
+                throw new AppError_1.default('产品不存在', 404);
+            }
+            res.json(product);
         }
         catch (error) {
             next(error);

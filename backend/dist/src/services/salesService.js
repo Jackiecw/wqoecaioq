@@ -100,6 +100,9 @@ function buildSalesDataWhere(query, user) {
     if (query.storeId) {
         where.storeId = query.storeId;
     }
+    if (query.search) {
+        where.platformOrderId = { contains: query.search };
+    }
     const recordDateFilter = buildRecordDateFilter(query.startDate, query.endDate);
     if (recordDateFilter) {
         where.recordDate = recordDateFilter;
@@ -120,7 +123,7 @@ function appendManagePermission(rows, supervisedCountries = [], isAdmin = false)
 }
 class SalesService {
     async create(data, userId) {
-        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus } = data;
+        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus, cancelReason, settlementDate, settlementAmount } = data;
         const store = await prismaClient_1.default.store.findUnique({
             where: { id: storeId },
             select: { platform: true }
@@ -145,12 +148,15 @@ class SalesService {
                     notes: notes || null,
                     platformOrderId: platformOrderId || null,
                     orderStatus: orderStatus || null,
+                    cancelReason: cancelReason || null,
+                    settlementDate: settlementDate ? new Date(settlementDate) : null,
+                    settlementAmount: settlementAmount ?? null,
                     enteredById: userId,
                     storeId,
                     productId,
                     listingId: listingId || null,
                     importBatchId: importBatch.id,
-                    platform: store.platform, // Add platform from store
+                    platform: store.platform,
                 },
             });
         }
@@ -212,7 +218,7 @@ class SalesService {
     }
     async update(id, data, userId) {
         await this.checkPermission(userId, id);
-        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus } = data;
+        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus, cancelReason, settlementDate, settlementAmount } = data;
         try {
             const updated = await prismaClient_1.default.salesData.update({
                 where: { id },
@@ -227,6 +233,9 @@ class SalesService {
                     notes: notes || null,
                     platformOrderId: platformOrderId || null,
                     orderStatus: orderStatus || null,
+                    cancelReason: cancelReason || null,
+                    settlementDate: settlementDate ? new Date(settlementDate) : null,
+                    settlementAmount: settlementAmount ?? null,
                 },
                 include: salesDataInclude,
             });

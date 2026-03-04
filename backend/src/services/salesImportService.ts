@@ -30,7 +30,13 @@ export class SalesImportService {
 
             // 2. Match Listings
             const previewData = await Promise.all(data.map(async (item: any) => {
-                const matchResult = await ListingMatcher.match(detectedPlatform, item.title, item.sku);
+                const matchResult = await ListingMatcher.match({
+                    platform: detectedPlatform,
+                    title: item.title,
+                    sku: item.sku,
+                    variationName: item.variationName,
+                    platformSkuId: item.platformSkuId
+                });
                 return {
                     ...item,
                     ...matchResult // listingId, matchType
@@ -109,6 +115,32 @@ export class SalesImportService {
                     });
                     if (!listing) throw new Error(`Listing ${item.listingId} not found`);
 
+                    // 自动学习人工映射关系
+                    if (item.matchType === 'MANUAL') {
+                        const existingMapping = await prisma.listingMapping.findFirst({
+                            where: {
+                                platform: platform as any,
+                                platformSkuId: item.platformSkuId || undefined,
+                                externalTitle: item.title || undefined,
+                                externalSku: item.sku || undefined,
+                                variationName: item.variationName || undefined
+                            }
+                        });
+
+                        if (!existingMapping) {
+                            await prisma.listingMapping.create({
+                                data: {
+                                    platform: platform as any,
+                                    listingId: item.listingId,
+                                    externalTitle: item.title,
+                                    externalSku: item.sku,
+                                    variationName: item.variationName || null,
+                                    platformSkuId: item.platformSkuId || null
+                                }
+                            });
+                        }
+                    }
+
                     const countryCode = listing.store.countryCode;
                     let currency = item.currency || 'CNY';
 
@@ -136,7 +168,9 @@ export class SalesImportService {
                             currency: currency,
                             platform: platform as any,
                             externalTitle: item.title,
-                            externalSku: item.sku
+                            externalSku: item.sku,
+                            variationName: item.variationName || null,
+                            platformSkuId: item.platformSkuId || null
                         },
                         create: {
                             recordDate: new Date(item.orderDate || new Date()),
@@ -156,7 +190,9 @@ export class SalesImportService {
                             currency: currency,
                             platform: platform as any,
                             externalTitle: item.title,
-                            externalSku: item.sku
+                            externalSku: item.sku,
+                            variationName: item.variationName || null,
+                            platformSkuId: item.platformSkuId || null
                         }
                     });
                     results.success++;

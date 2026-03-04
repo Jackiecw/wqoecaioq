@@ -126,14 +126,24 @@
         </div>
         
         <!-- Pagination Controls (Top) -->
-        <div class="px-4 py-3 border-b border-stone-200 bg-stone-50 flex items-center justify-between sm:px-6">
-            <div class="flex items-center">
-                <span class="mr-2 text-sm text-stone-700">每显示:</span>
-                <select v-model="pageSize" class="form-select rounded-md border-stone-300 py-1 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option :value="10">10</option>
-                    <option :value="20">20</option>
-                    <option :value="50">50</option>
-                </select>
+        <div class="px-4 py-3 border-b border-stone-200 bg-stone-50 flex flex-wrap items-center justify-between sm:px-6 gap-4">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center">
+                    <span class="mr-2 text-sm text-stone-700">筛选状态:</span>
+                    <select v-model="matchFilter" class="form-select rounded-md border-stone-300 py-1 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="ALL">全部数据</option>
+                        <option value="UNMATCHED">仅看未匹配</option>
+                        <option value="MATCHED">仅看已匹配</option>
+                    </select>
+                </div>
+                <div class="flex items-center">
+                    <span class="mr-2 text-sm text-stone-700">每页显示:</span>
+                    <select v-model="pageSize" class="form-select rounded-md border-stone-300 py-1 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option :value="10">10 行</option>
+                        <option :value="20">20 行</option>
+                        <option :value="50">50 行</option>
+                    </select>
+                </div>
             </div>
             <div class="flex items-center space-x-2">
                 <button 
@@ -144,7 +154,7 @@
                     上一
                 </button>
                 <span class="text-sm text-stone-700">
-                    第 {{ currentPage }} / {{ totalPages }} 
+                    第 {{ currentPage }} / {{ totalPages }} 页
                 </span>
                 <button 
                     @click="currentPage++" 
@@ -259,24 +269,36 @@ const stores = ref<any[]>([]);
 // Pagination State
 const currentPage = ref(1);
 const pageSize = ref(10);
+const matchFilter = ref('ALL');
 
 const showMappingModal = ref(false);
 const currentMappingItem = ref<any>(null);
 
-const selectedCount = computed(() => previewData.value.filter(i => i.selected).length);
-const selectedUnmatchedCount = computed(() => previewData.value.filter(i => i.selected && !i.listingId).length);
-const isAllSelected = computed(() => previewData.value.length > 0 && previewData.value.every(i => i.selected));
+const selectedCount = computed(() => filteredPreviewData.value.filter(i => i.selected).length);
+const selectedUnmatchedCount = computed(() => filteredPreviewData.value.filter(i => i.selected && !i.listingId).length);
+const isAllSelected = computed(() => filteredPreviewData.value.length > 0 && filteredPreviewData.value.every(i => i.selected));
+
+// Derived list based on match filter
+const filteredPreviewData = computed(() => {
+    if (matchFilter.value === 'UNMATCHED') {
+        return previewData.value.filter(i => !i.listingId);
+    }
+    if (matchFilter.value === 'MATCHED') {
+        return previewData.value.filter(i => !!i.listingId);
+    }
+    return previewData.value;
+});
 
 // Pagination Computed
-const totalPages = computed(() => Math.ceil(previewData.value.length / pageSize.value) || 1);
+const totalPages = computed(() => Math.ceil(filteredPreviewData.value.length / pageSize.value) || 1);
 const paginatedPreviewData = computed(() => {
     const start = (currentPage.value - 1) * pageSize.value;
     const end = start + pageSize.value;
-    return previewData.value.slice(start, end);
+    return filteredPreviewData.value.slice(start, end);
 });
 
 // Reset page when data changes
-watch(previewData, () => {
+watch([previewData, matchFilter], () => {
     currentPage.value = 1;
 });
 
@@ -346,13 +368,13 @@ const handleDrop = (event) => {
 const reset = () => {
     selectedFile.value = null;
     previewData.value = [];
-    // selectedCountry.value = ''; // Do not reset prop
     selectedStoreId.value = '';
+    matchFilter.value = 'ALL';
 };
 
 const toggleSelectAll = () => {
     const newValue = !isAllSelected.value;
-    previewData.value.forEach(item => item.selected = newValue);
+    filteredPreviewData.value.forEach(item => item.selected = newValue);
 };
 
 const uploadAndPreview = async () => {
@@ -400,14 +422,23 @@ const openMappingModal = (item) => {
 };
 
 const handleMappingConfirm = (mappingResult) => {
-    // mappingResult: { originalItem, listingId, listing }
-    // Update the item in previewData
-    const index = previewData.value.indexOf(mappingResult.originalItem);
-    if (index !== -1) {
-        previewData.value[index].listingId = mappingResult.listingId;
-        previewData.value[index].matchType = 'MANUAL';
-        // previewData.value[index].createMapping = true; // REMOVED: Do not create automatic mapping
-    }
+    // Apply this mapping to ALL items with the same fingerprint in the preview data
+    const orig = mappingResult.originalItem;
+    previewData.value.forEach(item => {
+        if (!item.listingId) {
+            const isSame = 
+                item.platform === orig.platform && 
+                item.title === orig.title && 
+                item.sku === orig.sku && 
+                item.variationName === orig.variationName && 
+                item.platformSkuId === orig.platformSkuId;
+
+            if (isSame) {
+                item.listingId = mappingResult.listingId;
+                item.matchType = 'MANUAL';
+            }
+        }
+    });
 };
 
 const confirmImport = async () => {

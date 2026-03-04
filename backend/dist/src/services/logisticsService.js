@@ -43,26 +43,16 @@ const AppError_1 = __importDefault(require("../utils/AppError"));
 const xlsx = __importStar(require("xlsx"));
 // --- Constants ---
 const STATUS_FLOW = [
+    client_1.ProductionOrderStatus.PENDING,
     client_1.ProductionOrderStatus.IN_PRODUCTION,
-    client_1.ProductionOrderStatus.PRODUCTION_DONE,
-    client_1.ProductionOrderStatus.SHIPPED_OUT,
-    client_1.ProductionOrderStatus.CONTAINER_LOADED,
-    client_1.ProductionOrderStatus.EXPORTED,
-    client_1.ProductionOrderStatus.IN_TRANSIT,
-    client_1.ProductionOrderStatus.IMPORTED,
-    client_1.ProductionOrderStatus.DELIVERING,
-    client_1.ProductionOrderStatus.WAREHOUSED,
+    client_1.ProductionOrderStatus.READY,
+    client_1.ProductionOrderStatus.SHIPPED,
 ];
 const STATUS_LABELS = {
+    PENDING: '待下单',
     IN_PRODUCTION: '生产中',
-    PRODUCTION_DONE: '生产完成',
-    SHIPPED_OUT: '已出库',
-    CONTAINER_LOADED: '已装柜',
-    EXPORTED: '出口',
-    IN_TRANSIT: '运输',
-    IMPORTED: '进口',
-    DELIVERING: '派送',
-    WAREHOUSED: '已入仓',
+    READY: '待出库',
+    SHIPPED: '已出库',
 };
 // --- Helper Functions ---
 const pad = (num = 0, width = 2) => num.toString().padStart(width, '0');
@@ -188,10 +178,10 @@ class LogisticsService {
             deletedAt: null
         };
         if (view === 'completed') {
-            where.status = client_1.ProductionOrderStatus.WAREHOUSED;
+            where.status = client_1.ProductionOrderStatus.SHIPPED;
         }
         else if (view === 'in-progress') {
-            where.status = { not: client_1.ProductionOrderStatus.WAREHOUSED };
+            where.status = { not: client_1.ProductionOrderStatus.SHIPPED };
         }
         if (keyword) {
             where.OR = [
@@ -248,9 +238,9 @@ class LogisticsService {
         const { view, keyword, startDate, endDate, countryCode } = filters;
         const where = { deletedAt: null };
         if (view === 'completed')
-            where.status = client_1.ProductionOrderStatus.WAREHOUSED;
+            where.status = client_1.ProductionOrderStatus.SHIPPED;
         else if (view === 'in-progress')
-            where.status = { not: client_1.ProductionOrderStatus.WAREHOUSED };
+            where.status = { not: client_1.ProductionOrderStatus.SHIPPED };
         if (keyword) {
             where.OR = [
                 { skuName: { contains: keyword, mode: 'insensitive' } },
@@ -359,7 +349,7 @@ class LogisticsService {
                         orderCode,
                         orderSequence,
                         orderDate: input.orderDate,
-                        status: client_1.ProductionOrderStatus.IN_PRODUCTION,
+                        status: client_1.ProductionOrderStatus.PENDING,
                         productId: input.productId,
                         skuName: product?.sku || input.skuName,
                         productColor: input.productColor,
@@ -385,7 +375,7 @@ class LogisticsService {
                         batchId: batch.id,
                         statusEvents: {
                             create: {
-                                status: client_1.ProductionOrderStatus.IN_PRODUCTION,
+                                status: client_1.ProductionOrderStatus.PENDING,
                                 occurredAt: input.orderDate,
                                 createdById: adminId,
                             },
@@ -427,7 +417,7 @@ class LogisticsService {
                         orderCode,
                         orderSequence: cursor,
                         orderDate: input.orderDate,
-                        status: client_1.ProductionOrderStatus.IN_PRODUCTION,
+                        status: client_1.ProductionOrderStatus.PENDING,
                         productId: input.productId,
                         skuName: product?.sku || input.skuName,
                         productColor: input.productColor,
@@ -440,7 +430,7 @@ class LogisticsService {
                         batchId: batch.id,
                         statusEvents: {
                             create: {
-                                status: client_1.ProductionOrderStatus.IN_PRODUCTION,
+                                status: client_1.ProductionOrderStatus.PENDING,
                                 occurredAt: input.orderDate,
                                 createdById: adminId,
                             },
@@ -467,7 +457,7 @@ class LogisticsService {
         if (nextIdx < currentIdx)
             throw new AppError_1.default('状态不可回退', 400);
         const dataToUpdate = { status: payload.status };
-        if (payload.status === client_1.ProductionOrderStatus.WAREHOUSED) {
+        if (payload.status === client_1.ProductionOrderStatus.SHIPPED) {
             dataToUpdate.warehouseDate = payload.occurredAt;
         }
         await prismaClient_1.default.productionOrderStatusEvent.upsert({
@@ -512,7 +502,7 @@ class LogisticsService {
             throw new AppError_1.default('所选订单的状态均高于目标状态，无法更新', 400);
         await prismaClient_1.default.$transaction(async (tx) => {
             const updateData = { status };
-            if (status === client_1.ProductionOrderStatus.WAREHOUSED) {
+            if (status === client_1.ProductionOrderStatus.SHIPPED) {
                 updateData.warehouseDate = occurredAt;
             }
             await tx.productionOrder.updateMany({
@@ -533,13 +523,13 @@ class LogisticsService {
         const order = await prismaClient_1.default.productionOrder.findUnique({ where: { id } });
         if (!order)
             throw new AppError_1.default('订单不存在', 404);
-        const isWarehoused = order.status === client_1.ProductionOrderStatus.WAREHOUSED;
+        const isShipped = order.status === client_1.ProductionOrderStatus.SHIPPED;
         const isSensitiveChange = payload.quantity !== undefined ||
             payload.unitPrice !== undefined ||
             payload.totalPrice !== undefined ||
             payload.logisticsFee !== undefined;
-        if (isWarehoused && isSensitiveChange) {
-            throw new AppError_1.default('订单已入仓，禁止修改数量、单价或物流费用。', 403);
+        if (isShipped && isSensitiveChange) {
+            throw new AppError_1.default('订单已出库，禁止修改数量、单价或物流费用。', 403);
         }
         const updates = { ...payload };
         const quantity = payload.quantity ?? order.quantity;

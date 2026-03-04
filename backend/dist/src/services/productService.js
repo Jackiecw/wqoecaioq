@@ -15,6 +15,11 @@ class ProductService {
             orderBy: { sku: 'asc' }
         });
     }
+    async getProductById(id) {
+        return await prismaClient_1.default.product.findUnique({
+            where: { id }
+        });
+    }
     async getProductOptions() {
         return {
             categories: Object.values(client_1.ProductCategory),

@@ -7,10 +7,10 @@
       <template #actions>
         <button 
           @click="openModal"
-          class="bg-[#2463EB] hover:bg-[#1d4ed8] text-white text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+          class="btn-subtle btn-primary"
         >
-          <i class="pi pi-plus text-xs"></i>
-          <span>新建店铺</span>
+          <i class="pi pi-plus"></i>
+          新建店铺
         </button>
       </template>
     </PageHeader>

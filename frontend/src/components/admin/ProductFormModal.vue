@@ -42,8 +42,9 @@
                 <Dropdown
                   v-model="formData.category"
                   :options="categoryOptions"
-                  placeholder="选择分类"
+                  placeholder="选择或输入分类"
                   class="w-full"
+                  editable
                 />
               </div>
               <div class="field-group">
@@ -174,7 +175,49 @@
         </div>
       </div>
 
-      <!-- Section 4: 系统配置 -->
+      <!-- Section 4: 包装与物流 (Packaging & Logistics) -->
+      <div class="form-section">
+        <div class="section-title">
+          <i class="pi pi-box"></i>
+          包装与物流
+        </div>
+        <div class="section-body">
+          <div class="form-row form-row--4col">
+            <div class="field-group">
+              <label>外箱长度 (cm)</label>
+              <InputNumber v-model="formData.outerBoxLength" :min="0" placeholder="L" />
+            </div>
+            <div class="field-group">
+              <label>外箱宽度 (cm)</label>
+              <InputNumber v-model="formData.outerBoxWidth" :min="0" placeholder="W" />
+            </div>
+            <div class="field-group">
+              <label>外箱高度 (cm)</label>
+              <InputNumber v-model="formData.outerBoxHeight" :min="0" placeholder="H" />
+            </div>
+            <div class="field-group">
+              <label>外箱重量 (kg)</label>
+              <InputNumber v-model="formData.outerBoxWeight" :min="0" :max-fraction-digits="2" placeholder="0.00" />
+            </div>
+          </div>
+          <div class="form-row form-row--4col">
+            <div class="field-group">
+              <label>一箱台数 (PCS)</label>
+              <InputNumber v-model="formData.pcsPerBox" :min="0" placeholder="0" />
+            </div>
+            <div class="field-group">
+              <label>外箱体积 (CBM)</label>
+              <InputText :value="calculatedOuterBoxCbm" disabled placeholder="0.0000" class="input-readonly" />
+            </div>
+            <div class="field-group">
+              <label>单台平均体积 (CBM)</label>
+              <InputText :value="calculatedCbmPerPcs" disabled placeholder="0.0000" class="input-readonly" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 5: 系统配置 -->
       <div class="form-section">
         <div class="section-title">
           <i class="pi pi-microchip"></i>
@@ -283,6 +326,13 @@ type ProductPayload = {
   bluetoothVersion: string;
   autoObstacle: boolean;
   autoScreenFit: boolean;
+
+  // Packaging & Logistics
+  outerBoxLength: number | null;
+  outerBoxWidth: number | null;
+  outerBoxHeight: number | null;
+  pcsPerBox: number | null;
+  outerBoxWeight: number | null;
 };
 
 type ProductResponse = ProductPayload & { id: string };
@@ -344,10 +394,31 @@ const getEmptyForm = (): ProductPayload => ({
   contrastRatio: '', throwRatio: '', projectionSize: '', projectionDistance: '',
   chipset: '', ramRom: '', os: '', focusMethod: '', keystone: '',
   hasGimbal: false, wifiVersion: '', bluetoothVersion: '',
-  autoObstacle: false, autoScreenFit: false
+  autoObstacle: false, autoScreenFit: false,
+  
+  outerBoxLength: null, outerBoxWidth: null, outerBoxHeight: null,
+  pcsPerBox: null, outerBoxWeight: null
 });
 
 const formData = ref<ProductPayload>(getEmptyForm());
+
+// --- Computed Formulas ---
+const calculatedOuterBoxCbm = computed(() => {
+  const { outerBoxLength, outerBoxWidth, outerBoxHeight } = formData.value;
+  if (outerBoxLength && outerBoxWidth && outerBoxHeight) {
+    return ((outerBoxLength * outerBoxWidth * outerBoxHeight) / 1000000).toFixed(4);
+  }
+  return '';
+});
+
+const calculatedCbmPerPcs = computed(() => {
+  const cbm = Number(calculatedOuterBoxCbm.value);
+  const pcs = formData.value.pcsPerBox;
+  if (!isNaN(cbm) && cbm > 0 && pcs && pcs > 0) {
+    return (cbm / pcs).toFixed(4);
+  }
+  return '';
+});
 
 // --- Image Upload Methods ---
 const triggerImageUpload = () => {
@@ -466,9 +537,8 @@ watch(() => props.productId, (val) => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  max-height: 70vh;
-  overflow-y: auto;
-  padding-right: 0.5rem;
+  /* Removed max-height and overflow-y to prevent double scrollbars */
+  padding: 0 0.5rem 1rem 0; /* Adjusted padding since Dialog body handles scroll */
 }
 
 .form-section {
@@ -669,9 +739,10 @@ watch(() => props.productId, (val) => {
 
 .toggle-item {
   display: inline-flex;
-  align-items: center;
+  align-items: center; /* Ensures switch and text align horizontally */
   gap: 0.625rem;
   cursor: pointer;
+  height: 32px; /* Force consistent height track */
 }
 
 .toggle-item span {
@@ -679,6 +750,28 @@ watch(() => props.productId, (val) => {
   font-weight: 500;
   color: var(--color-text-primary);
   user-select: none;
+  line-height: 1; /* Match line height for centering */
+}
+
+/* Fix Switch thumb misalignment inside track */
+:deep(.p-inputswitch) {
+  height: 20px;
+  width: 36px;
+}
+
+:deep(.p-inputswitch-slider) {
+  border-radius: 20px;
+}
+
+:deep(.p-inputswitch-slider:before) {
+  width: 14px;
+  height: 14px;
+  left: 3px;
+  bottom: 3px;
+}
+
+:deep(.p-inputswitch.p-inputswitch-checked .p-inputswitch-slider:before) {
+  transform: translateX(16px);
 }
 
 /* Modal Footer */
@@ -695,7 +788,8 @@ watch(() => props.productId, (val) => {
 :deep(.p-dropdown), 
 :deep(.p-inputnumber-input) {
   font-size: 0.875rem;
-  height: 38px;
+  height: 32px; /* Uniform height for all inputs and selects */
+  box-sizing: border-box;
   border-radius: var(--radius-sm);
   border-color: var(--color-border);
   box-shadow: none !important;
@@ -730,5 +824,13 @@ watch(() => props.productId, (val) => {
   width: 100%;
   border-radius: var(--radius-sm);
   border-color: var(--color-border);
+}
+
+.input-readonly {
+  background-color: var(--color-bg-subtle) !important;
+  color: var(--color-text-muted) !important;
+  border-style: dashed !important;
+  opacity: 0.8;
+  cursor: not-allowed;
 }
 </style>

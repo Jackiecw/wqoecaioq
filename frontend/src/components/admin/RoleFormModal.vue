@@ -3,25 +3,28 @@
     v-model:visible="visible"
     modal
     :style="{ width: '520px' }"
+    :breakpoints="{ '960px': '75vw', '640px': '90vw' }"
     :header="dialogTitle"
-    class="role-form-modal"
+    :dismissableMask="true"
+    :draggable="false"
+    class="p-dialog-custom"
     @hide="closeModal"
   >
-    <div class="flex flex-column gap-3">
+    <div class="flex flex-col gap-6 pt-1">
       <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
 
-      <div class="grid formgrid p-fluid">
-        <div class="field col-12">
-          <label class="font-semibold text-sm mb-2 block">角色描述 *</label>
+      <div class="grid grid-cols-1 gap-4">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)] block mb-2">角色描述 <span class="text-red-500">*</span></label>
           <InputText v-model="formData.description" class="w-full" placeholder="如：运营主管" />
         </div>
-        <div class="field col-12">
-          <label class="font-semibold text-sm mb-2 block">角色 Key *</label>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--color-text-secondary)] block mb-2">角色 Key <span class="text-red-500">*</span></label>
           <InputText v-model="formData.name" class="w-full" placeholder="如：ops_manager" />
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
         <Button label="取消" severity="secondary" text @click="closeModal" />
         <Button label="保存" icon="pi pi-check" :loading="isSubmitting" @click="handleSubmit" />
       </div>

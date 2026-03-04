@@ -257,6 +257,34 @@
                       </div>
                     </div>
                   </div>
+                  <div class="spec-card">
+                    <div class="spec-card__title">
+                      <i class="pi pi-box"></i>
+                      包装与物流
+                    </div>
+                    <div class="spec-card__body">
+                      <div class="spec-row">
+                        <span>外箱尺寸 (L*W*H)</span>
+                        <span>{{ formatOuterBoxDimensions(selectedProduct) || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>一箱台数 (PCS)</span>
+                        <span>{{ selectedProduct.pcsPerBox || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>外箱总重</span>
+                        <span>{{ selectedProduct.outerBoxWeight ? `${selectedProduct.outerBoxWeight} kg` : '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>外箱排量 (CBM)</span>
+                        <span>{{ calculateOuterCbm(selectedProduct) || '--' }}</span>
+                      </div>
+                      <div class="spec-row">
+                        <span>单台排量 (CBM)</span>
+                        <span>{{ calculateCbmPerPcs(selectedProduct) || '--' }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div class="note-section" v-if="selectedProduct.description">
                   <div class="note-title">备注说明</div>
@@ -327,6 +355,13 @@ type Product = {
   bluetoothVersion?: string | null;
   autoObstacle: boolean;
   autoScreenFit: boolean;
+  
+  // Packaging & Logistics
+  outerBoxLength?: number | null;
+  outerBoxWidth?: number | null;
+  outerBoxHeight?: number | null;
+  pcsPerBox?: number | null;
+  outerBoxWeight?: number | null;
 };
 
 const products = ref<Product[]>([]);
@@ -449,6 +484,31 @@ const formatDimensions = (product?: Product | null) => {
   if (!product) return null;
   if (product.lengthMm && product.widthMm && product.heightMm) {
     return `${product.lengthMm} x ${product.widthMm} x ${product.heightMm}`;
+  }
+  return null;
+};
+
+const formatOuterBoxDimensions = (product?: Product | null) => {
+  if (!product) return null;
+  if (product.outerBoxLength && product.outerBoxWidth && product.outerBoxHeight) {
+    return `${product.outerBoxLength} x ${product.outerBoxWidth} x ${product.outerBoxHeight} cm`;
+  }
+  return null;
+};
+
+const calculateOuterCbm = (product?: Product | null) => {
+  if (!product) return null;
+  if (product.outerBoxLength && product.outerBoxWidth && product.outerBoxHeight) {
+    return ((product.outerBoxLength * product.outerBoxWidth * product.outerBoxHeight) / 1000000).toFixed(4);
+  }
+  return null;
+};
+
+const calculateCbmPerPcs = (product?: Product | null) => {
+  if (!product) return null;
+  const cbm = calculateOuterCbm(product);
+  if (cbm && product.pcsPerBox && product.pcsPerBox > 0) {
+    return (Number(cbm) / product.pcsPerBox).toFixed(4);
   }
   return null;
 };

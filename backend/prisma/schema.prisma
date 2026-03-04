@@ -119,9 +119,11 @@ model SalesData {
   store   Store  @relation(fields: [storeId], references: [id])
   storeId String
 
-  platform      Platform
-  externalTitle String?
-  externalSku   String?
+  platform        Platform
+  externalTitle   String?
+  externalSku     String?
+  variationName   String?
+  platformSkuId   String?
 
   listing   StoreProductListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
   listingId String?
@@ -194,13 +196,20 @@ model Product {
   name        String
   description String?         @db.Text
   imageUrl    String?
-  category    ProductCategory
+  category    String
 
   cost     Float?
   weightKg Float?
   lengthMm Int?
   widthMm  Int?
   heightMm Int?
+
+  // Packaging & Logistics
+  outerBoxLength Int?
+  outerBoxWidth  Int?
+  outerBoxHeight Int?
+  pcsPerBox      Int?
+  outerBoxWeight Float?
 
   publicName            String?
   resolution            String?
@@ -264,14 +273,16 @@ model ListingMapping {
   listingId String
   platform  Platform
 
-  externalTitle String?
-  externalSku   String?
+  platformSkuId String?  // 平台生成的唯一ID（TK独有，参与组合防“换皮”）
+  externalTitle String?  // 商品原标题
+  externalSku   String?  // 卖家填写的SKU / 参考号
+  variationName String?  // 变体名
 
   createdAt DateTime @default(now())
 
   @@index([listingId])
-  @@index([externalTitle])
-  @@index([externalSku])
+  @@index([platform, platformSkuId, externalSku])
+  @@index([platform, externalTitle, externalSku, variationName])
 }
 
 // --- 10. SOP/责任人 (OperationModule) ---

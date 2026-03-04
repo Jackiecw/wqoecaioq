@@ -3,49 +3,55 @@
     :visible="isOpen"
     modal
     :style="{ width: '32rem' }"
+    :breakpoints="{ '960px': '75vw', '640px': '90vw' }"
     :header="dialogTitle"
+    :dismissableMask="true"
+    :draggable="false"
+    class="p-dialog-custom"
     @update:visible="onDialogToggle"
   >
-    <section class="flex flex-column gap-3">
-      <div class="flex flex-column gap-2">
-        <label for="link-title" class="text-sm font-semibold text-color">标题</label>
-        <InputText
-          id="link-title"
-          v-model="formData.title"
-          class="w-full"
-          autocomplete="off"
-          placeholder="例如：Google Drive"
-        />
-      </div>
+    <div class="flex flex-col gap-6 pt-1">
+      <div class="grid grid-cols-1 gap-4">
+        <div class="flex flex-col gap-2">
+          <label for="link-title" class="text-sm font-medium text-[var(--color-text-secondary)]">标题 <span class="text-red-500">*</span></label>
+          <InputText
+            id="link-title"
+            v-model="formData.title"
+            class="w-full"
+            autocomplete="off"
+            placeholder="例如：Google Drive"
+          />
+        </div>
 
-      <div class="flex flex-column gap-2">
-        <label for="link-url" class="text-sm font-semibold text-color">URL</label>
-        <InputText
-          id="link-url"
-          v-model="formData.url"
-          class="w-full"
-          type="url"
-          placeholder="https://..."
-        />
-      </div>
+        <div class="flex flex-col gap-2">
+          <label for="link-url" class="text-sm font-medium text-[var(--color-text-secondary)]">URL <span class="text-red-500">*</span></label>
+          <InputText
+            id="link-url"
+            v-model="formData.url"
+            class="w-full"
+            type="url"
+            placeholder="https://..."
+          />
+        </div>
 
-      <div class="flex flex-column gap-2">
-        <label for="link-description" class="text-sm font-semibold text-color">描述（可选）</label>
-        <Textarea
-          id="link-description"
-          v-model="formData.description"
-          class="w-full"
-          auto-resize
-          rows="3"
-          placeholder="简短说明用途"
-        />
+        <div class="flex flex-col gap-2">
+          <label for="link-description" class="text-sm font-medium text-[var(--color-text-secondary)]">描述（可选）</label>
+          <Textarea
+            id="link-description"
+            v-model="formData.description"
+            class="w-full"
+            auto-resize
+            rows="3"
+            placeholder="简短说明用途"
+          />
+        </div>
       </div>
 
       <Message v-if="errorMessage" severity="error" :closable="false">
         {{ errorMessage }}
       </Message>
 
-      <div class="flex justify-content-end gap-2 pt-2">
+      <div class="flex justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
         <Button
           type="button"
           label="取消"
@@ -62,7 +68,7 @@
           :loading="isLoading"
         />
       </div>
-    </section>
+    </div>
   </Dialog>
 </template>
 

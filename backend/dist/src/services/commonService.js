@@ -4,15 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const prismaClient_1 = __importDefault(require("../../prismaClient"));
-const DEFAULT_RATES = {
-    CNY_USD: 0.138,
-    CNY_IDR: 2200,
-    CNY_VND: 3450,
-    CNY_THB: 4.8,
-    CNY_MYR: 0.65,
-    CNY_PHP: 7.8,
-    CNY_SGD: 0.185,
-};
+const dataHelpers_1 = require("../utils/dataHelpers");
 class CommonService {
     async getCountries() {
         return await prismaClient_1.default.managedCountry.findMany({
@@ -20,17 +12,19 @@ class CommonService {
         });
     }
     async getExchangeRates() {
-        // TODO: Implement DB storage for rates
+        console.log('[DEBUG] getExchangeRates called - using getRates from dataHelpers');
+        const { rates, lastFetched } = await (0, dataHelpers_1.getRates)();
+        console.log('[DEBUG] getRates returned:', { rates, lastFetched });
         return {
-            rates: DEFAULT_RATES,
-            updatedAt: new Date().toISOString()
+            rates,
+            updatedAt: lastFetched ? new Date(lastFetched).toISOString() : new Date().toISOString()
         };
     }
     async refreshExchangeRates() {
-        // TODO: Implement actual fetching
+        const { rates, lastFetched } = await (0, dataHelpers_1.getRates)({ forceRefresh: true });
         return {
-            rates: DEFAULT_RATES,
-            updatedAt: new Date().toISOString()
+            rates,
+            updatedAt: lastFetched ? new Date(lastFetched).toISOString() : new Date().toISOString()
         };
     }
     async getRefreshQuota() {

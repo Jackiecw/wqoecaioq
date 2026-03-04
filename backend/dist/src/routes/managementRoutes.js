@@ -10,6 +10,7 @@ const router = express_1.default.Router();
 router.use(adminMiddleware_1.default);
 // Options
 router.get('/management-options', managementController_1.default.getOptions);
+router.get('/store-platforms', managementController_1.default.getStorePlatforms);
 // Stores
 router.get('/stores', managementController_1.default.getAllStores);
 router.get('/stores/:id', managementController_1.default.getStoreById);

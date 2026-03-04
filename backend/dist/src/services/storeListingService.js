@@ -146,6 +146,7 @@ class StoreListingService {
                 storeImageUrl: true,
                 product: {
                     select: {
+                        id: true,
                         sku: true,
                         name: true,
                         publicName: true

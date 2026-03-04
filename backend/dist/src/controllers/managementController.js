@@ -33,6 +33,15 @@ class ManagementController {
             next(error);
         }
     }
+    async getStorePlatforms(req, res, next) {
+        try {
+            const options = await managementService_1.default.getOptions();
+            res.json(options.platforms);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
     // --- Stores ---
     async getAllStores(req, res, next) {
         try {

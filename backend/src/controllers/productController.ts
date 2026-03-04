@@ -9,7 +9,7 @@ const productSchema = z.object({
     sku: z.string().min(1, "SKU 不能为空"),
     name: z.string().min(1, "商品名称不能为空"),
     description: z.string().optional().nullable(),
-    category: z.nativeEnum(ProductCategory),
+    category: z.string().min(1, "产品分类不能为空"),
 
     publicName: z.string().optional().nullable(),
 
@@ -18,6 +18,12 @@ const productSchema = z.object({
     lengthMm: z.preprocess(val => parseInt(val as string) || null, z.number().int().optional().nullable()),
     widthMm: z.preprocess(val => parseInt(val as string) || null, z.number().int().optional().nullable()),
     heightMm: z.preprocess(val => parseInt(val as string) || null, z.number().int().optional().nullable()),
+
+    outerBoxLength: z.preprocess(val => parseInt(val as string) || null, z.number().int().optional().nullable()),
+    outerBoxWidth: z.preprocess(val => parseInt(val as string) || null, z.number().int().optional().nullable()),
+    outerBoxHeight: z.preprocess(val => parseInt(val as string) || null, z.number().int().optional().nullable()),
+    pcsPerBox: z.preprocess(val => parseInt(val as string) || null, z.number().int().optional().nullable()),
+    outerBoxWeight: z.preprocess(val => parseFloat(val as string) || null, z.number().optional().nullable()),
 
     resolution: z.string().optional().nullable(),
     brightnessAnsi: z.preprocess(val => parseInt(val as string) || null, z.number().int().optional().nullable()),

@@ -181,6 +181,44 @@
                   </div>
                 </div>
 
+                <!-- Section 5: 历史标题与别名映射 -->
+                <div class="form-section" v-if="isEditMode">
+                  <div class="section-title">
+                    <i class="pi pi-link"></i>
+                    匹配别名 / 历史标题映射
+                    <span class="optional">(自动保存)</span>
+                  </div>
+                  
+                  <div class="mapping-list" v-if="mappings.length > 0">
+                    <div v-for="mapping in mappings" :key="mapping.id" class="mapping-item">
+                      <div class="mapping-info">
+                        <span v-if="mapping.externalTitle" class="m-title">{{ mapping.externalTitle }}</span>
+                        <div class="m-meta">
+                          <span v-if="mapping.externalSku" class="m-sku">SKU: {{ mapping.externalSku }}</span>
+                          <span v-if="mapping.variationName" class="m-var">变体: {{ mapping.variationName }}</span>
+                        </div>
+                      </div>
+                      <button class="btn-icon delete-btn" @click="deleteMapping(mapping.id)" title="删除映射">
+                        <i class="pi pi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div v-else class="mapping-empty">
+                    暂无历史别名记录
+                  </div>
+
+                  <div class="mapping-add-form">
+                    <input type="text" v-model="newMapping.externalTitle" class="field-input" placeholder="输入历史标题 (原样复制)" />
+                    <div class="mapping-add-row">
+                      <input type="text" v-model="newMapping.externalSku" class="field-input" placeholder="外部 SKU (选填)" />
+                      <input type="text" v-model="newMapping.variationName" class="field-input" placeholder="变体名 (选填)" />
+                      <button type="button" class="btn-secondary" @click="addMapping" :disabled="isAddingMapping || (!newMapping.externalTitle && !newMapping.externalSku)">
+                        添加
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <p v-if="errorMessage" class="error-message">
                   <i class="pi pi-exclamation-circle"></i>
                   {{ errorMessage }}
@@ -250,6 +288,13 @@ type OptionPayload = {
   currencyMap?: Record<string, string>;
 };
 
+type ListingMapping = {
+  id: string;
+  externalTitle?: string;
+  externalSku?: string;
+  variationName?: string;
+};
+
 const defaultFormData = (): ListingFormState => ({
   productId: '',
   storeId: '',
@@ -271,6 +316,10 @@ const selectedFile = ref<File | null>(null);
 const previewUrl = ref<string | null>(null);
 const errorMessage = ref<string>('');
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace('/api', '');
+
+const mappings = ref<ListingMapping[]>([]);
+const newMapping = ref({ externalTitle: '', externalSku: '', variationName: '' });
+const isAddingMapping = ref(false);
 
 const isEditMode = computed(() => !!props.listingToEditId);
 const {
@@ -368,6 +417,8 @@ async function fetchListingDetails() {
     if (listing.storeImageUrl) {
       previewUrl.value = `${apiBaseUrl}${listing.storeImageUrl}`;
     }
+
+    await fetchMappings();
   } catch (error) {
     console.error('加载详情失败:', error);
     errorMessage.value = '加载此商品详情失败，请关闭后重试。';
@@ -390,6 +441,40 @@ function onFileSelected(event: Event) {
       URL.revokeObjectURL(previewUrl.value);
     }
     previewUrl.value = URL.createObjectURL(file);
+  }
+}
+
+async function fetchMappings() {
+  if (!isEditMode.value) return;
+  try {
+    const res = await apiClient.get(`/admin/store-listings/${props.listingToEditId}/mappings`);
+    mappings.value = res.data;
+  } catch (err) {
+    console.error('获取映射失败', err);
+  }
+}
+
+async function addMapping() {
+  if (!newMapping.value.externalTitle && !newMapping.value.externalSku) return;
+  isAddingMapping.value = true;
+  try {
+    await apiClient.post(`/admin/store-listings/${props.listingToEditId}/mappings`, newMapping.value);
+    newMapping.value = { externalTitle: '', externalSku: '', variationName: '' };
+    await fetchMappings();
+  } catch (err: any) {
+    alert(err.response?.data?.error || '添加失败，请重试');
+  } finally {
+    isAddingMapping.value = false;
+  }
+}
+
+async function deleteMapping(id: string) {
+  if (!confirm('确认删除该别名映射吗？')) return;
+  try {
+    await apiClient.delete(`/admin/store-listings/mappings/${id}`);
+    await fetchMappings();
+  } catch (err) {
+    alert('删除失败');
   }
 }
 
@@ -483,6 +568,8 @@ function resetForm() {
   errorMessage.value = '';
   isLoadingMessage.value = '';
   selectedCountryCode.value = '';
+  mappings.value = [];
+  newMapping.value = { externalTitle: '', externalSku: '', variationName: '' };
 }
 </script>
 
@@ -782,6 +869,31 @@ function resetForm() {
   color: var(--color-text-primary);
 }
 
+.btn-secondary {
+  padding: 0 1rem;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-bg-page);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-submit {
   display: inline-flex;
   align-items: center;
@@ -814,5 +926,90 @@ function resetForm() {
   .field-group--wide {
     grid-column: span 1;
   }
+}
+
+/* Mapping Custom Styles */
+.mapping-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mapping-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-page);
+}
+
+.mapping-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.m-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.m-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.m-sku::before, .m-var::before {
+  content: "·";
+  margin-right: 0.25rem;
+  color: var(--color-border);
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.delete-btn:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.mapping-empty {
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.mapping-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--color-bg-page);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.mapping-add-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mapping-add-row .field-input {
+  flex: 1;
 }
 </style>

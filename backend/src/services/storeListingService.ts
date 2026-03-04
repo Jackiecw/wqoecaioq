@@ -268,6 +268,54 @@ export class StoreListingService {
 
         await prisma.storeProductListing.delete({ where: { id } });
     }
+
+    // --- Listing Mappings ---
+
+    async getMappings(listingId: string) {
+        return await prisma.listingMapping.findMany({
+            where: { listingId },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async getMappingById(mappingId: string) {
+        return await prisma.listingMapping.findUnique({
+            where: { id: mappingId },
+            include: { listing: { include: { store: true } } }
+        });
+    }
+
+    async createMapping(listingId: string, data: any) {
+        let platform = data.platform;
+        if (!platform) {
+            const listing = await prisma.storeProductListing.findUnique({
+                where: { id: listingId },
+                include: { store: true }
+            });
+            if (listing?.store?.platform) {
+                platform = listing.store.platform;
+            } else {
+                platform = 'OTHER';
+            }
+        }
+
+        return await prisma.listingMapping.create({
+            data: {
+                listingId,
+                platform,
+                externalTitle: data.externalTitle || null,
+                externalSku: data.externalSku || null,
+                platformSkuId: data.platformSkuId || null,
+                variationName: data.variationName || null,
+            }
+        });
+    }
+
+    async deleteMapping(mappingId: string) {
+        await prisma.listingMapping.delete({
+            where: { id: mappingId }
+        });
+    }
 }
 
 export default new StoreListingService();

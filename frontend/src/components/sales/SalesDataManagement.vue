@@ -6,109 +6,85 @@
 
     <!-- Filter Section - Matches DataImport style -->
     <ContentCard class="mb-4">
-      <!-- Country Selection as Pill Tabs -->
-      <div class="filter-section">
-        <h3 class="filter-section-title">选择国家</h3>
-        <div class="pill-tab-group">
-          <button
-            v-for="country in countryOptions"
-            :key="country.code"
-            @click="selectCountry(country.code)"
-            class="pill-tab"
-            :class="{ 'is-active': filters.countryCode === country.code }"
-          >
-            {{ country.name }}
-          </button>
-          <button
-            v-if="filters.countryCode"
-            @click="selectCountry(null)"
-            class="pill-tab pill-tab--clear"
-          >
-            <i class="pi pi-times"></i>
-            清除
-          </button>
+      <!-- Filters in Inline Style -->
+      <div class="flex items-center gap-4 flex-wrap py-2">
+        <div>
+          <Dropdown
+            v-model="filters.countryCode"
+            :options="countryOptions"
+            option-label="name"
+            option-value="code"
+            placeholder="选择国家"
+            class="w-[11rem] bg-white h-[36px] flex items-center"
+            panelClass="clean-dropdown-panel no-filter"
+            show-clear
+          />
         </div>
-      </div>
-
-      <!-- Other Filters in Inline Style -->
-      <div class="inline-filters">
-        <div class="filter-group">
-          <label class="filter-group-label">店铺</label>
+        <div>
           <Dropdown
             v-model="filters.storeId"
             :options="storeOptions"
             option-label="name"
             option-value="id"
-            :placeholder="filters.countryCode ? '选择店铺' : '请先选择国家'"
-            class="filter-dropdown"
+            placeholder="由于已选国家，请选择对应店铺"
+            class="w-[13rem] bg-white h-[36px] flex items-center"
             panelClass="clean-dropdown-panel no-filter"
             :show-clear="!!filters.storeId"
-            :disabled="!filters.countryCode"
+            v-if="filters.countryCode"
+          />
+          <Dropdown
+            v-model="filters.storeId"
+            :options="storeOptions"
+            option-label="name"
+            option-value="id"
+            placeholder="全部店铺"
+            class="w-[13rem] bg-white h-[36px] flex items-center"
+            panelClass="clean-dropdown-panel no-filter"
+            :show-clear="!!filters.storeId"
+            v-else
           />
         </div>
 
-        <div class="filter-group">
-          <label class="filter-group-label">日期范围</label>
-          <div class="date-range-inline">
-            <Calendar 
-              v-model="filters.startDate" 
-              date-format="yy-mm-dd" 
-              placeholder="开始日期" 
-              inputClass="filter-input" 
-              :showIcon="true"
-              iconDisplay="input"
-              showButtonBar
-            />
-            <span class="date-range-sep">至</span>
-            <Calendar 
-              v-model="filters.endDate" 
-              date-format="yy-mm-dd" 
-              placeholder="结束日期" 
-              inputClass="filter-input" 
-              :showIcon="true"
-              iconDisplay="input"
-              showButtonBar
-            />
-          </div>
+        <div class="h-[36px] flex items-center">
+          <Calendar 
+            v-model="dateRange" 
+            selectionMode="range"
+            :manualInput="false"
+            date-format="yy-mm-dd" 
+            placeholder="筛选成单日范围..." 
+            inputClass="w-[17rem] h-[36px]" 
+            :showIcon="true"
+            iconDisplay="input"
+            showButtonBar
+          />
         </div>
 
-        <div class="filter-group">
-          <label class="filter-group-label">订单状态</label>
+        <div>
           <Dropdown
             v-model="filters.orderStatus"
             :options="statusOptions"
             option-label="label"
             option-value="value"
-            placeholder="全部状态"
-            class="filter-dropdown"
+            placeholder="按订单状态"
+            class="w-[11rem] bg-white h-[36px] flex items-center"
             panelClass="clean-dropdown-panel no-filter"
             :show-clear="!!filters.orderStatus"
           />
         </div>
 
-        <div class="filter-group filter-group--search">
-          <label class="filter-group-label">订单搜索</label>
-          <IconField>
-            <InputIcon class="pi pi-search" />
+        <div class="flex-1 min-w-[220px] max-w-[360px] h-[36px] flex items-center">
+          <IconField class="w-full h-full text-gray-400 relative">
+            <InputIcon class="pi pi-search text-gray-400 z-10 absolute left-3 top-1/2 -translate-y-1/2" />
             <InputText 
               v-model="searchQuery" 
-              placeholder="输入订单号..." 
-              class="filter-search-input" 
-              @keyup.enter="fetchData(true)" 
+              placeholder="搜索单号、SKU或商品名..." 
+              class="w-full bg-white transition-colors h-[36px] m-0 pl-10" 
+              autocomplete="off"
             />
           </IconField>
         </div>
 
-        <div class="filter-group filter-group--actions">
-          <span class="filter-group-label">&nbsp;</span>
-          <div class="action-buttons-row">
-            <Button
-              label="应用筛选"
-              icon="pi pi-check"
-              severity="primary"
-              size="small"
-              @click="fetchData(true)"
-            />
+        <div class="ml-auto flex items-center h-[36px]">
             <Button
               v-if="hasActiveFilters"
               label="重置"
@@ -117,8 +93,8 @@
               severity="secondary"
               size="small"
               @click="resetFilters"
+              class="text-gray-500 hover:text-gray-900"
             />
-          </div>
         </div>
       </div>
     </ContentCard>
@@ -152,7 +128,7 @@
                 severity="secondary"
                 text
                 rounded
-                v-tooltip="'显示列'"
+                title="显示列"
                 @click="showColumnMenu = !showColumnMenu"
               />
               <div v-if="showColumnMenu" class="column-menu">
@@ -200,105 +176,127 @@
 
         <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
-        <Column v-if="visibleColumns.includes('platformOrderId')" field="platformOrderId" header="订单号" style="min-width: 10rem">
+        <!-- 1. 订单信息 (合并订单号+下单时间) -->
+        <Column v-if="visibleColumns.includes('orderInfo')" header="订单信息" style="min-width: 14rem" headerClass="text-left">
           <template #body="{ data }">
-            <span class="order-number">{{ data.platformOrderId || '-' }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('recordDate')" field="recordDate" header="下单时间" sortable style="width: 10rem">
-          <template #body="{ data }">
-            <span class="date-cell">{{ formatDateTime(data.recordDate) }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('country')" header="国家" style="width: 5rem">
-          <template #body="{ data }">
-            <span class="country-cell">{{ data.store?.country?.code || '-' }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('store')" header="店铺" style="min-width: 10rem">
-          <template #body="{ data }">
-            <div class="store-info">
-              <span class="store-name" :title="data.store?.name">{{ data.store?.name || '-' }}</span>
-              <span class="store-platform">{{ data.store?.platform || '' }}</span>
+            <div class="flex flex-col gap-1">
+              <span class="font-semibold text-gray-900 leading-none">{{ data.platformOrderId || '-' }}</span>
+              <span class="text-xs text-gray-500 flex items-center gap-1">
+                <i class="pi pi-clock text-[10px]"></i>
+                {{ formatDateTime(data.recordDate) }}
+              </span>
             </div>
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('product')" header="商品/SKU" style="min-width: 14rem">
+        <!-- 2. 店铺与平台 (合并国家+平台+店铺名) -->
+        <Column v-if="visibleColumns.includes('storeInfo')" header="渠道与店铺" style="min-width: 12rem" headerClass="text-left">
           <template #body="{ data }">
-            <div class="product-cell">
-              <span class="product-code">{{ data.listing?.productCode || '未关联' }}</span>
-              <span class="product-sku">{{ data.product?.sku || 'SKU 缺失' }}</span>
+            <div class="flex flex-col gap-1.5 align-start">
+              <div class="flex items-center gap-1.5">
+                <span class="inline-flex items-center justify-center bg-gray-100 text-gray-600 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-200 uppercase tracking-wider">
+                  {{ data.store?.country?.code || '-' }}
+                </span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" :class="getPlatformTagClass(data.store?.platform)">
+                  {{ data.store?.platform || 'OTHER' }}
+                </span>
+              </div>
+              <span class="text-sm text-gray-800 leading-none truncate max-w-[150px]" :title="data.store?.name">
+                {{ data.store?.name || '-' }}
+              </span>
             </div>
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('orderStatus')" field="orderStatus" header="状态" class="text-center" headerClass="text-center" style="width: 8rem">
+        <!-- 3. 商品与规格 (合并Code和SKU) -->
+        <Column v-if="visibleColumns.includes('productInfo')" header="商品规格" style="min-width: 14rem; max-width: 20rem" headerClass="text-left">
           <template #body="{ data }">
-            <div class="flex justify-center">
-                <div v-if="data.orderStatus" class="status-badge" :class="statusClass(data.orderStatus)">
-                  <span>{{ ORDER_STATUS_MAP[data.orderStatus] || data.orderStatus }}</span>
+            <div class="flex flex-col gap-1.5">
+              <span class="text-sm font-medium text-gray-900 leading-tight line-clamp-2">
+                {{ data.listing?.productCode || '未关联商品' }}
+              </span>
+              <div v-if="data.product?.sku" class="inline-flex items-center">
+                <span class="bg-blue-50 text-blue-700 text-[11px] font-mono px-1.5 py-0.5 rounded border border-blue-100">
+                  SKU: {{ data.product.sku }}
+                </span>
+              </div>
+            </div>
+          </template>
+        </Column>
+
+        <!-- 4. 订单状态 (合并状态+异常原因) -->
+        <Column v-if="visibleColumns.includes('statusInfo')" header="状态" style="width: 10rem" headerClass="text-center" class="text-center">
+          <template #body="{ data }">
+            <div class="flex flex-col items-center gap-1">
+              <div class="status-badge" :class="statusClass(data.orderStatus)">
+                <span>{{ ORDER_STATUS_MAP[data.orderStatus] || data.orderStatus || '未知' }}</span>
+              </div>
+              <span v-if="data.cancelReason" class="text-[11px] text-red-500 mt-0.5 leading-tight line-clamp-2" :title="data.cancelReason">
+                <i class="pi pi-info-circle text-[10px] mr-0.5"></i>{{ data.cancelReason }}
+              </span>
+            </div>
+          </template>
+        </Column>
+
+        <!-- 5. 销售金额 (合并销量+金额) -->
+        <Column v-if="visibleColumns.includes('financialInfo')" header="销售总额" class="text-right" headerClass="text-right" style="min-width: 10rem">
+          <template #body="{ data }">
+            <div class="flex flex-col items-end gap-1">
+              <span class="text-[15px] font-semibold text-gray-900 font-mono tracking-tight">
+                {{ formatNumber(data.revenue) }}
+              </span>
+              <span class="text-xs text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
+                x {{ data.salesVolume }} 件
+              </span>
+            </div>
+          </template>
+        </Column>
+
+        <!-- 6. 结算核销 (合并结算日期+结算金额) -->
+        <Column v-if="visibleColumns.includes('settlementInfo')" header="财务核销" class="text-right" headerClass="text-right" style="min-width: 10rem">
+          <template #body="{ data }">
+            <div v-if="data.settlementAmount || data.settlementDate" class="flex flex-col items-end gap-1">
+              <span class="text-sm font-medium text-green-700 font-mono">
+                {{ formatNumber(data.settlementAmount) }}
+              </span>
+              <span class="text-xs text-gray-400">
+                核销于 {{ formatDate(data.settlementDate) }}
+              </span>
+            </div>
+            <span v-else class="text-sm text-gray-300">-</span>
+          </template>
+        </Column>
+
+        <!-- 其他保留列 -->
+        <Column v-if="visibleColumns.includes('notes')" header="备注" style="width: 12rem; max-width: 16rem" headerClass="text-left">
+          <template #body="{ data }">
+            <span class="text-xs text-gray-600 line-clamp-2 leading-relaxed" :title="data.notes || ''">
+              {{ data.notes || '-' }}
+            </span>
+          </template>
+        </Column>
+
+        <Column v-if="visibleColumns.includes('enteredBy')" header="录入人" style="width: 6rem" headerClass="text-left">
+          <template #body="{ data }">
+             <div class="flex items-center gap-1.5">
+                <div class="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] text-gray-600 font-medium">
+                  {{ (data.enteredBy?.nickname || '?').charAt(0).toUpperCase() }}
                 </div>
-                <span v-else class="text-muted">-</span>
-            </div>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('cancelReason')" header="取消/退货原因" style="min-width: 10rem">
-          <template #body="{ data }">
-            <span class="notes-cell" :title="data.cancelReason || ''">{{ data.cancelReason || '-' }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('salesVolume')" field="salesVolume" header="销量" sortable class="text-right" headerClass="text-right" style="width: 6rem">
-          <template #body="{ data }">
-            <span class="number-cell">{{ data.salesVolume }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('revenue')" field="revenue" header="销售额" sortable class="text-right" headerClass="text-right" style="width: 8rem">
-          <template #body="{ data }">
-            <span class="revenue-cell">{{ formatNumber(data.revenue) }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('settlementDate')" field="settlementDate" header="结算时间" style="width: 8rem">
-          <template #body="{ data }">
-            <span class="date-cell">{{ formatDate(data.settlementDate) }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('settlementAmount')" field="settlementAmount" header="结算金额" class="text-right" headerClass="text-right" style="width: 8rem">
-          <template #body="{ data }">
-            <span class="revenue-cell">{{ formatNumber(data.settlementAmount) }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('notes')" header="备注" style="min-width: 10rem">
-          <template #body="{ data }">
-            <span class="notes-cell" :title="data.notes || ''">{{ data.notes || '-' }}</span>
-          </template>
-        </Column>
-
-        <Column v-if="visibleColumns.includes('enteredBy')" header="录入人" style="width: 7rem">
-          <template #body="{ data }">
-            {{ data.enteredBy?.nickname || '-' }}
+                <span class="text-xs text-gray-700">{{ data.enteredBy?.nickname || '-' }}</span>
+             </div>
           </template>
         </Column>
 
         <Column header="操作" style="width: 5rem" frozen alignFrozen="right" headerClass="text-center" class="text-center action-col">
           <template #body="{ data }">
-            <div v-if="data.canManage" class="action-buttons">
+            <div v-if="data.canManage" class="flex items-center justify-center gap-1">
               <Button
                 icon="pi pi-pencil"
                 severity="secondary"
                 text
                 size="small"
-                class="w-7 h-7"
-                v-tooltip.bottom="'编辑'"
+                class="w-8 h-8 !p-0"
+                title="编辑"
                 @click="openEditModal(data)"
               />
               <Button
@@ -306,8 +304,8 @@
                 severity="danger"
                 text
                 size="small"
-                class="w-7 h-7"
-                v-tooltip.bottom="'删除'"
+                class="w-8 h-8 !p-0"
+                title="删除"
                 @click="handleDelete(data.id)"
               />
             </div>
@@ -459,17 +457,12 @@ const total = ref(0);
 const showColumnMenu = ref(false);
 
 const toggleableColumns = [
-  { field: 'platformOrderId', header: '订单号' },
-  { field: 'recordDate', header: '下单时间' },
-  { field: 'country', header: '国家' },
-  { field: 'store', header: '店铺' },
-  { field: 'product', header: '商品/SKU' },
-  { field: 'orderStatus', header: '状态' },
-  { field: 'cancelReason', header: '取消/退货原因' },
-  { field: 'salesVolume', header: '销量' },
-  { field: 'revenue', header: '销售额' },
-  { field: 'settlementDate', header: '结算时间' },
-  { field: 'settlementAmount', header: '结算金额' },
+  { field: 'orderInfo', header: '订单信息' },
+  { field: 'storeInfo', header: '店铺与平台' },
+  { field: 'productInfo', header: '商品/SKU' },
+  { field: 'statusInfo', header: '订单状态' },
+  { field: 'financialInfo', header: '销售金额' },
+  { field: 'settlementInfo', header: '结算核销' },
   { field: 'notes', header: '备注' },
   { field: 'enteredBy', header: '录入人' },
 ];
@@ -509,11 +502,12 @@ const defaultFilters = (): Filters => ({
 });
 
 const filters = ref<Filters>(defaultFilters());
+const dateRange = ref<Date[] | null>(null); // 新增双日期绑定
 const sorting = ref<{ by: string; order: 'asc' | 'desc' }>({ by: 'recordDate', order: 'desc' });
 
 const hasActiveFilters = computed(() => {
   const f = filters.value;
-  return !!(f.startDate || f.endDate || f.countryCode || f.platform || f.storeId || f.orderStatus);
+  return !!(f.startDate || f.endDate || f.countryCode || f.platform || f.storeId || f.orderStatus || searchQuery.value);
 });
 
 const countryOptions = computed<CountryOption[]>(() => {
@@ -604,6 +598,24 @@ const statusClass = (status: string) => {
   }
 };
 
+const getPlatformColor = (platform: string | undefined | null) => {
+  switch (platform) {
+    case 'SHOPEE': return 'text-orange-500';
+    case 'LAZADA': return 'text-purple-600';
+    case 'TIKTOK_SHOP': return 'text-black';
+    default: return 'text-gray-500';
+  }
+};
+
+const getPlatformTagClass = (platform: string | undefined | null) => {
+  switch (platform) {
+    case 'SHOPEE': return 'bg-orange-50 text-orange-600 border border-orange-200';
+    case 'LAZADA': return 'bg-purple-50 text-purple-600 border border-purple-200';
+    case 'TIKTOK_SHOP': return 'bg-gray-800 text-white border border-gray-900';
+    default: return 'bg-gray-50 text-gray-600 border border-gray-200';
+  }
+};
+
 const onPage = (event: DataTablePageEvent) => {
   page.value = (event.page ?? 0) + 1;
   pageSize.value = event.rows ?? pageSize.value;
@@ -642,10 +654,41 @@ const formatDateInput = (date: Date) => {
 
 const resetFilters = () => {
   filters.value = defaultFilters();
+  dateRange.value = null;
+  searchQuery.value = '';
   sorting.value = { by: 'recordDate', order: 'desc' };
   page.value = 1;
-  fetchData();
 };
+
+// 自动触发查询逻辑：监听依赖并带有防抖处理
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+watch(
+  [
+    () => filters.value.countryCode,
+    () => filters.value.storeId,
+    () => filters.value.orderStatus,
+    () => dateRange.value, // 监听新数组
+    () => searchQuery.value,
+    () => sorting.value.by,
+    () => sorting.value.order,
+  ],
+  () => {
+    // 映射日期范围
+    if (dateRange.value && Array.isArray(dateRange.value)) {
+      filters.value.startDate = dateRange.value[0] || null;
+      filters.value.endDate = dateRange.value[1] || null;
+    } else {
+      filters.value.startDate = null;
+      filters.value.endDate = null;
+    }
+
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      fetchData(true);
+    }, 300); // 300ms防抖
+  },
+  { deep: true }
+);
 
 const fetchData = async (resetPage = false) => {
   if (resetPage) page.value = 1;
@@ -731,94 +774,33 @@ onMounted(async () => {
   gap: 1.5rem;
 }
 
-/* Filter Section Styling */
-.filter-section {
-  margin-bottom: 1.25rem;
-}
+/* Filter Section Styling Removed for Flat Layout */
 
-.filter-section-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-secondary, #6b7280);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
-}
-
-/* Pill Tab Clear Button */
-.pill-tab--clear {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--color-text-secondary, #6b7280);
-  border: 1px dashed var(--surface-300, #d1d5db);
-  background: transparent;
-}
-
-.pill-tab--clear:hover {
-  color: var(--red-600, #dc2626);
-  border-color: var(--red-300, #fca5a5);
-  background: var(--red-50, #fef2f2);
-}
-
-.pill-tab--clear i {
-  font-size: 0.75rem;
-}
-
-/* Inline Filters Layout */
-.inline-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch; /* Stretch to match heights */
-  gap: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--surface-100, #f3f4f6);
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  min-width: 160px;
-}
-
-.filter-group-label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-secondary, #6b7280);
-  height: 1.25rem; /* Fixed height for alignment */
-  line-height: 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.filter-group--search {
-  flex: 1;
-  min-width: 200px;
-  max-width: 300px;
-}
-
-.filter-group--actions {
-  display: flex;
-  flex-direction: column;
-  margin-left: auto;
-}
-
-.action-buttons-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-/* Filter Dropdown Styling */
-.filter-dropdown {
-  min-width: 160px;
-}
-
-:deep(.filter-dropdown) {
+:deep(.p-dropdown) {
   background: white;
   border: 1px solid var(--surface-200, #e5e7eb);
   border-radius: 0.5rem;
-  height: 2.5rem;
   transition: all 0.2s;
+}
+
+:deep(.p-dropdown:hover) {
+  border-color: var(--surface-300, #d1d5db);
+}
+
+:deep(.p-dropdown:not(.p-disabled).p-focus) {
+  box-shadow: 0 0 0 2px var(--primary-100);
+  border-color: var(--primary-500);
+}
+
+:deep(.p-inputtext.filter-input),
+:deep(.p-inputtext.w-full) {
+  border: 1px solid var(--surface-200, #e5e7eb);
+  border-radius: 0.5rem;
+}
+
+:deep(.p-inputtext:not(.p-disabled).p-focus) {
+  box-shadow: 0 0 0 2px var(--primary-100);
+  border-color: var(--primary-500);
 }
 
 :deep(.filter-dropdown:hover) {
@@ -831,6 +813,14 @@ onMounted(async () => {
 }
 
 :deep(.filter-dropdown .p-dropdown-label) {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Fix dropdown label vertical alignment */
+:deep(.p-dropdown .p-dropdown-label) {
+  display: flex;
+  align-items: center;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
 }
@@ -1076,22 +1066,17 @@ onMounted(async () => {
 
 .modern-table :deep(.p-datatable-tbody > tr) {
   background: white;
-  transition: background 0.1s;
+  transition: background-color 0.2s ease-in-out;
 }
 
-/* Remove stripes, keep hover */
+/* Row Hover Highlights */
 .modern-table :deep(.p-datatable-tbody > tr:hover) {
-  background: var(--surface-50);
-}
-
-/* Row border */
-.modern-table :deep(.p-datatable-tbody > tr) {
-    border-bottom: 1px solid var(--surface-50);
+  background-color: #f5f7fa !important;
 }
 
 .modern-table :deep(.p-datatable-tbody > tr > td) {
   padding: 0.85rem 1rem; /* More comfortable padding */
-  border: none;
+  border-bottom: 1px solid #f3f4f6;
   font-size: 0.9rem; /* Increased cell font size */
   color: var(--surface-700);
 }
