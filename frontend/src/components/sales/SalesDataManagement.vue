@@ -4,55 +4,53 @@
       {{ errorMessage }}
     </Message>
 
-    <!-- Filter Section - Matches DataImport style -->
-    <ContentCard class="mb-4">
-      <!-- Filters in Inline Style -->
-      <div class="flex items-center gap-4 flex-wrap py-2">
-        <div>
-          <Dropdown
-            v-model="filters.countryCode"
-            :options="countryOptions"
-            option-label="name"
-            option-value="code"
-            placeholder="选择国家"
-            class="w-[11rem] bg-white h-[36px] flex items-center"
-            panelClass="clean-dropdown-panel no-filter"
-            show-clear
-          />
-        </div>
-        <div>
-          <Dropdown
-            v-model="filters.storeId"
-            :options="storeOptions"
-            option-label="name"
-            option-value="id"
-            placeholder="由于已选国家，请选择对应店铺"
-            class="w-[13rem] bg-white h-[36px] flex items-center"
-            panelClass="clean-dropdown-panel no-filter"
-            :show-clear="!!filters.storeId"
-            v-if="filters.countryCode"
-          />
-          <Dropdown
-            v-model="filters.storeId"
-            :options="storeOptions"
-            option-label="name"
-            option-value="id"
-            placeholder="全部店铺"
-            class="w-[13rem] bg-white h-[36px] flex items-center"
-            panelClass="clean-dropdown-panel no-filter"
-            :show-clear="!!filters.storeId"
-            v-else
-          />
-        </div>
+    <!-- Global Context Teleport: Country Filter -->
+    <Teleport to="#sales-global-country" v-if="isMounted">
+      <Dropdown
+        v-model="filters.countryCode"
+        :options="countryOptions"
+        option-label="name"
+        option-value="code"
+        placeholder="选择国家"
+        class="w-[10rem] bg-transparent border-none shadow-none text-gray-800 font-medium h-[32px] flex items-center hover:bg-gray-100 transition-colors rounded-md !px-1"
+        panelClass="clean-dropdown-panel no-filter ghost-dropdown-panel"
+        show-clear
+      />
+    </Teleport>
 
-        <div class="h-[36px] flex items-center">
+    <!-- Filter Section (No ContentCard, Inline Flex Layout) -->
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-2">
+      <!-- Left: Store Tabs -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 xl:pb-0 scrollbar-hide flex-1">
+        <button 
+          class="flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap border"
+          :class="!filters.storeId ? 'bg-gray-800 text-white border-gray-800 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'"
+          @click="filters.storeId = null"
+        >
+          全部店铺
+        </button>
+        <button 
+          v-for="store in storeOptions" 
+          :key="store.id"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap border"
+          :class="filters.storeId === store.id ? 'bg-primary-50 text-primary-700 border-primary-200 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'"
+          @click="filters.storeId = store.id"
+        >
+          <span class="w-1.5 h-1.5 rounded-full" :class="store.platform === 'SHOPEE' ? 'bg-orange-500' : store.platform === 'TIKTOK_SHOP' ? 'bg-black' : 'bg-purple-600'"></span>
+          {{ store.name }}
+        </button>
+      </div>
+
+      <!-- Right: Functional Filters -->
+      <div class="flex items-center gap-3 shrink-0 flex-wrap xl:flex-nowrap">
+        <div class="h-[32px] flex items-center">
           <Calendar 
             v-model="dateRange" 
             selectionMode="range"
             :manualInput="false"
             date-format="yy-mm-dd" 
             placeholder="筛选成单日范围..." 
-            inputClass="w-[17rem] h-[36px]" 
+            inputClass="w-[15rem] h-[32px] !pr-8" 
             :showIcon="true"
             iconDisplay="input"
             showButtonBar
@@ -66,38 +64,36 @@
             option-label="label"
             option-value="value"
             placeholder="按订单状态"
-            class="w-[11rem] bg-white h-[36px] flex items-center"
+            class="w-[10rem] bg-white h-[32px] flex items-center border border-gray-200"
             panelClass="clean-dropdown-panel no-filter"
             :show-clear="!!filters.orderStatus"
           />
         </div>
 
-        <div class="flex-1 min-w-[220px] max-w-[360px] h-[36px] flex items-center">
+        <div class="flex-1 w-[200px] h-[32px] flex items-center">
           <IconField class="w-full h-full text-gray-400 relative">
             <InputIcon class="pi pi-search text-gray-400 z-10 absolute left-3 top-1/2 -translate-y-1/2" />
             <InputText 
               v-model="searchQuery" 
-              placeholder="搜索单号、SKU或商品名..." 
-              class="w-full bg-white transition-colors h-[36px] m-0 pl-10" 
+              placeholder="搜索单号..." 
+              class="w-full bg-white transition-colors h-[32px] m-0 !pl-9 border border-gray-200" 
               autocomplete="off"
             />
           </IconField>
         </div>
 
-        <div class="ml-auto flex items-center h-[36px]">
-            <Button
-              v-if="hasActiveFilters"
-              label="重置"
-              icon="pi pi-refresh"
-              text
-              severity="secondary"
-              size="small"
-              @click="resetFilters"
-              class="text-gray-500 hover:text-gray-900"
-            />
-        </div>
+        <Button
+          v-if="hasActiveFilters"
+          label="重置"
+          icon="pi pi-refresh"
+          text
+          severity="secondary"
+          size="small"
+          @click="resetFilters"
+          class="text-gray-500 hover:text-gray-900 !px-2"
+        />
       </div>
-    </ContentCard>
+    </div>
 
     <!-- Data Table Card -->
     <div class="table-card">
@@ -177,10 +173,10 @@
         <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
         <!-- 1. 订单信息 (合并订单号+下单时间) -->
-        <Column v-if="visibleColumns.includes('orderInfo')" header="订单信息" style="min-width: 14rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('orderInfo')" header="订单信息" style="min-width: 12rem; max-width: 16rem" headerClass="text-left">
           <template #body="{ data }">
-            <div class="flex flex-col gap-1">
-              <span class="font-semibold text-gray-900 leading-none">{{ data.platformOrderId || '-' }}</span>
+            <div class="flex flex-col gap-1.5">
+              <span class="font-semibold text-gray-900 leading-none truncate" :title="data.platformOrderId || ''">{{ data.platformOrderId || '-' }}</span>
               <span class="text-xs text-gray-500 flex items-center gap-1">
                 <i class="pi pi-clock text-[10px]"></i>
                 {{ formatDateTime(data.recordDate) }}
@@ -190,9 +186,9 @@
         </Column>
 
         <!-- 2. 店铺与平台 (合并国家+平台+店铺名) -->
-        <Column v-if="visibleColumns.includes('storeInfo')" header="渠道与店铺" style="min-width: 12rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('storeInfo')" header="渠道与店铺" style="min-width: 10rem; max-width: 14rem" headerClass="text-left">
           <template #body="{ data }">
-            <div class="flex flex-col gap-1.5 align-start">
+            <div class="flex flex-col gap-2 align-start">
               <div class="flex items-center gap-1.5">
                 <span class="inline-flex items-center justify-center bg-gray-100 text-gray-600 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-200 uppercase tracking-wider">
                   {{ data.store?.country?.code || '-' }}
@@ -201,7 +197,7 @@
                   {{ data.store?.platform || 'OTHER' }}
                 </span>
               </div>
-              <span class="text-sm text-gray-800 leading-none truncate max-w-[150px]" :title="data.store?.name">
+              <span class="text-[13px] text-gray-700 leading-none truncate w-full" :title="data.store?.name">
                 {{ data.store?.name || '-' }}
               </span>
             </div>
@@ -209,14 +205,14 @@
         </Column>
 
         <!-- 3. 商品与规格 (合并Code和SKU) -->
-        <Column v-if="visibleColumns.includes('productInfo')" header="商品规格" style="min-width: 14rem; max-width: 20rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('productInfo')" header="商品规格" style="min-width: 12rem; max-width: 18rem" headerClass="text-left">
           <template #body="{ data }">
-            <div class="flex flex-col gap-1.5">
-              <span class="text-sm font-medium text-gray-900 leading-tight line-clamp-2">
+            <div class="flex flex-col gap-2">
+              <span class="text-[13px] font-medium text-gray-900 leading-snug line-clamp-2" :title="data.listing?.productCode || ''">
                 {{ data.listing?.productCode || '未关联商品' }}
               </span>
               <div v-if="data.product?.sku" class="inline-flex items-center">
-                <span class="bg-blue-50 text-blue-700 text-[11px] font-mono px-1.5 py-0.5 rounded border border-blue-100">
+                <span class="bg-blue-50 text-blue-700 text-[10px] font-mono px-1.5 py-0.5 rounded border border-blue-100">
                   SKU: {{ data.product.sku }}
                 </span>
               </div>
@@ -225,13 +221,15 @@
         </Column>
 
         <!-- 4. 订单状态 (合并状态+异常原因) -->
-        <Column v-if="visibleColumns.includes('statusInfo')" header="状态" style="width: 10rem" headerClass="text-center" class="text-center">
+        <Column v-if="visibleColumns.includes('statusInfo')" header="状态" style="width: 120px" headerClass="text-center" class="text-center">
           <template #body="{ data }">
-            <div class="flex flex-col items-center gap-1">
+            <div class="flex flex-col items-center gap-1.5">
               <div class="status-badge" :class="statusClass(data.orderStatus)">
                 <span>{{ ORDER_STATUS_MAP[data.orderStatus] || data.orderStatus || '未知' }}</span>
               </div>
-              <span v-if="data.cancelReason" class="text-[11px] text-red-500 mt-0.5 leading-tight line-clamp-2" :title="data.cancelReason">
+              <span v-if="data.cancelReason" 
+                    v-tooltip.top="data.cancelReason"
+                    class="text-[10px] text-red-500 mt-0.5 leading-tight truncate max-w-[110px] cursor-help">
                 <i class="pi pi-info-circle text-[10px] mr-0.5"></i>{{ data.cancelReason }}
               </span>
             </div>
@@ -239,63 +237,48 @@
         </Column>
 
         <!-- 5. 销售金额 (合并销量+金额) -->
-        <Column v-if="visibleColumns.includes('financialInfo')" header="销售总额" class="text-right" headerClass="text-right" style="min-width: 10rem">
+        <Column v-if="visibleColumns.includes('financialInfo')" header="销售总额" class="text-right" headerClass="text-right" style="width: 130px">
           <template #body="{ data }">
-            <div class="flex flex-col items-end gap-1">
-              <span class="text-[15px] font-semibold text-gray-900 font-mono tracking-tight">
+            <div class="flex flex-col items-end gap-1.5">
+              <span class="text-[14px] font-semibold text-gray-900 font-mono tracking-tight">
                 {{ formatNumber(data.revenue) }}
               </span>
-              <span class="text-xs text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
-                x {{ data.salesVolume }} 件
+              <span class="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                x {{ data.salesVolume || 0 }} 件
               </span>
             </div>
-          </template>
-        </Column>
-
-        <!-- 6. 结算核销 (合并结算日期+结算金额) -->
-        <Column v-if="visibleColumns.includes('settlementInfo')" header="财务核销" class="text-right" headerClass="text-right" style="min-width: 10rem">
-          <template #body="{ data }">
-            <div v-if="data.settlementAmount || data.settlementDate" class="flex flex-col items-end gap-1">
-              <span class="text-sm font-medium text-green-700 font-mono">
-                {{ formatNumber(data.settlementAmount) }}
-              </span>
-              <span class="text-xs text-gray-400">
-                核销于 {{ formatDate(data.settlementDate) }}
-              </span>
-            </div>
-            <span v-else class="text-sm text-gray-300">-</span>
           </template>
         </Column>
 
         <!-- 其他保留列 -->
-        <Column v-if="visibleColumns.includes('notes')" header="备注" style="width: 12rem; max-width: 16rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('notes')" header="备注" style="min-width: 10rem; max-width: 14rem" headerClass="text-left">
           <template #body="{ data }">
-            <span class="text-xs text-gray-600 line-clamp-2 leading-relaxed" :title="data.notes || ''">
+            <span class="text-xs text-gray-500 line-clamp-2 leading-relaxed" :title="data.notes || ''">
               {{ data.notes || '-' }}
             </span>
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('enteredBy')" header="录入人" style="width: 6rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('enteredBy')" header="录入人" style="width: 100px" headerClass="text-left">
           <template #body="{ data }">
              <div class="flex items-center gap-1.5">
-                <div class="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] text-gray-600 font-medium">
+                <div class="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] text-gray-500 font-bold border border-gray-200">
                   {{ (data.enteredBy?.nickname || '?').charAt(0).toUpperCase() }}
                 </div>
-                <span class="text-xs text-gray-700">{{ data.enteredBy?.nickname || '-' }}</span>
+                <span class="text-[11px] text-gray-600 truncate max-w-[60px]">{{ data.enteredBy?.nickname || '-' }}</span>
              </div>
           </template>
         </Column>
 
-        <Column header="操作" style="width: 5rem" frozen alignFrozen="right" headerClass="text-center" class="text-center action-col">
+        <Column header="操作" style="width: 80px" frozen alignFrozen="right" headerClass="text-center" class="text-center action-col">
           <template #body="{ data }">
-            <div v-if="data.canManage" class="flex items-center justify-center gap-1">
+            <div v-if="data.canManage" class="flex items-center justify-center">
               <Button
                 icon="pi pi-pencil"
                 severity="secondary"
                 text
                 size="small"
-                class="w-8 h-8 !p-0"
+                class="w-7 h-7 !p-0"
                 title="编辑"
                 @click="openEditModal(data)"
               />
@@ -304,13 +287,16 @@
                 severity="danger"
                 text
                 size="small"
-                class="w-8 h-8 !p-0"
+                class="w-7 h-7 !p-0 ml-1"
                 title="删除"
                 @click="handleDelete(data.id)"
               />
             </div>
           </template>
         </Column>
+
+        <!-- 空白占位列，在大屏下吸收剩余空间 -->
+        <Column class="hidden xl:table-cell" />
       </DataTable>
     </div>
 
@@ -374,6 +360,40 @@
 .clean-dropdown-panel.no-filter .p-dropdown-filter-container {
     display: none;
 }
+
+/* Tooltip Customization (Modern White Float) */
+.p-tooltip .p-tooltip-text {
+    background-color: white !important;
+    color: var(--surface-800) !important;
+    font-size: 0.75rem !important; /* 12px */
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 0.5rem !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0,0,0,0.05) !important;
+    border: none !important;
+    line-height: var(--font-line-height, 1.5) !important;
+}
+.p-tooltip .p-tooltip-arrow {
+    display: none !important; /* Hide arrow for a cleaner look */
+}
+
+/* Fix PrimeVue DataTable Header Alignment */
+.p-datatable .p-datatable-thead > tr > th.text-center .p-column-header-content {
+    justify-content: center;
+}
+.p-datatable .p-datatable-thead > tr > th.text-right .p-column-header-content {
+    justify-content: flex-end;
+}
+
+/* Store Ghost Dropdown override */
+.ghost-dropdown-panel {
+    border: none !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 0.5rem !important;
+    margin-top: 0.25rem !important;
+}
+.ghost-dropdown-panel .p-dropdown-items {
+    padding: 0.25rem 0 !important;
+}
 </style>
 
 <script setup lang="ts">
@@ -387,11 +407,15 @@ import Message from 'primevue/message';
 import InputText from 'primevue/inputtext';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
+import Tooltip from 'primevue/tooltip';
 import { useAuthStore } from '@/stores/auth';
 import useStoreListings from '@/composables/useStoreListings';
 import SalesDataEditModal from './SalesDataEditModal.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
 import { salesService } from '@/services/salesService';
+
+// Define the v-tooltip directive so it resolves in the template
+const vTooltip = Tooltip;
 
 type CountryOption = { code: string; name: string };
 type StoreOption = { id: string; name: string; countryCode: string; platform: string; country?: CountryOption };
@@ -462,7 +486,6 @@ const toggleableColumns = [
   { field: 'productInfo', header: '商品/SKU' },
   { field: 'statusInfo', header: '订单状态' },
   { field: 'financialInfo', header: '销售金额' },
-  { field: 'settlementInfo', header: '结算核销' },
   { field: 'notes', header: '备注' },
   { field: 'enteredBy', header: '录入人' },
 ];
@@ -761,7 +784,10 @@ const handleSaleUpdated = (updatedRow: SalesRow) => {
   closeModal();
 };
 
+const isMounted = ref(false);
+
 onMounted(async () => {
+  isMounted.value = true;
   await fetchStores();
   fetchData();
 });

@@ -1,7 +1,10 @@
 <template>
   <header class="page-header-compact">
     <div class="title-wrap">
-      <h1 class="title">{{ title }}</h1>
+      <div class="title-row">
+        <h1 class="title">{{ title }}</h1>
+        <slot name="title-append"></slot>
+      </div>
       <p v-if="subtitle" class="subtitle">{{ subtitle }}</p>
       <slot name="meta"></slot>
     </div>

@@ -260,6 +260,7 @@ model StoreProductListing {
 
   currentPrice Float     @default(0)
   platformUrl  String?
+  platformProductId String? // ⬇️ 【新增】 平台链接ID
   lastSyncedAt DateTime? @updatedAt
 
   salesData SalesData[]

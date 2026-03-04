@@ -4,6 +4,9 @@
       title="销售数据"
       subtitle="查看与录入各大渠道的销售指标，保持数据同步"
     >
+      <template #title-append>
+        <div id="sales-global-country"></div>
+      </template>
       <template #actions>
         <span class="pill">当前模式：<strong>{{ currentTab === 'management' ? '数据管理' : '数据录入' }}</strong></span>
       </template>

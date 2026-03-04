@@ -159,6 +159,7 @@ export class StoreListingService {
                 id: true,
                 storeTitle: true,
                 productCode: true,
+                platformProductId: true,
                 storeImageUrl: true,
                 product: {
                     select: {

@@ -135,8 +135,17 @@
                         placeholder="0.00"
                       />
                     </div>
-                    <div class="field-group field-group--wide">
-                      <label>商品链接<span class="optional">(可选)</span></label>
+                    <div class="field-group">
+                      <label>商品链接 ID<span class="optional">(选填)</span></label>
+                      <input
+                        type="text"
+                        v-model="formData.platformProductId"
+                        class="field-input"
+                        placeholder="例如：123456789"
+                      />
+                    </div>
+                    <div class="field-group">
+                      <label>商品链接<span class="optional">(选填)</span></label>
                       <input
                         type="text"
                         v-model="formData.platformUrl"
@@ -281,6 +290,7 @@ type ListingFormState = {
   productCode: string;
   currentPrice: number | string;
   platformUrl: string;
+  platformProductId: string;
 };
 
 type OptionPayload = {
@@ -302,6 +312,7 @@ const defaultFormData = (): ListingFormState => ({
   productCode: '',
   currentPrice: '',
   platformUrl: '',
+  platformProductId: '',
 });
 
 const formData = ref<ListingFormState>(defaultFormData());
@@ -412,6 +423,7 @@ async function fetchListingDetails() {
       productCode: listing.productCode || '',
       currentPrice: listing.currentPrice ?? '',
       platformUrl: listing.platformUrl || '',
+      platformProductId: listing.platformProductId || '',
     };
 
     if (listing.storeImageUrl) {
@@ -489,6 +501,7 @@ async function handleSubmit() {
   const price = formData.value.currentPrice === '' ? '' : String(formData.value.currentPrice);
   payload.append('currentPrice', price);
   payload.append('platformUrl', formData.value.platformUrl || '');
+  payload.append('platformProductId', formData.value.platformProductId || '');
 
   if (selectedFile.value) {
     payload.append('storeImageUrl', selectedFile.value);

@@ -41,9 +41,9 @@
       <div class="w-2/3 flex flex-col bg-white">
         <!-- Search Bar -->
         <div class="p-4 border-b border-gray-200">
-          <IconField iconPosition="left" class="w-full">
+          <IconField class="w-full">
             <InputIcon class="pi pi-search" />
-            <InputText v-model="searchQuery" placeholder="搜索店铺在售商品 (标题 / SKU / Code)..." @input="handleSearch" class="w-full" />
+            <InputText v-model="searchQuery" placeholder="搜索店铺在售商品 (标题 / SKU / Code)..." @input="handleSearch" class="w-[100%]" />
           </IconField>
         </div>
 

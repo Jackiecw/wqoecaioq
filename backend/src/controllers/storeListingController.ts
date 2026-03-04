@@ -35,6 +35,7 @@ const createListingSchema = z.object({
     storeTitle: z.string().min(1, "storeTitle is required"),
     currentPrice: z.coerce.number().min(0, "currentPrice must be positive"),
     platformUrl: z.string().url("platformUrl must be a valid URL").optional().nullable().or(z.literal('')),
+    platformProductId: z.string().optional().nullable().or(z.literal('')),
 });
 
 const updateListingSchema = z.object({
@@ -42,6 +43,7 @@ const updateListingSchema = z.object({
     productCode: z.string().min(1, "productCode is required").optional(),
     currentPrice: z.coerce.number().min(0, "currentPrice must be positive").optional(),
     platformUrl: z.string().url("platformUrl must be a valid URL").optional().nullable().or(z.literal('')),
+    platformProductId: z.string().optional().nullable().or(z.literal('')),
 });
 
 const priceSyncSchema = z.object({

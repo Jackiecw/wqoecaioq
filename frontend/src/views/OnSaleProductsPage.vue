@@ -113,18 +113,18 @@
               </button>
             </div>
             <div class="panel-footer">
-              <button
+               <button
                 @click="changePage(currentPage - 1)"
                 :disabled="currentPage <= 1"
               >
-                ← 上一
+                ← 上一页
               </button>
               <span>{{ currentPage }} / {{ totalPages }}</span>
               <button
                 @click="changePage(currentPage + 1)"
                 :disabled="currentPage >= totalPages"
               >
-                下一 →
+                下一页 →
               </button>
             </div>
           </aside>
@@ -156,6 +156,9 @@
                   <span class="strong">
                     {{ selectedListing.productCode || '未设置' }}
                   </span>
+                  <span v-if="selectedListing.platformProductId" class="ml-3 text-sm text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                    ID {{ selectedListing.platformProductId }}
+                  </span>
                 </p>
                 <div>
                   <p class="label">售价</p>
@@ -165,7 +168,7 @@
                   </p>
                 </div>
                 <div class="stats-row">
-                  <span>上销量：<strong class="strong">{{ selectedListing.lastWeekSales }}</strong></span>
+                  <span>上月销量：<strong class="strong">{{ selectedListing.lastWeekSales }}</strong></span>
                   <span>本月销量：<strong class="strong">{{ selectedListing.thisMonthSales }}</strong></span>
                   <span>总销量：<strong class="strong">{{ selectedListing.totalSales }}</strong></span>
                 </div>
@@ -245,6 +248,7 @@ interface Listing {
   productCode?: string;
   store?: StoreInfo;
   platformUrl?: string;
+  platformProductId?: string;
   currentPrice?: number;
   currentPriceRmb?: number;
   lastWeekSales?: number;
