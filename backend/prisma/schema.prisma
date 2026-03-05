@@ -131,6 +131,8 @@ model SalesData {
   importBatch   ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
   importBatchId String?
 
+  source      String?
+
   createdAt DateTime @default(now())
   product   Product? @relation(fields: [productId], references: [id])
   productId String?
@@ -243,6 +245,15 @@ model Product {
 
   purchaseOrders PurchaseOrder[]
   shipmentItems  ShipmentItem[]
+}
+
+// --- 8.1 产品分类系统字典 (ProductCategory) ---
+model ProductCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // --- 9. 店铺商品上架 (StoreProductListing) 模型 ---
@@ -693,7 +704,7 @@ enum StoreStatus {
   CLOSED
 }
 
-enum ProductCategory {
+enum ProductCategoryEnum {
   PROJECTOR
   SCREEN
   STAND

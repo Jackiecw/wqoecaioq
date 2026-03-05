@@ -1,5 +1,5 @@
 import prisma from '../../prismaClient';
-import { Product, ProductCategory, OS_Type, Focus_Method, Keystone_Method, Prisma } from '@prisma/client';
+import { Product, ProductCategoryEnum, OS_Type, Focus_Method, Keystone_Method, Prisma } from '@prisma/client';
 import AppError from '../utils/AppError';
 import fs from 'fs';
 import path from 'path';
@@ -19,7 +19,7 @@ export class ProductService {
 
     async getProductOptions() {
         return {
-            categories: Object.values(ProductCategory),
+            categories: Object.values(ProductCategoryEnum),
             osTypes: Object.values(OS_Type),
             focusMethods: Object.values(Focus_Method),
             keystoneMethods: Object.values(Keystone_Method),

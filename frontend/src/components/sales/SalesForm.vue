@@ -161,6 +161,19 @@
           </select>
         </div>
 
+        <div class="field-group">
+          <label class="field-label">
+            <i class="pi pi-share-alt"></i>
+            来源
+          </label>
+          <input 
+            type="text" 
+            v-model="formOtherData.source" 
+            class="field-input" 
+            placeholder="例如: 刷单"
+          />
+        </div>
+
         <!-- Cancel Reason - Only show when status is CANCELLED or RETURNED -->
         <div v-if="showCancelReasonField" class="field-group field-group--span2">
           <label class="field-label">
@@ -300,6 +313,7 @@ const formOtherData = ref({
   notes: '',
   platformOrderId: '',
   orderStatus: '',
+  source: '',
   cancelReason: '',
   settlementDate: '',
   settlementAmount: null as number | null,
@@ -527,6 +541,7 @@ const handleSubmit = async () => {
     notes: formOtherData.value.notes || null,
     platformOrderId: formOtherData.value.platformOrderId || null,
     orderStatus: formOtherData.value.orderStatus || null,
+    source: formOtherData.value.source || null,
     cancelReason: formOtherData.value.cancelReason || null,
     settlementDate: formOtherData.value.settlementDate || null,
     settlementAmount: formOtherData.value.settlementAmount ? parseFloat(String(formOtherData.value.settlementAmount)) : null,
@@ -544,6 +559,7 @@ const handleSubmit = async () => {
     // Reset form partially
     formOtherData.value.salesVolume = null;
     formOtherData.value.revenue = null;
+    formOtherData.value.source = '';
     formOtherData.value.cancelReason = '';
     formOtherData.value.settlementDate = '';
     formOtherData.value.settlementAmount = null;

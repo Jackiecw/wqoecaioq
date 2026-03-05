@@ -14,6 +14,7 @@ import salesImportRoutes from './salesImportRoutes';
 import dashboardRoutes from './dashboardRoutes';
 import calendarRoutes from './calendarRoutes';
 import commonRoutes from './commonRoutes';
+import categoryRoutes from './categoryRoutes';
 
 export default function registerRoutes(app: Express) {
     app.use('/api', authRoutes);
@@ -28,6 +29,7 @@ export default function registerRoutes(app: Express) {
     app.use('/api/admin', storeListingRoutes);
     app.use('/api/admin', adminRoutes);
     app.use('/api/admin', managementRoutes);
+    app.use('/api/admin/categories', categoryRoutes);
 
     app.use('/api', operationRoutes);
     app.use('/api', financeRoutes);

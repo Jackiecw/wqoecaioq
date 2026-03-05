@@ -5,6 +5,10 @@
       subtitle="管理所有标准产品资料，建立 SKU 与基本属性库"
     >
       <template #actions>
+        <button v-if="authStore.role === 'admin'" class="btn-subtle" @click="openCategoryModal">
+          <i class="pi pi-tags"></i>
+          管理分类
+        </button>
         <button class="btn-subtle btn-primary" @click="openModal">
           <i class="pi pi-plus"></i>
           新建产品
@@ -311,6 +315,12 @@
       @product-created="handleProductCreated"
       @product-updated="handleProductUpdated"
     />
+
+    <CategoryManagementModal
+      :is-open="isCategoryModalOpen"
+      @update:is-open="isCategoryModalOpen = $event"
+      @categories-updated="fetchProducts()"
+    />
   </div>
 </template>
 
@@ -322,6 +332,8 @@ import ContentCard from '@/components/common/ContentCard.vue';
 import FilterBar from '@/components/common/FilterBar.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ProductFormModal from './ProductFormModal.vue';
+import CategoryManagementModal from './CategoryManagementModal.vue';
+import { useAuthStore } from '@/stores/auth';
 
 type Product = {
   id: string;
@@ -369,11 +381,18 @@ const categoryOptions = ref<string[]>([]);
 const selectedProduct = ref<Product | null>(null);
 const currentProductToEditId = ref<string | null>(null);
 const isModalOpen = ref(false);
+const isCategoryModalOpen = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const searchKeyword = ref('');
 const selectedCategory = ref<string>('ALL');
 const showFullSpecs = ref(false);
+
+const authStore = useAuthStore();
+
+const openCategoryModal = () => {
+  isCategoryModalOpen.value = true;
+};
 
 const currentPage = ref(1);
 const pageSize = ref(15);
@@ -404,11 +423,14 @@ const fetchProducts = async (focusId: string | null = null) => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const response = await apiClient.get('/admin/products');
+    const [response, categoryResponse] = await Promise.all([
+      apiClient.get('/admin/products'),
+      apiClient.get('/admin/categories')
+    ]);
+    
     products.value = response.data || [];
-    categoryOptions.value = Array.from(
-      new Set(products.value.map((p) => p.category).filter(Boolean)),
-    ) as string[];
+    // Populate category dropdown from the new ProductCategory table
+    categoryOptions.value = (categoryResponse.data || []).map((cat: { name: string }) => cat.name);
 
     if (!products.value.length) {
       selectedProduct.value = null;

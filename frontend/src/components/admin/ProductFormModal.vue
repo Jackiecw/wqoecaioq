@@ -42,9 +42,8 @@
                 <Dropdown
                   v-model="formData.category"
                   :options="categoryOptions"
-                  placeholder="选择或输入分类"
+                  placeholder="选择分类"
                   class="w-full"
-                  editable
                 />
               </div>
               <div class="field-group">

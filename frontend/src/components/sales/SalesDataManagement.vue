@@ -173,7 +173,7 @@
         <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
         <!-- 1. 订单信息 (合并订单号+下单时间) -->
-        <Column v-if="visibleColumns.includes('orderInfo')" header="订单信息" style="min-width: 12rem; max-width: 16rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('orderInfo')" header="订单信息" style="min-width: 12rem; max-width: 16rem" headerClass="text-left" sortable sortField="platformOrderId">
           <template #body="{ data }">
             <div class="flex flex-col gap-1.5">
               <span class="font-semibold text-gray-900 leading-none truncate" :title="data.platformOrderId || ''">{{ data.platformOrderId || '-' }}</span>
@@ -186,7 +186,7 @@
         </Column>
 
         <!-- 2. 店铺与平台 (合并国家+平台+店铺名) -->
-        <Column v-if="visibleColumns.includes('storeInfo')" header="渠道与店铺" style="min-width: 10rem; max-width: 14rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('storeInfo')" header="渠道与店铺" style="min-width: 10rem; max-width: 14rem" headerClass="text-left" sortable sortField="store.name">
           <template #body="{ data }">
             <div class="flex flex-col gap-2 align-start">
               <div class="flex items-center gap-1.5">
@@ -205,13 +205,16 @@
         </Column>
 
         <!-- 3. 商品与规格 (合并Code和SKU) -->
-        <Column v-if="visibleColumns.includes('productInfo')" header="商品规格" style="min-width: 12rem; max-width: 18rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('productInfo')" header="商品规格" style="min-width: 12rem; max-width: 18rem" headerClass="text-left" sortable sortField="listing.productCode">
           <template #body="{ data }">
             <div class="flex flex-col gap-2">
               <span class="text-[13px] font-medium text-gray-900 leading-snug line-clamp-2" :title="data.listing?.productCode || ''">
                 {{ data.listing?.productCode || '未关联商品' }}
               </span>
-              <div v-if="data.product?.sku" class="inline-flex items-center">
+              <div v-if="data.product?.sku" class="inline-flex items-center gap-1">
+                <span v-if="data.product?.category" class="bg-purple-50 text-purple-700 text-[10px] px-1.5 py-0.5 rounded border border-purple-100 whitespace-nowrap">
+                  {{ data.product.category }}
+                </span>
                 <span class="bg-blue-50 text-blue-700 text-[10px] font-mono px-1.5 py-0.5 rounded border border-blue-100">
                   SKU: {{ data.product.sku }}
                 </span>
@@ -221,9 +224,9 @@
         </Column>
 
         <!-- 4. 订单状态 (合并状态+异常原因) -->
-        <Column v-if="visibleColumns.includes('statusInfo')" header="状态" style="width: 120px" headerClass="text-center" class="text-center">
+        <Column v-if="visibleColumns.includes('statusInfo')" header="状态" style="width: 120px" headerClass="text-left" class="text-left" sortable sortField="orderStatus">
           <template #body="{ data }">
-            <div class="flex flex-col items-center gap-1.5">
+            <div class="flex flex-col items-start gap-1.5 w-full">
               <div class="status-badge" :class="statusClass(data.orderStatus)">
                 <span>{{ ORDER_STATUS_MAP[data.orderStatus] || data.orderStatus || '未知' }}</span>
               </div>
@@ -237,11 +240,18 @@
         </Column>
 
         <!-- 5. 销售金额 (合并销量+金额) -->
-        <Column v-if="visibleColumns.includes('financialInfo')" header="销售总额" class="text-right" headerClass="text-right" style="width: 130px">
+        <Column v-if="visibleColumns.includes('financialInfo')" header="销售总额" class="text-right" headerClass="text-right" style="width: 130px" sortable sortField="revenue">
           <template #body="{ data }">
             <div class="flex flex-col items-end gap-1.5">
-              <span class="text-[14px] font-semibold text-gray-900 font-mono tracking-tight">
+              <span 
+                class="text-[14px] font-semibold font-mono tracking-tight cursor-help"
+                :class="getPriceDeviationClass(data.priceDeviation)"
+                v-tooltip.top="data.priceDeviation != null ? getPriceDeviationTooltip(data.priceDeviation) : null"
+              >
                 {{ formatNumber(data.revenue) }}
+              </span>
+              <span v-if="data.source" class="bg-yellow-50 text-yellow-700 text-[10px] px-1.5 py-0.5 rounded border border-yellow-200">
+                {{ data.source }}
               </span>
               <span class="text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
                 x {{ data.salesVolume || 0 }} 件
@@ -251,7 +261,7 @@
         </Column>
 
         <!-- 其他保留列 -->
-        <Column v-if="visibleColumns.includes('notes')" header="备注" style="min-width: 10rem; max-width: 14rem" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('notes')" header="备注" style="min-width: 10rem; max-width: 14rem" headerClass="text-left" sortable sortField="notes">
           <template #body="{ data }">
             <span class="text-xs text-gray-500 line-clamp-2 leading-relaxed" :title="data.notes || ''">
               {{ data.notes || '-' }}
@@ -259,7 +269,7 @@
           </template>
         </Column>
 
-        <Column v-if="visibleColumns.includes('enteredBy')" header="录入人" style="width: 100px" headerClass="text-left">
+        <Column v-if="visibleColumns.includes('enteredBy')" header="录入人" style="width: 100px" headerClass="text-left" sortable sortField="enteredBy.nickname">
           <template #body="{ data }">
              <div class="flex items-center gap-1.5">
                 <div class="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] text-gray-500 font-bold border border-gray-200">
@@ -393,6 +403,16 @@
 }
 .ghost-dropdown-panel .p-dropdown-items {
     padding: 0.25rem 0 !important;
+}
+
+/* Fix flashing gray on loading */
+/* Removed overlay to prevent hover state from being lost and flashing */
+:deep(.p-datatable-loading-overlay) {
+    background-color: transparent !important;
+    pointer-events: none !important;
+}
+:deep(.p-datatable .p-datatable-loading-icon) {
+    display: none !important;
 }
 </style>
 
@@ -581,7 +601,21 @@ const selectCountry = (code: string | null) => {
 const formatNumber = (value: number | string | null | undefined) => {
   if (value === null || value === undefined) return '-';
   const num = typeof value === 'string' ? parseFloat(value) : value;
-  return Number.isFinite(num) ? num.toFixed(2) : '-';
+  return Number.isFinite(num) ? num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+};
+
+const getPriceDeviationClass = (deviation: number | null | undefined) => {
+  if (deviation === null || deviation === undefined) return 'text-gray-900';
+  if (deviation < -0.15) return 'text-red-500';
+  if (deviation < -0.10) return 'text-yellow-600';
+  if (deviation > 0.20) return 'text-red-500';
+  return 'text-gray-900';
+};
+
+const getPriceDeviationTooltip = (deviation: number | null | undefined) => {
+  if (deviation === null || deviation === undefined) return '';
+  const sign = deviation > 0 ? '+' : '';
+  return `价格偏离度: ${sign}${(deviation * 100).toFixed(2)}%`;
 };
 
 // 格式化下单时间为 2025/12/9 7:43

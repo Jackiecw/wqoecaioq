@@ -153,6 +153,13 @@ export class SalesImportService {
                         currency = currencyMap[countryCode] || 'CNY';
                     }
 
+                    // Auto-assign source for "warranty card"
+                    let sourceValue: string | null = null;
+                    const searchStr = `${item.title || ''} ${item.sku || ''} ${item.variationName || ''}`.toLowerCase();
+                    if (searchStr.includes('warranty card')) {
+                        sourceValue = '刷单';
+                    }
+
                     await prisma.salesData.upsert({
                         where: {
                             platformOrderId: item.platformOrderId
@@ -170,7 +177,8 @@ export class SalesImportService {
                             externalTitle: item.title,
                             externalSku: item.sku,
                             variationName: item.variationName || null,
-                            platformSkuId: item.platformSkuId || null
+                            platformSkuId: item.platformSkuId || null,
+                            source: sourceValue
                         },
                         create: {
                             recordDate: new Date(item.orderDate || new Date()),
@@ -192,7 +200,8 @@ export class SalesImportService {
                             externalTitle: item.title,
                             externalSku: item.sku,
                             variationName: item.variationName || null,
-                            platformSkuId: item.platformSkuId || null
+                            platformSkuId: item.platformSkuId || null,
+                            source: sourceValue
                         }
                     });
                     results.success++;

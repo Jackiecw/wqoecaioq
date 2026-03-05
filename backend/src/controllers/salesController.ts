@@ -13,6 +13,7 @@ const salesDataSchema = z.object({
     notes: z.string().optional().nullable(),
     platformOrderId: z.string().optional().nullable(),
     orderStatus: z.string().optional().nullable(),
+    source: z.string().optional().nullable(),
 });
 
 class SalesController {

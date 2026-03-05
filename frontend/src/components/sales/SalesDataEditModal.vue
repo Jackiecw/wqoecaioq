@@ -186,6 +186,18 @@
               />
             </div>
           </div>
+          <div class="form-grid cols-3" style="margin-top: 1rem;">
+             <!-- Source -->
+            <div class="form-field">
+              <label for="edit_source">来源</label>
+              <InputText
+                id="edit_source"
+                v-model="formData.source"
+                placeholder="例如: 刷单"
+                class="w-full"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Section: 结算信息 -->
@@ -268,6 +280,7 @@ import Dialog from 'primevue/dialog';
 import Calendar from 'primevue/calendar';
 import Dropdown from 'primevue/dropdown';
 import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
 import Toast from 'primevue/toast';
@@ -315,6 +328,7 @@ type SaleData = {
   revenue: number | string;
   notes?: string | null;
   orderStatus?: string | null;
+  source?: string | null;
   // 新增字段
   cancelReason?: string | null;
   settlementDate?: string | null;
@@ -329,6 +343,7 @@ type SaleFormState = {
   revenue: number;
   notes: string;
   orderStatus: string | null;
+  source: string;
   // 新增字段
   cancelReason: string;
   settlementDate: Date | null;
@@ -368,6 +383,7 @@ const formData = ref<SaleFormState>({
   revenue: 0,
   notes: '',
   orderStatus: null,
+  source: '',
   cancelReason: '',
   settlementDate: null,
   settlementAmount: null,
@@ -526,6 +542,7 @@ const handleSubmit = async () => {
     revenue: Number.isFinite(formData.value.revenue) ? formData.value.revenue : 0,
     notes: formData.value.notes?.trim() || null,
     orderStatus: formData.value.orderStatus || null,
+    source: formData.value.source?.trim() || null,
     cancelReason: formData.value.cancelReason?.trim() || null,
     settlementDate: formData.value.settlementDate ? formatDate(formData.value.settlementDate) : null,
     settlementAmount: Number.isFinite(formData.value.settlementAmount) ? formData.value.settlementAmount : null,
@@ -561,6 +578,7 @@ const hydrateForm = (data: SaleData) => {
     revenue: Number.isFinite(revenueNum) ? revenueNum : 0,
     notes: data.notes || '',
     orderStatus: data.orderStatus || null,
+    source: data.source || '',
     cancelReason: data.cancelReason || '',
     settlementDate: parseDateInput(data.settlementDate),
     settlementAmount: Number.isFinite(settlementAmountNum) ? settlementAmountNum : null,
