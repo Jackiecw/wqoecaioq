@@ -11,14 +11,24 @@ exports.appendManagePermission = appendManagePermission;
 const prismaClient_1 = __importDefault(require("../../prismaClient"));
 const AppError_1 = __importDefault(require("../utils/AppError"));
 const dataHelpers_1 = require("../utils/dataHelpers");
-const SALES_SORTABLE_FIELDS = new Set(['recordDate', 'salesVolume', 'revenue', 'createdAt']);
+const SALES_SORTABLE_FIELDS = new Set([
+    'recordDate',
+    'salesVolume',
+    'revenue',
+    'createdAt',
+    'platformOrderId',
+    'store.name',
+    'listing.productCode',
+    'orderStatus',
+    'enteredBy.nickname'
+]);
 const SALES_DATE_RANGE_BUFFER_DAYS = 1;
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 200;
 const salesDataInclude = {
     store: { include: { country: true } },
-    product: { select: { sku: true, name: true } },
+    product: { select: { sku: true, name: true, category: true } },
     listing: { select: { productCode: true, storeTitle: true } },
     enteredBy: { select: { nickname: true } },
 };
@@ -112,6 +122,17 @@ function buildSalesDataWhere(query, user) {
 function buildSalesDataOrder(query) {
     const sortBy = query.sortBy && SALES_SORTABLE_FIELDS.has(query.sortBy) ? query.sortBy : 'recordDate';
     const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
+    if (sortBy.includes('.')) {
+        const parts = sortBy.split('.');
+        let current = {};
+        const result = current;
+        for (let i = 0; i < parts.length - 1; i++) {
+            current[parts[i]] = {};
+            current = current[parts[i]];
+        }
+        current[parts[parts.length - 1]] = sortOrder;
+        return result;
+    }
     return { [sortBy]: sortOrder };
 }
 function appendManagePermission(rows, supervisedCountries = [], isAdmin = false) {
@@ -123,7 +144,7 @@ function appendManagePermission(rows, supervisedCountries = [], isAdmin = false)
 }
 class SalesService {
     async create(data, userId) {
-        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus, cancelReason, settlementDate, settlementAmount } = data;
+        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus, source, cancelReason, settlementDate, settlementAmount } = data;
         const store = await prismaClient_1.default.store.findUnique({
             where: { id: storeId },
             select: { platform: true }
@@ -148,6 +169,7 @@ class SalesService {
                     notes: notes || null,
                     platformOrderId: platformOrderId || null,
                     orderStatus: orderStatus || null,
+                    source: source || null,
                     cancelReason: cancelReason || null,
                     settlementDate: settlementDate ? new Date(settlementDate) : null,
                     settlementAmount: settlementAmount ?? null,
@@ -184,8 +206,44 @@ class SalesService {
         ]);
         const supervisedCodes = supervisedCountries.map((c) => c.code || c);
         const formattedData = appendManagePermission(salesData, supervisedCodes, role === 'admin');
+        const enrichedData = await Promise.all(formattedData.map(async (row) => {
+            if (!row.listingId || row.salesVolume <= 0 || ['刷单', '寄样', '赠品'].includes(row.source)) {
+                return { ...row, priceDeviation: null };
+            }
+            const endDate = new Date(row.recordDate);
+            const startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - 15);
+            const stats = await prismaClient_1.default.salesData.aggregate({
+                where: {
+                    listingId: row.listingId,
+                    recordDate: {
+                        gte: startDate,
+                        lt: endDate
+                    },
+                    salesVolume: {
+                        gt: 0
+                    },
+                    source: {
+                        notIn: ['刷单', '寄样', '赠品']
+                    }
+                },
+                _sum: {
+                    revenue: true,
+                    salesVolume: true
+                }
+            });
+            const sumRevenue = stats._sum.revenue ? Number(stats._sum.revenue) : 0;
+            const sumVolume = stats._sum.salesVolume || 0;
+            if (sumVolume === 0 || sumRevenue === 0) {
+                return { ...row, priceDeviation: null };
+            }
+            const historicalAvgPrice = sumRevenue / sumVolume;
+            const currentPrice = Number(row.revenue) / row.salesVolume;
+            const priceDeviation = (currentPrice - historicalAvgPrice) / historicalAvgPrice;
+            return { ...row, priceDeviation };
+        }));
         return {
-            data: formattedData,
+            data: enrichedData,
             total,
             page,
             pageSize,
@@ -218,7 +276,7 @@ class SalesService {
     }
     async update(id, data, userId) {
         await this.checkPermission(userId, id);
-        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus, cancelReason, settlementDate, settlementAmount } = data;
+        const { recordDate, storeId, productId, listingId, salesVolume, revenue, currency, notes, platformOrderId, orderStatus, source, cancelReason, settlementDate, settlementAmount } = data;
         try {
             const updated = await prismaClient_1.default.salesData.update({
                 where: { id },
@@ -233,6 +291,7 @@ class SalesService {
                     notes: notes || null,
                     platformOrderId: platformOrderId || null,
                     orderStatus: orderStatus || null,
+                    source: source || null,
                     cancelReason: cancelReason || null,
                     settlementDate: settlementDate ? new Date(settlementDate) : null,
                     settlementAmount: settlementAmount ?? null,

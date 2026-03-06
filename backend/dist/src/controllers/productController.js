@@ -13,9 +13,7 @@ const productSchema = zod_1.z.object({
     sku: zod_1.z.string().min(1, "SKU 不能为空"),
     name: zod_1.z.string().min(1, "商品名称不能为空"),
     description: zod_1.z.string().optional().nullable(),
-    category: zod_1.z.nativeEnum(client_1.ProductCategory, {
-        errorMap: () => ({ message: "产品分类不能为空或格式有误" })
-    }),
+    category: zod_1.z.string().min(1, "产品分类不能为空"),
     publicName: zod_1.z.string().optional().nullable(),
     cost: zod_1.z.preprocess(val => parseFloat(val) || null, zod_1.z.number().optional().nullable()),
     weightKg: zod_1.z.preprocess(val => parseFloat(val) || null, zod_1.z.number().optional().nullable()),

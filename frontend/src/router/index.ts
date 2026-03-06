@@ -16,6 +16,8 @@ const ImportHistory = () => import('../components/sales/ImportHistory.vue');
 const OnSaleProductsPage = () => import('../views/OnSaleProductsPage.vue');
 const ProductManagement = () => import('../components/admin/ProductManagement.vue');
 const OperationsCenter = () => import('../views/OperationsCenter.vue');
+const AdvertisingDataManagement = () => import('../components/operations/AdvertisingDataManagement.vue');
+const TrafficDataManagement = () => import('../components/operations/TrafficDataManagement.vue');
 const FinancePage = () => import('../views/FinancePage.vue');
 const LogisticsPage = () => import('../views/LogisticsPage.vue');
 const CommonLinks = () => import('../components/dashboard/CommonLinks.vue');
@@ -23,6 +25,7 @@ const StoreManagement = () => import('../components/admin/StoreManagement.vue');
 const CountryManagement = () => import('../components/admin/CountryManagement.vue');
 const UserManagement = () => import('../components/admin/UserManagement.vue');
 const ProfileManagement = () => import('../components/admin/ProfileManagement.vue');
+const MetricManagement = () => import('../components/admin/MetricManagement.vue');
 
 // Performance Module
 const PerformanceDashboard = () => import('../views/performance/PerformanceDashboard.vue');
@@ -54,6 +57,8 @@ const routes: RouteRecordRaw[] = [
             { path: 'products/on-sale', component: OnSaleProductsPage },
             { path: 'products/catalog', component: ProductManagement },
             { path: 'operations', component: OperationsCenter },
+            { path: 'operations/advertising', component: AdvertisingDataManagement },
+            { path: 'operations/traffic', component: TrafficDataManagement },
             { path: 'finance', component: FinancePage },
             { path: 'logistics', component: LogisticsPage },
 
@@ -64,6 +69,7 @@ const routes: RouteRecordRaw[] = [
             { path: 'admin/countries', component: CountryManagement },
             { path: 'admin/stores', component: StoreManagement },
             { path: 'admin/users', component: UserManagement },
+            { path: 'admin/metrics', component: MetricManagement },
 
             // Profile
             { path: 'profile', component: ProfileManagement },

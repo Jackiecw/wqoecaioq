@@ -143,6 +143,7 @@ class StoreListingService {
                 id: true,
                 storeTitle: true,
                 productCode: true,
+                platformProductId: true,
                 storeImageUrl: true,
                 product: {
                     select: {
@@ -244,6 +245,49 @@ class StoreListingService {
             }
         }
         await prismaClient_1.default.storeProductListing.delete({ where: { id } });
+    }
+    // --- Listing Mappings ---
+    async getMappings(listingId) {
+        return await prismaClient_1.default.listingMapping.findMany({
+            where: { listingId },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+    async getMappingById(mappingId) {
+        return await prismaClient_1.default.listingMapping.findUnique({
+            where: { id: mappingId },
+            include: { listing: { include: { store: true } } }
+        });
+    }
+    async createMapping(listingId, data) {
+        let platform = data.platform;
+        if (!platform) {
+            const listing = await prismaClient_1.default.storeProductListing.findUnique({
+                where: { id: listingId },
+                include: { store: true }
+            });
+            if (listing?.store?.platform) {
+                platform = listing.store.platform;
+            }
+            else {
+                platform = 'OTHER';
+            }
+        }
+        return await prismaClient_1.default.listingMapping.create({
+            data: {
+                listingId,
+                platform,
+                externalTitle: data.externalTitle || null,
+                externalSku: data.externalSku || null,
+                platformSkuId: data.platformSkuId || null,
+                variationName: data.variationName || null,
+            }
+        });
+    }
+    async deleteMapping(mappingId) {
+        await prismaClient_1.default.listingMapping.delete({
+            where: { id: mappingId }
+        });
     }
 }
 exports.StoreListingService = StoreListingService;

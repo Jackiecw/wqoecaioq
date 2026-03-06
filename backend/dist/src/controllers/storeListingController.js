@@ -40,15 +40,24 @@ const createListingSchema = zod_1.z.object({
     storeTitle: zod_1.z.string().min(1, "storeTitle is required"),
     currentPrice: zod_1.z.coerce.number().min(0, "currentPrice must be positive"),
     platformUrl: zod_1.z.string().url("platformUrl must be a valid URL").optional().nullable().or(zod_1.z.literal('')),
+    platformProductId: zod_1.z.string().optional().nullable().or(zod_1.z.literal('')),
 });
 const updateListingSchema = zod_1.z.object({
     storeTitle: zod_1.z.string().min(1, "storeTitle is required").optional(),
     productCode: zod_1.z.string().min(1, "productCode is required").optional(),
     currentPrice: zod_1.z.coerce.number().min(0, "currentPrice must be positive").optional(),
     platformUrl: zod_1.z.string().url("platformUrl must be a valid URL").optional().nullable().or(zod_1.z.literal('')),
+    platformProductId: zod_1.z.string().optional().nullable().or(zod_1.z.literal('')),
 });
 const priceSyncSchema = zod_1.z.object({
     currentPrice: zod_1.z.coerce.number().min(0, "价格不能为负数")
+});
+const createMappingSchema = zod_1.z.object({
+    platform: zod_1.z.enum(['SHOPEE', 'TIKTOK_SHOP', 'LAZADA', 'WEBSITE', 'OTHER']).optional(),
+    externalTitle: zod_1.z.string().optional().nullable(),
+    externalSku: zod_1.z.string().optional().nullable(),
+    platformSkuId: zod_1.z.string().optional().nullable(),
+    variationName: zod_1.z.string().optional().nullable(),
 });
 class StoreListingController {
     async getStoreListings(req, res, next) {
@@ -204,6 +213,59 @@ class StoreListingController {
                 include: { store: { include: { country: true } } }
             });
             res.json(updatedListing);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    // --- Listing Mappings ---
+    async getMappings(req, res, next) {
+        try {
+            const { id: listingId } = req.params;
+            const listing = await storeListingService_1.default.getListingById(listingId);
+            if (listing.store && !ensureCountryAccess(listing.store.countryCode, req)) {
+                throw new AppError_1.default('权限不足：无法查看该上架商品的别名映射', 403);
+            }
+            const mappings = await storeListingService_1.default.getMappings(listingId);
+            res.json(mappings);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async createMapping(req, res, next) {
+        try {
+            const { id: listingId } = req.params;
+            const listing = await storeListingService_1.default.getListingById(listingId);
+            if (listing.store && !ensureCountryAccess(listing.store.countryCode, req)) {
+                throw new AppError_1.default('权限不足：无法为该商品添加映射', 403);
+            }
+            const validation = createMappingSchema.safeParse(req.body);
+            if (!validation.success) {
+                throw new AppError_1.default(`输入数据无效: ${JSON.stringify(validation.error.errors)}`, 400);
+            }
+            // By default, assume the mapping platform is the same as the store's platform if not explicitly provided
+            // Store is not directly available with platform without fetching, but we can handle it in the service
+            const newMapping = await storeListingService_1.default.createMapping(listingId, validation.data);
+            res.status(201).json(newMapping);
+        }
+        catch (error) {
+            next(error);
+        }
+    }
+    async deleteMapping(req, res, next) {
+        try {
+            const { mappingId } = req.params;
+            // Get mapping to check access control via listing -> store -> country
+            const mapping = await storeListingService_1.default.getMappingById(mappingId);
+            if (!mapping) {
+                throw new AppError_1.default('未找到该别名映射', 404);
+            }
+            if (mapping.listing.store && !ensureCountryAccess(mapping.listing.store.countryCode, req)) {
+                throw new AppError_1.default('权限不足：无法删除该映射', 403);
+            }
+            await storeListingService_1.default.deleteMapping(mappingId);
+            res.status(204).send();
         }
         catch (error) {
             next(error);

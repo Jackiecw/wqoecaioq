@@ -15,6 +15,9 @@ import dashboardRoutes from './dashboardRoutes';
 import calendarRoutes from './calendarRoutes';
 import commonRoutes from './commonRoutes';
 import categoryRoutes from './categoryRoutes';
+import metricRoutes from './metricRoutes';
+import advertisingRoutes from './advertisingRoutes';
+import trafficRoutes from './trafficRoutes';
 
 export default function registerRoutes(app: Express) {
     app.use('/api', authRoutes);
@@ -22,6 +25,8 @@ export default function registerRoutes(app: Express) {
     app.use('/api', profileRoutes);
     app.use('/api', salesImportRoutes);
     app.use('/api', dashboardRoutes);
+    app.use('/api/advertising', advertisingRoutes);
+    app.use('/api/traffic', trafficRoutes);
     app.use('/api', calendarRoutes);
     app.use('/api', commonRoutes);
 
@@ -30,6 +35,7 @@ export default function registerRoutes(app: Express) {
     app.use('/api/admin', adminRoutes);
     app.use('/api/admin', managementRoutes);
     app.use('/api/admin/categories', categoryRoutes);
+    app.use('/api/admin/metrics', metricRoutes);
 
     app.use('/api', operationRoutes);
     app.use('/api', financeRoutes);

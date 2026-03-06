@@ -58,6 +58,9 @@ model User {
   reviewsAsEmployee PerformanceReview[] @relation("ReviewEmployee")
   reviewsAsManager  PerformanceReview[] @relation("ReviewManager")
   reviewsAsDirector PerformanceReview[] @relation("ReviewDirector")
+
+  advertisingData AdvertisingData[]
+  trafficData     TrafficData[]
 }
 
 // --- 2. 角色模型 (Role) ---
@@ -92,6 +95,9 @@ model Store {
   listings  StoreProductListing[]
 
   expenses Expense[]
+
+  advertisingData AdvertisingData[]
+  trafficData     TrafficData[]
 }
 
 // --- 5. 销售数据模型 (SalesData) ---
@@ -276,6 +282,9 @@ model StoreProductListing {
 
   salesData SalesData[]
   mappings  ListingMapping[] // ⬇️ 【新增】 关联映射表
+
+  advertisingData AdvertisingData[]
+  trafficData     TrafficData[]
 }
 
 // --- 9.1 映射表 (ListingMapping) ---
@@ -909,4 +918,75 @@ model PerformanceReviewItem {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------------
+// === 广告与流量管理模型 (V2.0) ===
+// ------------------------------------------------
+
+enum MetricType {
+  ADVERTISING
+  TRAFFIC
+}
+
+model MetricDefinition {
+  id        String     @id @default(cuid())
+  type      MetricType // 归属类型：广告或流量
+  name      String     // 指标名键值，如 spend, pageViews
+  label     String     // 前端显示名称，如 花费, 浏览量
+  isActive  Boolean    @default(true) // 是否启用
+  order     Int        @default(0)    // 前端表单显示顺序
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([type, name])
+}
+
+model AdvertisingData {
+  id          String    @id @default(cuid())
+  recordDate  DateTime  @db.Date              // 归属日期
+  
+  storeId     String                          // 关联店铺 (目前粒度)
+  store       Store     @relation(fields: [storeId], references: [id])
+  
+  listingId   String?                         // 预留：关联具体商品链接 (未来粒度)
+  listing     StoreProductListing? @relation(fields: [listingId], references: [id])
+  
+  enteredById String                          // 记录录入人
+  enteredBy   User      @relation(fields: [enteredById], references: [id])
+
+  currency    String    @default("CNY")       // 花费币种
+
+  metrics     Json      // 核心：动态指标库
+  notes       String?   @db.Text              // 运营备注
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([storeId, recordDate])
+  @@index([listingId])
+}
+
+model TrafficData {
+  id          String    @id @default(cuid())
+  recordDate  DateTime  @db.Date
+  
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id])
+  
+  listingId   String?
+  listing     StoreProductListing? @relation(fields: [listingId], references: [id])
+  
+  enteredById String
+  enteredBy   User      @relation(fields: [enteredById], references: [id])
+
+  metrics     Json
+
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([storeId, recordDate])
+  @@index([listingId])
 }

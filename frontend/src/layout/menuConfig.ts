@@ -111,7 +111,21 @@ export const MENU_GROUPS: NavGroup[] = [
                 key: 'OPERATION_CENTER',
                 name: '运营中心',
                 path: '/operations',
-                icon: 'pi pi-cog'
+                icon: 'pi pi-cog',
+                children: [
+                    {
+                        key: 'ADVERTISING_DATA',
+                        name: '广告数据',
+                        path: '/operations/advertising',
+                        icon: 'pi pi-megaphone'
+                    },
+                    {
+                        key: 'TRAFFIC_DATA',
+                        name: '流量数据',
+                        path: '/operations/traffic',
+                        icon: 'pi pi-chart-line'
+                    }
+                ]
             },
             {
                 key: 'FINANCE_ADMIN',
@@ -177,6 +191,12 @@ export const MENU_GROUPS: NavGroup[] = [
                 path: '/admin/countries',
                 icon: 'pi pi-globe'
             },
+            {
+                key: 'ADMIN_METRICS',
+                name: '数据指标管理',
+                path: '/admin/metrics',
+                icon: 'pi pi-sliders-h'
+            }
         ],
     }
 ];

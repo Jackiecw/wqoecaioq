@@ -53,5 +53,9 @@ router.delete('/store-listings/:id', storeListingController_1.default.deleteList
 // The frontend calls /api/admin/listings/:id.
 // If we mount this router at /api/admin, we can add this route here.
 router.put('/listings/:id', storeListingController_1.default.syncPrice);
+// Listing Mappings
+router.get('/store-listings/:id/mappings', storeListingController_1.default.getMappings);
+router.post('/store-listings/:id/mappings', storeListingController_1.default.createMapping);
+router.delete('/store-listings/mappings/:mappingId', storeListingController_1.default.deleteMapping);
 exports.default = router;
 //# sourceMappingURL=storeListingRoutes.js.map

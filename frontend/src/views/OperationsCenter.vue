@@ -17,8 +17,8 @@
               v-for="country in countries"
               :key="country.code"
               class="pill-tab"
-              :class="{ 'is-active': currentCountryCode === country.code }"
-              @click="currentCountryCode = country.code"
+              :class="{ 'is-active': opsStore.countryCode === country.code }"
+              @click="opsStore.countryCode = country.code"
             >
               {{ country.name }}
             </button>
@@ -44,8 +44,8 @@
         <p v-if="isLoadingCountries" class="loading-text">正在加载国家...</p>
         <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
 
-        <div v-if="currentSubTab === 'matrix' && currentCountryCode">
-          <ResponsibilityTable :country-code="currentCountryCode" />
+        <div v-if="currentSubTab === 'matrix' && opsStore.countryCode">
+          <ResponsibilityTable :country-code="opsStore.countryCode" />
         </div>
 
         <EmptyState
@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useOperationsStore } from '@/stores/operations';
 import apiClient from '@/services/apiClient';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
@@ -77,10 +78,10 @@ interface Country {
 const countries = ref<Country[]>([]);
 const isLoadingCountries = ref(false);
 const errorMessage = ref('');
-const currentCountryCode = ref<string | null>(null);
 const currentSubTab = ref<'matrix' | 'sop'>('matrix');
 
 const authStore = useAuthStore();
+const opsStore = useOperationsStore();
 
 const fetchCountries = async () => {
   isLoadingCountries.value = true;
@@ -96,8 +97,8 @@ const fetchCountries = async () => {
       countries.value = allCountries.filter((country) => userOperatedCodes.includes(country.code));
     }
 
-    if (countries.value.length > 0) {
-      currentCountryCode.value = countries.value[0].code;
+    if (countries.value.length > 0 && !opsStore.countryCode) {
+      opsStore.countryCode = countries.value[0].code;
     }
   } catch (error) {
     console.error('获取国家列表失败:', error);

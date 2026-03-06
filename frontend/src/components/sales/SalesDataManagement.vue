@@ -244,8 +244,8 @@
           <template #body="{ data }">
             <div class="flex flex-col items-end gap-1.5">
               <span 
-                class="text-[14px] font-semibold font-mono tracking-tight cursor-help"
-                :class="getPriceDeviationClass(data.priceDeviation)"
+                class="text-[14px] font-semibold font-mono tracking-tight"
+                :class="[getPriceDeviationClass(data.priceDeviation), data.priceDeviation != null ? 'cursor-help' : '']"
                 v-tooltip.top="data.priceDeviation != null ? getPriceDeviationTooltip(data.priceDeviation) : null"
               >
                 {{ formatNumber(data.revenue) }}

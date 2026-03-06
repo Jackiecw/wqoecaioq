@@ -1,74 +1,109 @@
-# SKU 识别与映射优化方案
+# 销售明细视图优化及来源字段实现计划
 
-针对“同一个内部商品，在不同链接/平台/店铺下参考号不统一（如有的叫 NEXO，有的叫 white），甚至漏填”的问题，我们设计一套**「双轨制识别与学习型映射机制」**。
+## 目标
+1.  在销售明细表的“商品信息”列中，在 SKU 旁增加产品分类的胶囊展示。
+2.  在 [SalesData](file:///d:/Code/internal-site-2/backend/src/services/salesService.ts#75-130) 数据表中新增 `source`（来源）字段。
+3.  在前端页面中支持编辑该字段，并在表格的“销售总额”列里以胶囊形式展示该字段的值（位置在金额下方，如有数量则在数量前方）。
+4.  在数据导入环节，自动识别 SKU 参考号（`externalSku` 等）包含 "warranty card"（不区分大小写）的记录，并自动将其 `source` 设置为 "刷单"。
 
-由于您的系统已经按平台（TikTok / Shopee）隔离了清洗逻辑，我们可以充分利用各平台独有的数据优势，实现最精准的匹配。
+## 方案详情
 
-### 核心优化方案：双轨制匹配策略 (Dual-Track Matching)
+### 1. 数据库模型更新 (Backend - schema.prisma)
+*   **[MODIFY]** 修改 [SalesData](file:///d:/Code/internal-site-2/backend/src/services/salesService.ts#75-130) 模型，新增 `source String?` 字段。
+*   执行 `npx prisma db push` 并重新生成客户端。
 
-#### 轨迹一：TikTok Shop —— 「SKU ID + 维度的组合指纹」 (防“换皮”强化版)
-刚才确认到 TK 的导出数据中自带官方唯一的 `SKU ID` (如 `1734277909356513143`)。但考虑到一种进阶的运营场景：**“换产品”（即保留原有销量链接，更换主图、标题和详情，售卖完全不同的另一款产品）**，在这种情况下，TK 底层的 `SKU ID` 是不会变的。如果您仅靠 `SKU ID` 映射，就会导致新产品的老订单继续被错误映射到旧款内部 Model 上。
+### 2. 后端 API 与导入逻辑 (Backend)
+*   **[MODIFY]** [backend/src/services/salesImportService.ts](file:///d:/Code/internal-site-2/backend/src/services/salesImportService.ts)：
+    *   在解析不同平台的订单行时（或在插入前的组装阶段），检查 `externalSku`（参考号 / SKU）或者 `variationName`。
+    *   如果匹配 `/warranty\s*card/i` (不区分大小写)，则设置 `source = '刷单'`。
+*   **[MODIFY]** [backend/src/services/salesService.ts](file:///d:/Code/internal-site-2/backend/src/services/salesService.ts) (及 Controller/Routes 视情况)：
+    *   确保 `updateSalesData` 等编辑接口支持更新 `source` 字段。
+    *   确保获取列表的查询支持返回 `source` 和 `product.category`（应该已经在 `include: { product: true }` 中了）。
 
-因此，为了**绝对严密且兼顾极端运营操作**，TK 同样需要走组合指纹的逻辑，但我们要把绝对精确的 `SKU ID` 也作为指纹的关键部分融入进去，加上强校验的外部文本作为约束。
+### 3. 前端界面 (Frontend)
+*   **[MODIFY]** [frontend/src/components/sales/SalesDataManagement.vue](file:///d:/Code/internal-site-2/frontend/src/components/sales/SalesDataManagement.vue)：
+    *   在 `DataTable` 的 `productInfo` 列模板中，在展示 SKU 的地方加上 `product.category` 的胶囊（使用特定的颜色/样式）。
+    *   在 `financialInfo` (销售总额) 列模板中，在 `revenue` 显示下方新增一个胶囊用于展示 `source` 的值。需要确认当前模板中是否直接展示了数量，如果没有，需要按用户要求排列布局。
+    *   在“编辑销售明细”的弹窗/抽屉（`SalesDataForm.vue` 或内置的编辑逻辑）中，新增 `source` 字段的输入框。
 
-对于 TK 数据，**匹配逻辑进阶为强校验组合**：
-* **指纹**：`平台(TK) + [店铺账号] + SKU ID + Seller SKU(参考号) + 变体名称(Variation)`
-* **优势**：
-  * 平时：`SKU ID` 的存在保证了极其精准锁定，不受运营小幅改名影响。
-  * 换产品时：一旦运营换产品，他们必然会修改 `Seller SKU`（卖家填写的SKU）或 `Variation`（变体名）以区别之前的库存。只要他们动了这两个字段其中之一，指纹就会立刻改变。
-  * 阻断：系统一旦发现虽然 `SKU ID` 是这个，但 `Seller SKU` 或 `变体` 组合变了，就不会再自动映射旧款，而是重新抛出为 `[未映射悬挂状态]`，强制您的人工重新指认给新款的产品 Model。**这完美规避了错发货的风险。**
+## 验证计划
+1.  **数据库**：确认 Prisma schema 更新成功且无冲突。
+2.  **前端展示**：打开销售明细，检查商品列是否有分类胶囊，销售额列是否有来源胶囊。
+3.  **编辑功能**：随便点开一条记录进行手动编辑，修改“来源”字段，保存后确认页面刷新和显示正确。
+4.  **导入功能（模拟）**：上传一份包含 `warranty card` 的测试表单数据，导入后检查新数据的来源是否被自动打上了“刷单”标签。
 
-#### 轨迹二：Shopee —— 基于「组合指纹」的纯容错识别
-Shopee 导出表通常不包含平台的 Variation ID，仅包含人工填写的 `Nomor Referensi SKU` (参考号) 以及标题和变体名。
-针对这种数据，采用**纯文本维度的组合指纹算法**：
-* **指纹**：`平台(Shopee) + [店铺账号] + 商品名称(预处理去噪) + 参考号(Seller SKU) + 变体名称(Variation)`
-* **预处理**：识别前，系统先把商品名称里的 `[Promo]`、特殊符号剥离，仅保留核心文本，提高匹配稳定性。
-* **优势**：哪怕运营只填了一个 `white` 的参考号，只要带上了特定标题和 `Vega Pro` 变体名，系统依然能将其视作一个独立的、唯一的外部商品实体，进行映射。
+# 新需求：价格偏离度监控
 
----
+## 目标
+帮助运营及时发现单价设置异常。基于每个订单对比历史同链接前 15 天的加权平均单价。
 
-### 推荐的业务流程 (Mapping Workflow)
+## 计算规则
+1. **当前单价** = 当条记录的 `revenue` / `salesVolume`
+2. **近 15 天加权均价** = 同一 `listingId` 下，时间范围在 `[当条记录日期 - 15天, 当条记录日期)` 的总 `revenue` / 总 `salesVolume`
+3. **价格偏离度** = (当前单价 - 近 15 天加权均价) / 近 15 天加权均价
+4. **排除规则**：
+   - 销量为 0 的记录不参与历史均价及当条记录的偏离度计算
+   - `source` 为 "刷单", "寄样", "赠品" 的记录不参与历史均价及当条记录的偏离度计算
 
-无论是 TK 还是 Shopee，底层共用一套**“人工只确认一次，后续永久自动”**的体系：
+## 实施方案
+### 后端 ([backend/src/services/salesService.ts](file:///d:/Code/internal-site-2/backend/src/services/salesService.ts))
+在 [findAll](file:///d:/Code/internal-site-2/backend/src/services/salesService.ts#209-280) 函数返回 `salesData` 之前，遍历当前分页获取的数据：
+- 针对每条合规记录，查询数据库获取历史均价。
+- 将计算出的 `priceDeviation` 附加到每条记录的返回数据中。
 
-1. **解析提取**：根据订单来源，系统提取相应指纹（TK 提取包含 SKU ID 的组合；Shopee 提取纯文本组合）。
-2. **自动对比**：在 `ListingMapping` 表中寻找是否已有映射关系。
-3. **人工干预** (仅处理异常)：
-   - 如果遇到全新的指纹（新品上架，或 Shopee 改了标题），这行订单会被标记为 `[未映射悬挂状态]`。
-   - 在前端页面，用户可以批量勾选这类异常明细，执行“映射至 => `NEXO-PRO-BLK`”。
-   - **智能推荐**：系统可根据关键字（如标题包含 NEXO）在下拉框中置顶推荐相关的内部 SKU。
-4. **自主学习**：用户确认后，系统将这套全新的指纹与目标内部 SKU 绑定写入库中。下次再导入同样的数据，系统秒级自动匹配。
+### 前端 ([frontend/src/components/sales/SalesDataManagement.vue](file:///d:/Code/internal-site-2/frontend/src/components/sales/SalesDataManagement.vue))
+在表格的 `financialInfo` (销售总额) 列中：
+- 接收 `priceDeviation` 值。
+- 如果值有效且超出阈值，修改 `revenue` 的文字颜色：
+  - 偏离度 < -15% -> 红色 (`text-red-500`)
+  - 偏离度 < -10% -> 黄色 (`text-yellow-500`)
+  - 偏离度 > +20% -> 红色 (`text-red-500`)
+- 使用 `v-tooltip.top` 添加悬浮提示，内容形如 "价格偏离度: -12.50%"。无历史数据或排除条件的订单不显示 tooltip 也不变色。
 
----
+# 广告与流量数据管理 (V2.0)
 
-### 数据库设计建议 (`Prisma Schema`)
+## 目标
+实现广告费与流量数据的录入与管理功能。设计需具备强扩展性，采用核心维度 + JSONB 动态指标组合的方式，支持管理员自定义所需填写的指标，运营端基于配置的指标动态渲染表单进行填报。
 
-维护一张全局外部商品映射表 `ListingMapping`，兼容双平台的特征字段：
+## 数据库架构设计 (Prisma)
+### 1. 动态指标定义表 (MetricDefinition)
+用于管理员管理各类型数据需要填报的指标，控制前端表单渲染。
+*   `id`: String
+*   `type`: Enum ('ADVERTISING', 'TRAFFIC') - 指标适用场景
+*   [name](file:///d:/Code/internal-site-2/backend/src/routes/productRoutes.ts#20-26): String - 指标内部键名 (如 'spend', 'pageViews')，作为 JSON 的 key
+*   `label`: String - 前端显示名称 (如 '花费', '浏览量')
+*   `isActive`: Boolean - 是否启用
+*   `order`: Int - 前端表单显示顺序
 
-```prisma
-model ListingMapping {
-  id              String   @id @default(uuid())
-  platform        String   // "SHOPEE" | "TIKTOK"
-  shopAccount     String?  // 店铺名（隔离不同店铺的同名数据冲突）
-  
-  // -- 组合指纹要素 --
-  platformSkuId   String?  // 平台生成的唯一ID（TK独有，参与组合防“换皮”）
-  productName     String?  // 商品原标题（预存作参考和前端展示，Shopee核心指纹）
-  sellerSku       String?  // 卖家填写的SKU / 参考号
-  variationName   String?  // 变体名
-  
-  // 目标映射
-  internalModelId String   // 映射到的内部商品ID (关联您的内部产品表)
+### 2. 广告数据表 (AdvertisingData)
+*   `id`: String
+*   `recordDate`: DateTime - 归属日期
+*   `storeId`: String - 关联店铺
+*   `listingId`: String? - 预留关联商品链接
+*   `enteredById`: String - 关联录入用户
+*   `currency`: String - 货币类型 (按当地币别，默认本国币种)
+*   `metrics`: Json - 存放由 MetricDefinition 规定的各项指标数据
+*   `notes`: String? - 备注
 
-  createdAt       DateTime @default(now())
+### 3. 流量数据表 (TrafficData)
+*   `id`: String
+*   `recordDate`: DateTime - 归属日期
+*   `storeId`: String - 关联店铺
+*   `listingId`: String? - 预留关联商品链接
+*   `enteredById`: String - 关联录入用户
+*   `metrics`: Json - 各项流量指标数据
+*   `notes`: String? - 备注
 
-  // 索引建议：覆盖两种平台的组合查询
-  // TK的组合：平台 + 店铺 + SKU ID + Seller SKU + 变体
-  @@index([platform, platformSkuId, sellerSku])
-  // Shopee的组合：平台 + 店铺 + Seller SKU + 变体
-  @@index([platform, shopAccount, sellerSku])
-}
-```
+## 后端接口设计
+1. **MetricDefinition**: 提供标准 CRUD，仅 Admin 可访问。
+2. **AdvertisingData & TrafficData**:
+   *   提供按条件分页查询 (支持按日期范围、店铺筛选)。
+   *   提供新增和修改接口，保存传入的 JSON metrics 字段。
+   *   提供批量导入接口 (读取 Excel，并根据活跃的 MetricDefinition 解析表头和数据)。
 
-**下一步行动建议**：
-这套机制可以彻底根治订单与内部商品的对应难题。如果逻辑没有疑问，我们可以进入**执行阶段 (`EXECUTION`)**，也就是将上述 Schema 变更落地到 Prisma，并开始编写 `ListingMatcher` 的双轨匹配服务代码。
+## 前端界面设计
+1. **指标管理页 (Metrics Management)** (Admin 控制台内)：可以新增和启停具体的广告/流量指标。
+2. **广告数据管理页 (Advertising Data)**：
+   *   展示列表：列出日常所有的广告记录，各动态指标横向展开展示。
+   *   新建/编辑表单：根据 `MetricDefinition` 动态渲染具体的输入框。
+3. **流量数据管理页 (Traffic Data)**：功能布局同广告管理页。

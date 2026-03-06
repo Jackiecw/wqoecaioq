@@ -16,6 +16,7 @@ const salesDataSchema = zod_1.z.object({
     notes: zod_1.z.string().optional().nullable(),
     platformOrderId: zod_1.z.string().optional().nullable(),
     orderStatus: zod_1.z.string().optional().nullable(),
+    source: zod_1.z.string().optional().nullable(),
 });
 class SalesController {
     async create(req, res, next) {

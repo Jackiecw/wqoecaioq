@@ -79,12 +79,17 @@ class ExcelParser {
         if (!rawStatus)
             return null;
         const status = rawStatus.trim();
+        // Shopee special dynamic status
+        if (platform === 'SHOPEE' && status.startsWith('Pesanan diterima, namun Pembeli masih dapat mengajukan pengembalian hingga')) {
+            return 'COMPLETED';
+        }
         const STATUS_MAP = {
             SHOPEE: {
                 'Belum Bayar': 'PENDING',
                 'Perlu Dikirim': 'READY_TO_SHIP',
                 'Sedang Dikirim': 'SHIPPED',
                 'Telah Dikirim': 'SHIPPED',
+                'Pesanan Diterima': 'COMPLETED',
                 'Selesai': 'COMPLETED',
                 'Batal': 'CANCELLED',
                 'Pengembalian': 'RETURNED'
@@ -92,6 +97,7 @@ class ExcelParser {
             TIKTOK_SHOP: {
                 'Unpaid': 'PENDING',
                 'Awaiting Shipment': 'READY_TO_SHIP',
+                'To ship': 'READY_TO_SHIP',
                 'Awaiting Collection': 'READY_TO_SHIP',
                 'Shipped': 'SHIPPED',
                 'In Transit': 'SHIPPED',
@@ -123,6 +129,10 @@ class ExcelParser {
             'Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Pengiriman gagal': '系统自动取消：配送失败',
             'Dibatalkan oleh Pembeli. Alasan: Perlu mengubah pesanan': '买家取消：需修改订单',
             'Dibatalkan oleh Pembeli. Alasan: Tidak ingin membeli lagi': '买家取消：不想再购买',
+            'Dibatalkan oleh Pembeli. Alasan: Perlu mengubah alamat pengiriman': '买家取消：需更改收货地址',
+            'Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Paket hilang di perjalanan. Kompensasi yang memenuhi syarat telah dikreditkan ke Saldo Penjual-mu.': '系统自动取消：包裹运输途中丢失并已赔付',
+            'Dibatalkan secara otomatis oleh sistem Shopee. Alasan: Lainnya': '系统自动取消：其他原因',
+            'Dibatalkan oleh Pembeli. Alasan: Perlu mengubah Voucher': '买家取消：需更改优惠券'
         };
         const TIKTOK_CANCEL_REASON_MAP = {
             'Better price available': '其他渠道价格更优',

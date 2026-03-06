@@ -22,7 +22,7 @@ class ProductService {
     }
     async getProductOptions() {
         return {
-            categories: Object.values(client_1.ProductCategory),
+            categories: Object.values(client_1.ProductCategoryEnum),
             osTypes: Object.values(client_1.OS_Type),
             focusMethods: Object.values(client_1.Focus_Method),
             keystoneMethods: Object.values(client_1.Keystone_Method),

@@ -138,16 +138,45 @@ const visibleMenuGroups = computed<NavGroup[]>(() => {
 });
 
 /**
+ * 计算当前激活的菜单项 key，采用最长路径匹配
+ */
+const activeKey = computed(() => {
+  let matchedKey = '';
+  let maxLen = 0;
+  visibleMenuGroups.value.forEach(group => {
+    group.items.forEach(item => {
+      const match = route.path === item.path || (item.path !== '/' && route.path.startsWith(item.path + '/'));
+      if (match && item.path.length > maxLen) {
+        maxLen = item.path.length;
+        matchedKey = item.key;
+      } else if (route.path === '/' && item.path === '/') {
+        if (item.path.length > maxLen) {
+          maxLen = item.path.length;
+          matchedKey = item.key;
+        }
+      }
+      
+      if (item.children) {
+        item.children.forEach(child => {
+          const childMatch = route.path === child.path || (child.path !== '/' && route.path.startsWith(child.path + '/'));
+          if (childMatch && child.path.length > maxLen) {
+            maxLen = child.path.length;
+            matchedKey = child.key;
+          }
+        });
+      }
+    });
+  });
+  return matchedKey;
+});
+
+/**
  * 判断菜单项是否激活
  */
 const isActive = (item: NavItem): boolean => {
-  // 如果是父菜单，检查路径是否匹配且不等于根路径，或者检查是否有激活的子菜单
-  if (item.children) {
-      // 父菜单本身匹配，或者有子菜单匹配
-      return (route.path.startsWith(item.path) && item.path !== '/') || 
-             item.children.some(child => isActive(child));
-  }
-  return route.path === item.path || (route.path.startsWith(item.path) && item.path !== '/');
+  if (item.key === activeKey.value) return true;
+  if (item.children && item.children.some(child => child.key === activeKey.value)) return true;
+  return false;
 };
 
 /**
