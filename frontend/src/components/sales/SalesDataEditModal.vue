@@ -43,7 +43,7 @@
 
         <!-- Section: 基本信息 -->
         <div class="form-section">
-          <div class="section-title">
+          <div class="uni-section-title">
             <i class="pi pi-calendar"></i>
             <span>基本信息</span>
           </div>
@@ -104,7 +104,7 @@
 
         <!-- Section: 商品链接 -->
         <div class="form-section">
-          <div class="section-title">
+          <div class="uni-section-title">
             <i class="pi pi-link"></i>
             <span>商品链接</span>
           </div>
@@ -140,7 +140,7 @@
 
         <!-- Section: 销售数据 -->
         <div class="form-section">
-          <div class="section-title">
+          <div class="uni-section-title">
             <i class="pi pi-chart-line"></i>
             <span>销售数据</span>
           </div>
@@ -202,7 +202,7 @@
 
         <!-- Section: 结算信息 -->
         <div class="form-section">
-          <div class="section-title">
+          <div class="uni-section-title">
             <i class="pi pi-wallet"></i>
             <span>结算信息</span>
           </div>
@@ -213,7 +213,7 @@
               <Calendar
                 input-id="edit_settlementDate"
                 v-model="formData.settlementDate"
-                date-format="yy/mm/dd"
+                date-format="yy-mm-dd"
                 show-icon
                 class="w-full"
                 :pt="{ input: { class: 'w-full' } }"
@@ -254,7 +254,7 @@
 
         <!-- Section: 备注 -->
         <div class="form-section">
-          <div class="section-title">
+          <div class="uni-section-title">
             <i class="pi pi-file-edit"></i>
             <span>备注</span>
           </div>
@@ -287,6 +287,7 @@ import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import useStoreListings from '@/composables/useStoreListings';
 
 type CountryOption = {
@@ -371,6 +372,7 @@ const emit = defineEmits<{
 }>();
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 const toast = useToast();
 const { stores, fetchStores, storesError, getStoresByCountry, getStoresByCountryAndPlatform, fetchListings } =
   useStoreListings();
@@ -406,7 +408,7 @@ const countryOptions = computed<CountryOption[]>(() => {
     }
   });
   const all = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  if (authStore.role === 'admin') return all;
+  if (isAdmin.value) return all;
   return all.filter((country) => authStore.operatedCountries.includes(country.code));
 });
 

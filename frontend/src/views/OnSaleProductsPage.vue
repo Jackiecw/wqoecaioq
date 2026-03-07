@@ -220,6 +220,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import apiClient from '@/services/apiClient';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
@@ -261,7 +262,7 @@ interface Listing {
 }
 
 const authStore = useAuthStore();
-
+const { isAdmin } = usePermission();
 const listings = ref<Listing[]>([]);
 const isLoading = ref(false);
 const errorMessage = ref('');
@@ -280,7 +281,7 @@ const currentPage = ref(1);
 const pageSize = ref(20);
 const totalItems = ref(0);
 
-const isAdmin = computed(() => authStore.role === 'admin');
+
 const totalPages = computed(() => Math.ceil(totalItems.value / pageSize.value) || 1);
 
 const currencyFallbackMap: Record<string, CurrencyCode> = {

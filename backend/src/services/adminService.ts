@@ -137,20 +137,23 @@ export class AdminService {
 
     // --- Roles ---
     async getAllRoles() {
-        return await prisma.role.findMany({ orderBy: { name: 'asc' } });
+        return await prisma.role.findMany({
+            orderBy: { name: 'asc' },
+            include: { menus: true, permissions: true },
+        });
     }
 
     async getRoleById(id: string) {
         const role = await prisma.role.findUnique({
             where: { id },
-            include: { menus: true },
+            include: { menus: true, permissions: true },
         });
         if (!role) throw new AppError('角色未找到', 404);
         return role;
     }
 
     async createRole(data: any) {
-        const { name, description, menuIds } = data;
+        const { name, description, menuIds, permissionIds } = data;
         const existingRole = await prisma.role.findUnique({ where: { name } });
         if (existingRole) throw new AppError('此角色名 (key) 已被占用', 400);
 
@@ -159,29 +162,42 @@ export class AdminService {
                 name,
                 description,
                 menus: {
-                    connect: menuIds.map((id: string) => ({ id })),
+                    connect: (menuIds || []).map((id: string) => ({ id })),
+                },
+                permissions: {
+                    connect: (permissionIds || []).map((id: string) => ({ id })),
                 },
             },
-            include: { menus: true }
+            include: { menus: true, permissions: true }
         });
     }
 
     async updateRole(id: string, data: any) {
-        const { name, description, menuIds } = data;
+        const { name, description, menuIds, permissionIds } = data;
+
+        // 系统角色保护：不允许修改名称
+        const currentRole = await prisma.role.findUnique({ where: { id } });
+        if (!currentRole) throw new AppError('角色未找到', 404);
+        if (currentRole.isSystem && name !== currentRole.name) {
+            throw new AppError('系统角色的名称不能修改', 400);
+        }
+
         const existingRole = await prisma.role.findUnique({ where: { name } });
         if (existingRole && existingRole.id !== id) throw new AppError('此角色名 (key) 已被其他角色占用', 400);
 
         try {
+            const updateData: any = { name, description };
+            if (menuIds) {
+                updateData.menus = { set: menuIds.map((id: string) => ({ id })) };
+            }
+            if (permissionIds) {
+                updateData.permissions = { set: permissionIds.map((id: string) => ({ id })) };
+            }
+
             return await prisma.role.update({
                 where: { id },
-                data: {
-                    name,
-                    description,
-                    menus: {
-                        set: menuIds.map((id: string) => ({ id })),
-                    },
-                },
-                include: { menus: true }
+                data: updateData,
+                include: { menus: true, permissions: true }
             });
         } catch (error: any) {
             if (error.code === 'P2025') throw new AppError('角色未找到', 404);
@@ -192,6 +208,11 @@ export class AdminService {
     // --- Menu Items ---
     async getAllMenuItems() {
         return await prisma.menuItem.findMany({ orderBy: { key: 'asc' } });
+    }
+
+    // --- Permissions ---
+    async getAllPermissions() {
+        return await prisma.permission.findMany({ orderBy: [{ scope: 'asc' }, { action: 'asc' }] });
     }
 
     // --- Common Links ---

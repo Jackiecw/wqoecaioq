@@ -2,52 +2,52 @@
   <div class="page-shell">
     <PageHeader 
       title="个人中心" 
-      subtitle="更新个人资料、上传头像并及时修改密码。"
+      subtitle="管理您的个人资料与账户安全设置。"
     />
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Profile Update Card -->
-      <ContentCard class="md:col-span-1 h-fit">
-        <template #title>
-          <div class="flex items-center gap-2 mb-4">
-            <i class="pi pi-user text-[var(--color-accent)]"></i>
-            <span class="font-bold text-lg">个人资料</span>
+    <div class="profile-layout">
+      <!-- Profile Card -->
+      <div class="profile-card">
+        <div class="card-inner">
+          <div class="card-section-title">
+            <i class="pi pi-user"></i>
+            个人资料
           </div>
-        </template>
-        
-        <div class="flex flex-col items-center gap-6">
-          <div class="flex flex-col items-center gap-3">
-            <div class="relative group">
+          
+          <!-- Avatar Section -->
+          <div class="avatar-section">
+            <div class="avatar-wrapper" @click="triggerFileInput">
               <Avatar 
                 :image="previewUrl || userAvatar" 
                 shape="circle" 
                 size="xlarge" 
-                class="w-24 h-24 shadow-md border-2 border-white ring-2 ring-[var(--color-border)]"
+                class="profile-avatar"
               />
-              <div class="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm border border-[var(--color-border)]">
-                 <i class="pi pi-camera text-[var(--color-text-secondary)] text-sm"></i>
+              <div class="avatar-overlay">
+                <i class="pi pi-camera"></i>
+                <span>更换</span>
               </div>
             </div>
-            
-            <FileUpload
-              mode="basic"
-              name="avatarImage"
-              :auto="false"
-              :custom-upload="true"
+            <input 
+              ref="fileInputRef"
+              type="file" 
+              class="hidden-input" 
               accept="image/png,image/jpeg"
-              choose-label="更换头像"
-              class="p-button-sm p-button-outlined"
-              :disabled="isUpdating"
-              @select="onFileSelected"
+              @change="handleFileChange"
             />
+            <div class="avatar-info">
+              <div class="avatar-name">{{ authStore.nickname || '未设置昵称' }}</div>
+              <div class="avatar-role">{{ isAdmin ? '管理员' : '普通成员' }}</div>
+              <button class="avatar-change-btn" @click="triggerFileInput">
+                <i class="pi pi-upload"></i> 上传头像
+              </button>
+            </div>
           </div>
 
-          <div class="w-full">
-            <label class="font-medium text-sm text-[var(--color-text-secondary)] mb-1.5 block">昵称</label>
-            <IconField>
-              <InputIcon class="pi pi-id-card" />
-              <InputText v-model="profileForm.nickname" class="w-full" placeholder="请输入您的昵称" />
-            </IconField>
+          <!-- Nickname -->
+          <div class="form-field">
+            <label class="uni-form-label">昵称</label>
+            <InputText v-model="profileForm.nickname" class="w-full" placeholder="请输入您的昵称" />
           </div>
 
           <Message v-if="profileError" severity="error" :closable="false" class="w-full">{{ profileError }}</Message>
@@ -61,65 +61,68 @@
             @click="handleProfileUpdate"
           />
         </div>
-      </ContentCard>
+      </div>
 
-      <!-- Password Change Card -->
-      <ContentCard class="md:col-span-2 h-fit">
-        <template #title>
-           <div class="flex items-center gap-2 mb-4">
-            <i class="pi pi-lock text-[var(--color-accent)]"></i>
-            <span class="font-bold text-lg">修改密码</span>
+      <!-- Password Card -->
+      <div class="password-card">
+        <div class="card-inner">
+          <div class="card-section-title">
+            <i class="pi pi-shield"></i>
+            账户安全
           </div>
-        </template>
+          <p class="section-desc">定期修改密码有助于保护您的账户安全。</p>
 
-        <div class="flex flex-col gap-5 max-w-xl">
-          <div class="field">
-            <label class="font-medium text-sm text-[var(--color-text-secondary)] mb-1.5 block">旧密码</label>
-            <Password 
-              v-model="passwordForm.oldPassword" 
-              toggle-mask 
-              :feedback="false" 
-              class="w-full" 
-              input-class="w-full"
-              placeholder="请输入当前密码"
-            />
-          </div>
-          <div class="field">
-            <label class="font-medium text-sm text-[var(--color-text-secondary)] mb-1.5 block">新密码</label>
-            <Password 
-              v-model="passwordForm.newPassword" 
-              toggle-mask 
-              prompt-label="至少 8 位" 
-              class="w-full" 
-              input-class="w-full"
-              placeholder="请输入新密码（至少 8 位）"
-            />
-          </div>
-          <div class="field">
-            <label class="font-medium text-sm text-[var(--color-text-secondary)] mb-1.5 block">确认新密码</label>
-            <Password 
-              v-model="passwordForm.confirmPassword" 
-              toggle-mask 
-              :feedback="false" 
-              class="w-full" 
-              input-class="w-full"
-              placeholder="请再次输入新密码"
-            />
-          </div>
+          <div class="password-form">
+            <div class="form-field">
+              <label class="uni-form-label">当前密码</label>
+              <Password 
+                v-model="passwordForm.oldPassword" 
+                toggle-mask 
+                :feedback="false" 
+                class="w-full" 
+                input-class="w-full"
+                placeholder="请输入当前密码"
+              />
+            </div>
 
-          <Message v-if="passwordError" severity="error" :closable="false">{{ passwordError }}</Message>
-          <Message v-if="passwordSuccess" severity="success" :closable="false">{{ passwordSuccess }}</Message>
+            <div class="form-field">
+              <label class="uni-form-label">新密码</label>
+              <Password 
+                v-model="passwordForm.newPassword" 
+                toggle-mask 
+                prompt-label="至少 8 位" 
+                class="w-full" 
+                input-class="w-full"
+                placeholder="请输入新密码（至少 8 位）"
+              />
+            </div>
 
-          <div class="flex justify-end pt-2">
-            <Button
-              label="确认修改"
-              icon="pi pi-save"
-              :loading="isChangingPassword"
-              @click="handleChangePassword"
-            />
+            <div class="form-field">
+              <label class="uni-form-label">确认新密码</label>
+              <Password 
+                v-model="passwordForm.confirmPassword" 
+                toggle-mask 
+                :feedback="false" 
+                class="w-full" 
+                input-class="w-full"
+                placeholder="请再次输入新密码"
+              />
+            </div>
+
+            <Message v-if="passwordError" severity="error" :closable="false">{{ passwordError }}</Message>
+            <Message v-if="passwordSuccess" severity="success" :closable="false">{{ passwordSuccess }}</Message>
+
+            <div class="flex justify-end pt-1">
+              <Button
+                label="确认修改"
+                icon="pi pi-lock"
+                :loading="isChangingPassword"
+                @click="handleChangePassword"
+              />
+            </div>
           </div>
         </div>
-      </ContentCard>
+      </div>
     </div>
   </div>
 </template>
@@ -128,22 +131,21 @@
 import { computed, ref, watch } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import Password from 'primevue/password';
-import IconField from 'primevue/iconfield';
-import InputIcon from 'primevue/inputicon';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import PageHeader from '@/components/common/PageHeader.vue';
-import ContentCard from '@/components/common/ContentCard.vue';
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 
 const profileForm = ref({ nickname: authStore.nickname });
 const selectedFile = ref<File | null>(null);
 const previewUrl = ref<string | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 const isUpdating = ref(false);
 const profileError = ref('');
 const profileSuccess = ref('');
@@ -170,20 +172,25 @@ watch(
   },
 );
 
+const triggerFileInput = () => {
+  fileInputRef.value?.click();
+};
+
+const handleFileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (file) {
+    clearFile();
+    selectedFile.value = file;
+    previewUrl.value = URL.createObjectURL(file);
+  }
+};
+
 const clearFile = () => {
   selectedFile.value = null;
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value);
     previewUrl.value = null;
-  }
-};
-
-const onFileSelected = (event: FileUploadSelectEvent) => {
-  const file = event.files?.[0];
-  if (file) {
-    clearFile();
-    selectedFile.value = file;
-    previewUrl.value = URL.createObjectURL(file);
   }
 };
 
@@ -237,5 +244,166 @@ const handleChangePassword = async () => {
 </script>
 
 <style scoped>
-/* No specific styles needed using standard primitives */
+/* ==========================================
+   Profile Page — Clean & Modern
+   ========================================== */
+.profile-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards */
+.profile-card,
+.password-card {
+  background: var(--color-bg-card, #ffffff);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.card-inner {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #1e293b);
+}
+
+.card-section-title i {
+  color: var(--color-accent, #3b82f6);
+  font-size: 1rem;
+}
+
+.section-desc {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #64748b);
+  margin: -0.5rem 0 0;
+  line-height: 1.5;
+}
+
+/* Avatar Section */
+.avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1rem;
+  background: var(--color-bg-page, #f8f9fb);
+  border-radius: var(--radius-md, 0.5rem);
+}
+
+.avatar-wrapper {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.profile-avatar {
+  width: 4.5rem !important;
+  height: 4.5rem !important;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 0.625rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.avatar-overlay i {
+  font-size: 0.875rem;
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.avatar-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.avatar-role {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #94a3b8);
+}
+
+.avatar-change-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.625rem;
+  background: transparent;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 0.375rem);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-accent, #3b82f6);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: fit-content;
+}
+
+.avatar-change-btn:hover {
+  background: var(--color-accent-soft, #eff6ff);
+  border-color: var(--color-accent, #3b82f6);
+}
+
+.hidden-input {
+  display: none;
+}
+
+/* Form fields */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+/* Password form */
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 480px;
+}
 </style>

@@ -175,7 +175,7 @@
 
       <!-- Footer -->
       <div class="modal-footer">
-        <button type="button" class="btn-secondary" @click="closeModal">关闭</button>
+        <Button label="关闭" severity="secondary" outlined @click="closeModal" />
       </div>
     </div>
   </Dialog>
@@ -184,6 +184,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
 import apiClient from '@/services/apiClient';
 
 type StatusKey = string;

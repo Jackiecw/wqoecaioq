@@ -209,6 +209,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import Column from 'primevue/column';
 import DataTable, { type DataTablePageEvent, type DataTableSortEvent } from 'primevue/datatable';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import FinanceEditModal from './FinanceEditModal.vue';
 import financeService, { type ExpenseRecord, type StoreOption } from '@/services/financeService';
 
@@ -242,6 +243,7 @@ const invoiceStatusMap: Record<string, string> = {
 };
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 
 const expenses = ref<ExpenseRecord[]>([]);
 const isLoading = ref(true);
@@ -269,7 +271,7 @@ const countryOptions = computed(() => {
   });
   const all = Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name));
 
-  if (authStore.role === 'admin') return all;
+  if (isAdmin.value) return all;
   const userCountries = authStore.supervisedCountries || authStore.operatedCountries || [];
   return all.filter((country) => userCountries.includes(country.code));
 });

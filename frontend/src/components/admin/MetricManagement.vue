@@ -86,72 +86,78 @@
       v-model:visible="isModalOpen"
       :header="editingMetric ? '编辑指标' : '新增指标'"
       :modal="true"
-      :style="{ width: '450px' }"
-      class="p-fluid"
+      :style="{ width: '500px' }"
+      :dismissableMask="true"
+      :draggable="false"
+      class="p-dialog-custom"
+      @hide="closeModal"
     >
-      <div class="field mt-3">
-        <label for="type" class="block font-bold mb-2">类型 <span class="text-red-500">*</span></label>
-        <Dropdown
-          inputId="type"
-          v-model="form.type"
-          :options="typeDropdownOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="请选择"
-          :disabled="!!editingMetric"
-          class="w-full"
-        />
+      <div class="flex flex-col gap-4 pt-1">
+        <div class="uni-form-field">
+          <label class="uni-form-label">类型 <span class="required">*</span></label>
+          <Dropdown
+            v-model="form.type"
+            :options="typeDropdownOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="请选择"
+            :disabled="!!editingMetric"
+            class="w-full"
+          />
+        </div>
+
+        <div class="uni-form-field">
+          <label class="uni-form-label">字段键名 (Key) <span class="required">*</span></label>
+          <InputText
+            v-model="form.name"
+            placeholder="如：spend, clicks, pageViews"
+            :disabled="!!editingMetric"
+            :class="{'p-invalid': errorFields.name}"
+            class="w-full"
+          />
+          <small class="p-error" v-if="errorFields.name">仅限英文字母、数字和下划线开头不可为数字</small>
+          <small class="uni-form-hint">创建后不可修改。此值为导入 Excel 时的默认匹配列之一。</small>
+        </div>
+
+        <div class="uni-form-field">
+          <label class="uni-form-label">展示名称 (Label) <span class="required">*</span></label>
+          <InputText
+            v-model="form.label"
+            placeholder="如：广告花费"
+            :class="{'p-invalid': errorFields.label}"
+            class="w-full"
+          />
+          <small class="p-error" v-if="errorFields.label">展示名称为必填项</small>
+        </div>
+
+        <div class="uni-form-field">
+          <label class="uni-form-label">排序优先级</label>
+          <InputNumber
+            v-model="form.order"
+            showButtons
+            :min="0"
+            :max="999"
+            class="w-full"
+          />
+          <small class="uni-form-hint">数字越小，在前端表单和表格中越靠前。</small>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <InputSwitch v-model="form.isActive" />
+          <label class="uni-form-label" style="margin: 0;">是否立即启用</label>
+        </div>
+
+        <Message v-if="modalError" severity="error" :closable="false">{{ modalError }}</Message>
+
+        <div class="uni-modal-footer">
+          <Button label="取消" severity="secondary" text @click="closeModal" />
+          <Button label="保存" icon="pi pi-check" @click="saveMetric" :loading="isSaving" />
+        </div>
       </div>
-
-      <div class="field mt-4">
-        <label for="name" class="block font-bold mb-2">字段键名 (Key) <span class="text-red-500">*</span></label>
-        <InputText
-          id="name"
-          v-model="form.name"
-          placeholder="如：spend, clicks, pageViews"
-          :disabled="!!editingMetric"
-          :class="{'p-invalid': errorFields.name}"
-        />
-        <small class="p-error" v-if="errorFields.name">仅限英文字母、数字和下划线开头不可为数字</small>
-        <small class="text-500 block mt-1">创建后不可修改。此值为导入 Excel 时的默认匹配列之一。</small>
-      </div>
-
-      <div class="field mt-4">
-        <label for="label" class="block font-bold mb-2">展示名称 (Label) <span class="text-red-500">*</span></label>
-        <InputText
-          id="label"
-          v-model="form.label"
-          placeholder="如：广告花费"
-          :class="{'p-invalid': errorFields.label}"
-        />
-        <small class="p-error" v-if="errorFields.label">展示名称为必填项</small>
-      </div>
-
-      <div class="field mt-4">
-        <label for="order" class="block font-bold mb-2">排序优先级</label>
-        <InputNumber
-          inputId="order"
-          v-model="form.order"
-          showButtons
-          :min="0"
-          :max="999"
-          class="w-full"
-        />
-        <small class="text-500 block mt-1">数字越小，在前端表单和表格中越靠前。</small>
-      </div>
-
-      <div class="field mt-4 flex items-center gap-2">
-        <InputSwitch inputId="isActive" v-model="form.isActive" />
-        <label for="isActive" class="font-bold mb-0">是否立即启用</label>
-      </div>
-
-      <Message v-if="modalError" severity="error" :closable="false" class="mt-4">{{ modalError }}</Message>
-
-      <template #footer>
-        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="closeModal" />
-        <Button label="保存" icon="pi pi-check" @click="saveMetric" :loading="isSaving" autofocus />
-      </template>
     </Dialog>
+
+    <ConfirmDialog />
+    <Toast />
   </div>
 </template>
 
@@ -168,6 +174,13 @@ import Dropdown from 'primevue/dropdown';
 import InputNumber from 'primevue/inputnumber';
 import InputSwitch from 'primevue/inputswitch';
 import Message from 'primevue/message';
+import Toast from 'primevue/toast';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
+
+const toast = useToast();
+const confirmService = useConfirm();
 
 // --- Types ---
 type MetricType = 'ADVERTISING' | 'TRAFFIC';
@@ -323,23 +336,30 @@ const toggleStatus = async (metric: MetricDefinition) => {
     });
     metric.isActive = !metric.isActive;
   } catch (err: any) {
-    alert('更新状态失败: ' + (err.response?.data?.error || err.message));
+    toast.add({ severity: 'error', summary: '更新状态失败', detail: err.response?.data?.error || err.message, life: 3000 });
   } finally {
     isUpdatingStatus.value = null;
   }
 };
 
-const confirmDelete = async (metric: MetricDefinition) => {
-  if (!confirm(`确定要删除指标 [${metric.label}] 吗？\n注意：这不会删除已录入的数据中该键名的 JSON 值，但可能会影响前端展示。`)) {
-    return;
-  }
-  
-  try {
-    await apiClient.delete(`/admin/metrics/${metric.id}`);
-    await fetchMetrics();
-  } catch (err: any) {
-    alert('删除失败: ' + (err.response?.data?.error || err.message));
-  }
+const confirmDelete = (metric: MetricDefinition) => {
+  confirmService.require({
+    message: `确定要删除指标 [${metric.label}] 吗？\n注意：这不会删除已录入的数据中该键名的 JSON 值，但可能会影响前端展示。`,
+    header: '确认删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await apiClient.delete(`/admin/metrics/${metric.id}`);
+        await fetchMetrics();
+        toast.add({ severity: 'success', summary: '已删除', life: 2000 });
+      } catch (err: any) {
+        toast.add({ severity: 'error', summary: '删除失败', detail: err.response?.data?.error || err.message, life: 3000 });
+      }
+    },
+  });
 };
 
 // --- Lifecycle ---

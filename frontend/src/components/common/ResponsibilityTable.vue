@@ -161,6 +161,7 @@
 import { ref, watch, computed, onMounted } from 'vue';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '../../stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import { TrashIcon, PlusIcon } from '@heroicons/vue/20/solid';
 import EditableCell from './EditableCell.vue';
 
@@ -190,7 +191,7 @@ const props = defineProps<{
 }>();
 
 const authStore = useAuthStore();
-const isAdmin = computed(() => authStore.role === 'admin');
+const { isAdmin } = usePermission();
 
 const modules = ref<Module[]>([]);
 const isLoading = ref(false);

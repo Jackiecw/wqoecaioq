@@ -14,6 +14,8 @@ export interface NavItem {
     icon: string;
     /** 徽章标记 */
     badge?: string;
+    /** 所需权限 (SCOPE:ACTION 格式) */
+    permission?: string;
     /** 子菜单项 */
     children?: NavItem[];
 }
@@ -47,20 +49,23 @@ export const MENU_GROUPS: NavGroup[] = [
                 name: '仪表盘',
                 path: '/',
                 icon: 'pi pi-home',
-                badge: 'live'
+                badge: 'live',
+                permission: 'DASHBOARD:VIEW',
             },
             {
                 key: 'CALENDAR',
                 name: '工作日历',
                 path: '/calendar',
                 icon: 'pi pi-calendar',
-                badge: 'team'
+                badge: 'team',
+                permission: 'CALENDAR:VIEW',
             },
             {
                 key: 'REPORTS',
                 name: '周报中心',
                 path: '/reports',
-                icon: 'pi pi-book'
+                icon: 'pi pi-book',
+                permission: 'REPORTS:FILL',
             },
         ],
     },
@@ -74,19 +79,22 @@ export const MENU_GROUPS: NavGroup[] = [
                 name: '数据看板',
                 path: '/sales/dashboard',
                 icon: 'pi pi-chart-bar',
-                badge: 'new'
+                badge: 'new',
+                permission: 'SALES:VIEW',
             },
             {
                 key: 'SALES_DATA',
                 name: '销售明细',
                 path: '/sales/data',
-                icon: 'pi pi-list'
+                icon: 'pi pi-list',
+                permission: 'SALES:VIEW',
             },
             {
                 key: 'SALES_IMPORT',
                 name: '数据导入',
                 path: '/sales/import',
-                icon: 'pi pi-upload'
+                icon: 'pi pi-upload',
+                permission: 'SALES:IMPORT',
             },
         ],
     },
@@ -99,13 +107,15 @@ export const MENU_GROUPS: NavGroup[] = [
                 key: 'ON_SALE_PRODUCTS',
                 name: '店铺在售',
                 path: '/products/on-sale',
-                icon: 'pi pi-shopping-bag'
+                icon: 'pi pi-shopping-bag',
+                permission: 'STORE_LISTINGS:VIEW',
             },
             {
                 key: 'PRODUCT_CATALOG',
                 name: '产品目录',
                 path: '/products/catalog',
-                icon: 'pi pi-tags'
+                icon: 'pi pi-tags',
+                permission: 'PRODUCTS:VIEW',
             },
             {
                 key: 'OPERATION_CENTER',
@@ -117,13 +127,15 @@ export const MENU_GROUPS: NavGroup[] = [
                         key: 'ADVERTISING_DATA',
                         name: '广告数据',
                         path: '/operations/advertising',
-                        icon: 'pi pi-megaphone'
+                        icon: 'pi pi-megaphone',
+                        permission: 'ADVERTISING:VIEW',
                     },
                     {
                         key: 'TRAFFIC_DATA',
                         name: '流量数据',
                         path: '/operations/traffic',
-                        icon: 'pi pi-chart-line'
+                        icon: 'pi pi-chart-line',
+                        permission: 'TRAFFIC:VIEW',
                     }
                 ]
             },
@@ -131,20 +143,23 @@ export const MENU_GROUPS: NavGroup[] = [
                 key: 'FINANCE_ADMIN',
                 name: '财务管理',
                 path: '/finance',
-                icon: 'pi pi-wallet'
+                icon: 'pi pi-wallet',
+                permission: 'FINANCE:VIEW',
             },
             {
                 key: 'LOGISTICS_MGMT',
                 name: '生产与物流',
                 path: '/logistics',
-                icon: 'pi pi-box'
+                icon: 'pi pi-box',
+                permission: 'LOGISTICS:VIEW',
             },
             {
                 key: 'PERFORMANCE_MGMT',
                 name: '绩效管理',
                 path: '/performance',
                 icon: 'pi pi-chart-line',
-                badge: 'beta'
+                badge: 'beta',
+                permission: 'PERFORMANCE:VIEW',
             },
         ],
     },
@@ -157,7 +172,8 @@ export const MENU_GROUPS: NavGroup[] = [
                 key: 'LINKS',
                 name: '常用链接',
                 path: '/links',
-                icon: 'pi pi-link'
+                icon: 'pi pi-link',
+                permission: 'LINKS:VIEW',
             }
         ],
     },
@@ -170,13 +186,15 @@ export const MENU_GROUPS: NavGroup[] = [
                 key: 'ADMIN_STORES',
                 name: '店铺管理',
                 path: '/admin/stores',
-                icon: 'pi pi-shop'
+                icon: 'pi pi-shop',
+                permission: 'ADMIN_STORES:VIEW',
             },
             {
                 key: 'ADMIN_USERS',
                 name: '员工配置与管理',
                 path: '/admin/users',
-                icon: 'pi pi-users'
+                icon: 'pi pi-users',
+                permission: 'ADMIN_USERS:VIEW',
             },
         ],
     },
@@ -189,13 +207,15 @@ export const MENU_GROUPS: NavGroup[] = [
                 key: 'ADMIN_COUNTRIES',
                 name: '国家管理',
                 path: '/admin/countries',
-                icon: 'pi pi-globe'
+                icon: 'pi pi-globe',
+                permission: 'ADMIN_COUNTRIES:VIEW',
             },
             {
                 key: 'ADMIN_METRICS',
                 name: '数据指标管理',
                 path: '/admin/metrics',
-                icon: 'pi pi-sliders-h'
+                icon: 'pi pi-sliders-h',
+                permission: 'ADMIN_METRICS:VIEW',
             }
         ],
     }

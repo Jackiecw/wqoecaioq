@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import apiClient from '../services/apiClient'; // Updated import path to use apiClient.ts
 import { useAuthStore } from '../stores/auth';
+import { usePermission } from './usePermission';
 
 // Define types
 interface Store {
@@ -116,8 +117,9 @@ function invalidateAllListings() {
 
 function useStoreListings() {
     const authStore = useAuthStore();
+    const { isAdmin } = usePermission();
     const permittedCountries = computed(() => {
-        if (authStore.role === 'admin') {
+        if (isAdmin.value) {
             return storesCache.value
                 .map((store) => store.country?.code)
                 .filter(Boolean) as string[];

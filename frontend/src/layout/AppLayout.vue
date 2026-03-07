@@ -93,6 +93,7 @@
 import { ref, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { usePermission } from '../composables/usePermission';
 import AppSidebar from './AppSidebar.vue';
 import Drawer from 'primevue/drawer';
 import Button from 'primevue/button';
@@ -101,22 +102,34 @@ import { MENU_GROUPS, type NavItem, type NavGroup } from './menuConfig';
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
+const { hasPermission } = usePermission();
 const mobileMenuOpen = ref(false);
 
 /**
  * 根据权限过滤可见菜单组
  */
+/**
+ * 移动端菜单：将有子菜单的项展平为子菜单项直接显示
+ */
 const visibleMenuGroups = computed<NavGroup[]>(() => {
-  const perms = authStore.permissions || [];
   return MENU_GROUPS
     .map((group) => {
-      const filteredItems = group.items.filter((item) => {
-        if (item.key === 'PERFORMANCE_MGMT') return true;
-        if (authStore.role === 'admin') return true;
-        return perms.includes(item.key);
+      const flatItems: NavItem[] = [];
+      group.items.forEach((item) => {
+        if (item.permission && !hasPermission(item.permission)) return;
+        if (item.children) {
+          // Flatten children into the list
+          const visibleChildren = item.children.filter((child) => {
+            if (child.permission) return hasPermission(child.permission);
+            return true;
+          });
+          flatItems.push(...visibleChildren);
+        } else {
+          flatItems.push(item);
+        }
       });
-      if (filteredItems.length === 0) return null as unknown as NavGroup;
-      return { ...group, items: filteredItems };
+      if (flatItems.length === 0) return null;
+      return { ...group, items: flatItems };
     })
     .filter(Boolean) as NavGroup[];
 });

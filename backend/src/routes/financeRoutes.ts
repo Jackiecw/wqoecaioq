@@ -1,7 +1,7 @@
 import express from 'express';
 import financeController from '../controllers/financeController';
 import { authMiddleware } from '../middlewares/authMiddleware';
-import adminMiddleware from '../middlewares/adminMiddleware';
+import { requirePermission } from '../middlewares/permissionMiddleware';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -19,9 +19,6 @@ const excelStorage = multer.diskStorage({
         cb(null, tempUploadDir);
     },
     filename: (req, file, cb) => {
-        // Use UTF-8 safe filename handling if needed, but timestamp prefix is usually safe
-        // file.originalname might contain Chinese, but diskStorage handles it generally ok on modern Node
-        // We can encode it if we want to be extra safe, but keeping original logic is fine
         cb(null, `${Date.now()}-${file.originalname}`);
     }
 });
@@ -49,13 +46,13 @@ const upload = multer({
 router.get('/expenses/options', authMiddleware, financeController.getOptions);
 
 // User Create Expense
-router.post('/expenses', authMiddleware, financeController.createExpense);
+router.post('/expenses', requirePermission('FINANCE:ENTRY'), financeController.createExpense);
 
 // Admin/Supervisor Routes
-router.get('/admin/expenses', adminMiddleware, financeController.getExpenses);
-router.post('/admin/expenses/import', adminMiddleware, upload.single('expenseFile'), financeController.importExpenses);
-router.get('/admin/expenses/export', adminMiddleware, financeController.exportExpenses);
-router.put('/admin/expenses/:id', adminMiddleware, financeController.updateExpense);
-router.delete('/admin/expenses/:id', adminMiddleware, financeController.deleteExpense);
+router.get('/admin/expenses', requirePermission('FINANCE:VIEW'), financeController.getExpenses);
+router.post('/admin/expenses/import', requirePermission('FINANCE:MANAGE'), upload.single('expenseFile'), financeController.importExpenses);
+router.get('/admin/expenses/export', requirePermission('FINANCE:EXPORT'), financeController.exportExpenses);
+router.put('/admin/expenses/:id', requirePermission('FINANCE:MANAGE'), financeController.updateExpense);
+router.delete('/admin/expenses/:id', requirePermission('FINANCE:MANAGE'), financeController.deleteExpense);
 
 export default router;

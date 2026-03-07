@@ -68,6 +68,7 @@
       </div>
     </div>
   </Dialog>
+  <ConfirmDialog />
 </template>
 
 <script setup lang="ts">
@@ -77,9 +78,10 @@ import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useConfirm } from 'primevue/useconfirm';
 
-// Note: If you have a global confirmation service, you could use useConfirm here.
-// For simplicity, we'll use standard window.confirm.
+const confirmService = useConfirm();
 
 const props = defineProps<{
   isOpen: boolean;
@@ -164,19 +166,25 @@ const saveEdit = async (id: string) => {
   }
 };
 
-const confirmDelete = async (cat: Category) => {
-  if (!window.confirm(`确认删除分类「${cat.name}」吗？\n注意：这不会删除已有商品上的分类文本，但下拉菜单将不再显示。`)) {
-    return;
-  }
-  
-  errorMessage.value = '';
-  try {
-    await apiClient.delete(`/admin/categories/${cat.id}`);
-    await fetchCategories();
-    emit('categories-updated');
-  } catch (error: any) {
-    errorMessage.value = '删除失败：' + (error.response?.data?.error || error.message);
-  }
+const confirmDelete = (cat: Category) => {
+  confirmService.require({
+    message: `确认删除分类「${cat.name}」吗？\n注意：这不会删除已有商品上的分类文本，但下拉菜单将不再显示。`,
+    header: '确认删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      errorMessage.value = '';
+      try {
+        await apiClient.delete(`/admin/categories/${cat.id}`);
+        await fetchCategories();
+        emit('categories-updated');
+      } catch (error: any) {
+        errorMessage.value = '删除失败：' + (error.response?.data?.error || error.message);
+      }
+    }
+  });
 };
 
 watch(() => props.isOpen, (newVal) => {

@@ -82,6 +82,7 @@ import Tag from 'primevue/tag';
 import apiClient from '@/services/apiClient';
 import StoreFormModal from './StoreFormModal.vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
 
@@ -103,7 +104,7 @@ const isModalOpen = ref(false);
 const currentStoreToEdit = ref<StoreResponse | null>(null);
 
 const authStore = useAuthStore();
-const isAdmin = computed(() => authStore.role === 'admin');
+const { isAdmin } = usePermission();
 
 const statusSeverity = (status: string) => {
   switch (status?.toLowerCase()) {

@@ -12,15 +12,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:             # <--- 新增这部分
-      - "5433:5432"    # <--- 将容器的 5432 映射到电脑的 5433
+    ports:
+      # <--- 新增这部分
+      - "6432:5432" # <--- 将容器的 5432 映射到电脑的 6432
     volumes:
       - db-data:/var/lib/postgresql/data
     # 数据库端口 5432 不需要对外部暴露，保持内部访问最安全
 
-  # 2. 后端服务 (Node.js)
+    # 2. 后端服务 (Node.js)
   backend:
-    build: ./backend  # 告诉 Docker 去 ./backend 目录找 Dockerfile
+    build: ./backend # 告诉 Docker 去 ./backend 目录找 Dockerfile
     container_name: internal_site_2_backend
     restart: always
     environment:

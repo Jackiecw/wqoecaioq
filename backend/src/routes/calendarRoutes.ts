@@ -4,6 +4,8 @@ import calendarController from '../controllers/calendarController';
 
 const router = express.Router();
 
+// Calendar routes - use authMiddleware since per-user access is controlled at the business logic level
+// (users can create/edit/delete their own events; admin events are controlled separately)
 router.use(authMiddleware);
 
 router.get('/calendar/events', calendarController.listEvents);

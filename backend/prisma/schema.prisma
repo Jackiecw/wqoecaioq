@@ -65,11 +65,25 @@ model User {
 
 // --- 2. 角色模型 (Role) ---
 model Role {
-  id          String     @id @default(cuid())
-  name        String     @unique
+  id          String       @id @default(cuid())
+  name        String       @unique
   description String
+  isSystem    Boolean      @default(false)
   users       User[]
   menus       MenuItem[]
+  permissions Permission[]
+}
+
+// --- 2.1 权限模型 (Permission) ---
+model Permission {
+  id     String @id @default(cuid())
+  scope  String // 功能域: SALES, FINANCE, LOGISTICS, ADMIN_USERS, etc.
+  action String // 操作: VIEW, CREATE, EDIT, DELETE, EXPORT, IMPORT, MANAGE
+  label  String // 中文显示名: "查看销售数据"
+
+  roles Role[]
+
+  @@unique([scope, action])
 }
 
 // --- 3. 菜单项模型 (MenuItem) ---

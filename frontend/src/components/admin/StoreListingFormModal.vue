@@ -1,270 +1,274 @@
 <template>
-  <TransitionRoot appear :show="isOpen" as="template">
-    <Dialog as="div" @close="closeModal" class="relative z-50">
-      <TransitionChild
-        as="template"
-        enter="duration-300 ease-out"
-        enter-from="opacity-0"
-        enter-to="opacity-100"
-        leave="duration-200 ease-in"
-        leave-from="opacity-100"
-        leave-to="opacity-0"
-      >
-        <div class="fixed inset-0 bg-black/30 backdrop-blur-sm" />
-      </TransitionChild>
-
-      <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4">
-          <TransitionChild
-            as="template"
-            enter="duration-300 ease-out"
-            enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95"
-          >
-            <DialogPanel class="modal-panel">
-              <div class="modal-header">
-                <DialogTitle as="h3" class="modal-title">
-                  <i :class="isEditMode ? 'pi pi-pencil' : 'pi pi-plus-circle'"></i>
-                  {{ isEditMode ? '编辑在售商品' : '上架新商品' }}
-                </DialogTitle>
-                <button class="close-btn" @click="closeModal">
-                  <i class="pi pi-times"></i>
-                </button>
-              </div>
-
-              <div v-if="isLoading" class="modal-loading">
-                <i class="pi pi-spin pi-spinner"></i>
-                <span>{{ isLoadingMessage }}</span>
-              </div>
-
-              <div v-else class="modal-body">
-                <!-- Section 1: 产品选择 -->
-                <div class="form-section">
-                  <div class="section-title">
-                    <i class="pi pi-box"></i>
-                    选择产品
-                  </div>
-                  <div class="field-group">
-                    <label>产品（产品目录）<span class="required">*</span></label>
-                    <select v-model="formData.productId" class="field-select" :disabled="isEditMode">
-                      <option disabled value="">请选择产品...</option>
-                      <option v-for="product in allProducts" :key="product.id" :value="product.id">
-                        {{ product.sku }} · {{ product.name }}
-                      </option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Section 2: 上架位置 -->
-                <div class="form-section">
-                  <div class="section-title">
-                    <i class="pi pi-map-marker"></i>
-                    上架位置
-                  </div>
-                  <div class="form-row">
-                    <div class="field-group">
-                      <label>国家<span class="required">*</span></label>
-                      <select
-                        v-model="selectedCountryCode"
-                        class="field-select"
-                        :disabled="isEditMode"
-                      >
-                        <option disabled value="">请选择...</option>
-                        <option v-for="country in countryOptions" :key="country.code" :value="country.code">
-                          [{{ country.code }}] {{ country.name }}
-                        </option>
-                      </select>
-                    </div>
-                    <div class="field-group">
-                      <label>店铺<span class="required">*</span></label>
-                      <select
-                        v-model="formData.storeId"
-                        class="field-select"
-                        :disabled="isEditMode || filteredStores.length === 0"
-                      >
-                        <option disabled value="">请选择...</option>
-                        <option v-for="store in filteredStores" :key="store.id" :value="store.id">
-                          {{ store.name }}
-                        </option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Section 3: 商品信息 -->
-                <div class="form-section">
-                  <div class="section-title">
-                    <i class="pi pi-tag"></i>
-                    商品信息
-                  </div>
-                  <div class="form-row">
-                    <div class="field-group field-group--wide">
-                      <label>商品标题<span class="required">*</span></label>
-                      <input
-                        type="text"
-                        v-model="formData.storeTitle"
-                        class="field-input"
-                        placeholder="例如：Vega Pro 官方旗舰店"
-                      />
-                    </div>
-                    <div class="field-group">
-                      <label>商品代码<span class="required">*</span></label>
-                      <input
-                        type="text"
-                        v-model="formData.productCode"
-                        class="field-input"
-                        placeholder="例如：VP-01"
-                      />
-                    </div>
-                  </div>
-                  <div class="form-row">
-                    <div class="field-group">
-                      <label>
-                        售价
-                        <span class="currency-hint">({{ currentCurrencyLabel }})</span>
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        inputmode="decimal"
-                        v-model="formData.currentPrice"
-                        class="field-input"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div class="field-group">
-                      <label>商品链接 ID<span class="optional">(选填)</span></label>
-                      <input
-                        type="text"
-                        v-model="formData.platformProductId"
-                        class="field-input"
-                        placeholder="例如：123456789"
-                      />
-                    </div>
-                    <div class="field-group">
-                      <label>商品链接<span class="optional">(选填)</span></label>
-                      <input
-                        type="text"
-                        v-model="formData.platformUrl"
-                        class="field-input"
-                        placeholder="https://shopee.co.id/..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Section 4: 商品图片 -->
-                <div class="form-section">
-                  <div class="section-title">
-                    <i class="pi pi-image"></i>
-                    商品主图
-                    <span class="optional">({{ isEditMode ? '可替换' : '可选' }})</span>
-                  </div>
-                  <div class="image-upload-row">
-                    <div 
-                      class="image-uploader"
-                      :class="{ 'has-image': previewUrl }"
-                      @click="triggerFileInput"
-                    >
-                      <img v-if="previewUrl" :src="previewUrl" alt="商品图片" />
-                      <div v-else class="upload-placeholder">
-                        <i class="pi pi-cloud-upload"></i>
-                        <span>点击上传图片</span>
-                        <span class="upload-hint">JPG, PNG</span>
-                      </div>
-                      <input 
-                        ref="fileInputRef"
-                        type="file" 
-                        @change="onFileSelected" 
-                        accept="image/png, image/jpeg"
-                        class="hidden-input"
-                      />
-                    </div>
-                    <button v-if="previewUrl" class="remove-image-btn" @click="removeImage">
-                      <i class="pi pi-trash"></i>
-                      移除图片
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Section 5: 历史标题与别名映射 -->
-                <div class="form-section" v-if="isEditMode">
-                  <div class="section-title">
-                    <i class="pi pi-link"></i>
-                    匹配别名 / 历史标题映射
-                    <span class="optional">(自动保存)</span>
-                  </div>
-                  
-                  <div class="mapping-list" v-if="mappings.length > 0">
-                    <div v-for="mapping in mappings" :key="mapping.id" class="mapping-item">
-                      <div class="mapping-info">
-                        <span v-if="mapping.externalTitle" class="m-title">{{ mapping.externalTitle }}</span>
-                        <div class="m-meta">
-                          <span v-if="mapping.externalSku" class="m-sku">SKU: {{ mapping.externalSku }}</span>
-                          <span v-if="mapping.variationName" class="m-var">变体: {{ mapping.variationName }}</span>
-                        </div>
-                      </div>
-                      <button class="btn-icon delete-btn" @click="deleteMapping(mapping.id)" title="删除映射">
-                        <i class="pi pi-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div v-else class="mapping-empty">
-                    暂无历史别名记录
-                  </div>
-
-                  <div class="mapping-add-form">
-                    <input type="text" v-model="newMapping.externalTitle" class="field-input" placeholder="输入历史标题 (原样复制)" />
-                    <div class="mapping-add-row">
-                      <input type="text" v-model="newMapping.externalSku" class="field-input" placeholder="外部 SKU (选填)" />
-                      <input type="text" v-model="newMapping.variationName" class="field-input" placeholder="变体名 (选填)" />
-                      <button type="button" class="btn-secondary" @click="addMapping" :disabled="isAddingMapping || (!newMapping.externalTitle && !newMapping.externalSku)">
-                        添加
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <p v-if="errorMessage" class="error-message">
-                  <i class="pi pi-exclamation-circle"></i>
-                  {{ errorMessage }}
-                </p>
-              </div>
-
-              <div class="modal-footer">
-                <button type="button" class="btn-cancel" @click="closeModal">
-                  取消
-                </button>
-                <button 
-                  type="button" 
-                  class="btn-submit" 
-                  @click="handleSubmit"
-                  :disabled="isLoading"
-                >
-                  <i :class="isEditMode ? 'pi pi-check' : 'pi pi-upload'"></i>
-                  {{ isEditMode ? '保存修改' : '确认上架' }}
-                </button>
-              </div>
-            </DialogPanel>
-          </TransitionChild>
+  <Dialog
+    :visible="isOpen"
+    modal
+    :showHeader="false"
+    :style="{ width: '680px' }"
+    :breakpoints="{ '960px': '85vw', '640px': '95vw' }"
+    :dismissableMask="true"
+    :draggable="false"
+    :pt="{
+      root: { class: 'listing-form-dialog' },
+      content: { class: 'listing-form-content' },
+    }"
+    @update:visible="onDialogToggle"
+  >
+    <div class="modal-wrapper">
+      <!-- Custom Header -->
+      <div class="modal-header">
+        <div class="header-left">
+          <div class="header-icon">
+            <i :class="isEditMode ? 'pi pi-pencil' : 'pi pi-plus-circle'"></i>
+          </div>
+          <div>
+            <h3 class="modal-title">{{ isEditMode ? '编辑在售商品' : '上架新商品' }}</h3>
+            <p class="modal-subtitle">{{ isEditMode ? '修改商品链接信息' : '选择产品并配置上架信息' }}</p>
+          </div>
         </div>
+        <button class="close-btn" @click="closeModal">
+          <i class="pi pi-times"></i>
+        </button>
       </div>
-    </Dialog>
-  </TransitionRoot>
+
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-state">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>{{ isLoadingMessage }}</span>
+      </div>
+
+      <!-- Form -->
+      <div v-else class="modal-body">
+        <!-- Section 1: 产品选择 -->
+        <div class="uni-form-section">
+          <div class="uni-section-title">
+            <i class="pi pi-box"></i>
+            <span>选择产品</span>
+          </div>
+          <div class="uni-form-field">
+            <label class="uni-form-label">产品（产品目录）<span class="required">*</span></label>
+            <Dropdown
+              v-model="formData.productId"
+              :options="allProducts"
+              option-label="displayLabel"
+              option-value="id"
+              placeholder="请选择产品..."
+              :disabled="isEditMode"
+              class="w-full"
+              filter
+            />
+          </div>
+        </div>
+
+        <!-- Section 2: 上架位置 -->
+        <div class="uni-form-section">
+          <div class="uni-section-title">
+            <i class="pi pi-map-marker"></i>
+            <span>上架位置</span>
+          </div>
+          <div class="uni-form-grid uni-form-grid--2col">
+            <div class="uni-form-field">
+              <label class="uni-form-label">国家<span class="required">*</span></label>
+              <Dropdown
+                v-model="selectedCountryCode"
+                :options="countryOptions"
+                option-label="displayLabel"
+                option-value="code"
+                placeholder="请选择..."
+                :disabled="isEditMode"
+                class="w-full"
+                filter
+              />
+            </div>
+            <div class="uni-form-field">
+              <label class="uni-form-label">店铺<span class="required">*</span></label>
+              <Dropdown
+                v-model="formData.storeId"
+                :options="filteredStores"
+                option-label="name"
+                option-value="id"
+                placeholder="请选择..."
+                :disabled="isEditMode || filteredStores.length === 0"
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: 商品信息 -->
+        <div class="uni-form-section">
+          <div class="uni-section-title">
+            <i class="pi pi-tag"></i>
+            <span>商品信息</span>
+          </div>
+          <div class="uni-form-grid uni-form-grid--2col">
+            <div class="uni-form-field uni-form-field--full">
+              <label class="uni-form-label">商品标题<span class="required">*</span></label>
+              <InputText
+                v-model="formData.storeTitle"
+                class="w-full"
+                placeholder="例如：Vega Pro 官方旗舰店"
+              />
+            </div>
+            <div class="uni-form-field">
+              <label class="uni-form-label">商品代码<span class="required">*</span></label>
+              <InputText
+                v-model="formData.productCode"
+                class="w-full"
+                placeholder="例如：VP-01"
+              />
+            </div>
+            <div class="uni-form-field">
+              <label class="uni-form-label">
+                售价
+                <span class="optional">({{ currentCurrencyLabel }})</span>
+              </label>
+              <InputNumber
+                v-model="formData.currentPrice"
+                :min="0"
+                :max-fraction-digits="2"
+                mode="decimal"
+                class="w-full"
+                input-class="w-full"
+                placeholder="0.00"
+              />
+            </div>
+            <div class="uni-form-field">
+              <label class="uni-form-label">商品链接 ID<span class="optional">(选填)</span></label>
+              <InputText
+                v-model="formData.platformProductId"
+                class="w-full"
+                placeholder="例如：123456789"
+              />
+            </div>
+            <div class="uni-form-field">
+              <label class="uni-form-label">商品链接<span class="optional">(选填)</span></label>
+              <InputText
+                v-model="formData.platformUrl"
+                class="w-full"
+                placeholder="https://shopee.co.id/..."
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: 商品图片 -->
+        <div class="uni-form-section">
+          <div class="uni-section-title">
+            <i class="pi pi-image"></i>
+            <span>商品主图</span>
+            <span class="optional">{{ isEditMode ? '(可替换)' : '(可选)' }}</span>
+          </div>
+          <div class="image-upload-row">
+            <div
+              class="image-uploader"
+              :class="{ 'has-image': previewUrl }"
+              @click="triggerFileInput"
+            >
+              <img v-if="previewUrl" :src="previewUrl" alt="商品图片" />
+              <div v-else class="upload-placeholder">
+                <i class="pi pi-cloud-upload"></i>
+                <span>点击上传图片</span>
+                <span class="upload-hint">JPG, PNG</span>
+              </div>
+              <input
+                ref="fileInputRef"
+                type="file"
+                @change="onFileSelected"
+                accept="image/png, image/jpeg"
+                class="hidden-input"
+              />
+            </div>
+            <Button
+              v-if="previewUrl"
+              icon="pi pi-trash"
+              label="移除图片"
+              severity="danger"
+              text
+              size="small"
+              @click="removeImage"
+            />
+          </div>
+        </div>
+
+        <!-- Section 5: 历史标题与别名映射 -->
+        <div class="uni-form-section" v-if="isEditMode">
+          <div class="uni-section-title">
+            <i class="pi pi-link"></i>
+            <span>匹配别名 / 历史标题映射</span>
+            <span class="optional">(自动保存)</span>
+          </div>
+
+          <div class="mapping-list" v-if="mappings.length > 0">
+            <div v-for="mapping in mappings" :key="mapping.id" class="mapping-item">
+              <div class="mapping-info">
+                <span v-if="mapping.externalTitle" class="m-title">{{ mapping.externalTitle }}</span>
+                <div class="m-meta">
+                  <span v-if="mapping.externalSku" class="m-sku">SKU: {{ mapping.externalSku }}</span>
+                  <span v-if="mapping.variationName" class="m-var">变体: {{ mapping.variationName }}</span>
+                </div>
+              </div>
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                size="small"
+                @click="confirmDeleteMapping(mapping.id)"
+              />
+            </div>
+          </div>
+          <div v-else class="mapping-empty">
+            暂无历史别名记录
+          </div>
+
+          <div class="mapping-add-form">
+            <InputText v-model="newMapping.externalTitle" class="w-full" placeholder="输入历史标题 (原样复制)" />
+            <div class="mapping-add-row">
+              <InputText v-model="newMapping.externalSku" class="w-full" placeholder="外部 SKU (选填)" />
+              <InputText v-model="newMapping.variationName" class="w-full" placeholder="变体名 (选填)" />
+              <Button
+                label="添加"
+                severity="secondary"
+                outlined
+                size="small"
+                @click="addMapping"
+                :disabled="isAddingMapping || (!newMapping.externalTitle && !newMapping.externalSku)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
+      </div>
+
+      <!-- Footer -->
+      <div class="uni-modal-footer" style="padding: 1rem 1.5rem; margin-top: 0;">
+        <Button label="取消" severity="secondary" text @click="closeModal" />
+        <Button
+          :label="isEditMode ? '保存修改' : '确认上架'"
+          :icon="isEditMode ? 'pi pi-check' : 'pi pi-upload'"
+          :loading="isSubmitting"
+          @click="handleSubmit"
+        />
+      </div>
+    </div>
+  </Dialog>
+
+  <ConfirmDialog />
+  <Toast />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import {
-  TransitionRoot,
-  TransitionChild,
-  Dialog,
-  DialogPanel,
-  DialogTitle,
-} from '@headlessui/vue';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import Dropdown from 'primevue/dropdown';
+import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import Message from 'primevue/message';
+import Toast from 'primevue/toast';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import apiClient from '@/services/apiClient';
 import useStoreListings from '../../composables/useStoreListings';
 
@@ -274,21 +278,24 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'listing-created', 'listing-updated']);
+const toast = useToast();
+const confirm = useConfirm();
 
 type ListingProduct = {
   id: string;
   sku?: string;
   name?: string;
+  displayLabel?: string;
 };
 
-type CountryOption = { code: string; name: string };
+type CountryOption = { code: string; name: string; displayLabel?: string };
 
 type ListingFormState = {
   productId: string;
   storeId: string;
   storeTitle: string;
   productCode: string;
-  currentPrice: number | string;
+  currentPrice: number | null;
   platformUrl: string;
   platformProductId: string;
 };
@@ -310,7 +317,7 @@ const defaultFormData = (): ListingFormState => ({
   storeId: '',
   storeTitle: '',
   productCode: '',
-  currentPrice: '',
+  currentPrice: null,
   platformUrl: '',
   platformProductId: '',
 });
@@ -320,6 +327,7 @@ const allProducts = ref<ListingProduct[]>([]);
 const currencyMap = ref<Record<string, string>>({});
 const selectedCountryCode = ref<string>('');
 const isLoading = ref(false);
+const isSubmitting = ref(false);
 const isLoadingMessage = ref('');
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -344,11 +352,15 @@ const countryOptions = computed<CountryOption[]>(() => {
   const uniqueCountriesMap = new Map<string, CountryOption>();
   stores.value.forEach((store) => {
     if (store.country) {
-      uniqueCountriesMap.set(store.country.code, store.country);
+      uniqueCountriesMap.set(store.country.code, {
+        ...store.country,
+        displayLabel: `[${store.country.code}] ${store.country.name}`,
+      });
     } else if (store.countryCode) {
       uniqueCountriesMap.set(store.countryCode, {
         code: store.countryCode,
         name: store.country?.name || store.countryCode,
+        displayLabel: `[${store.countryCode}] ${store.country?.name || store.countryCode}`,
       });
     }
   });
@@ -421,7 +433,7 @@ async function fetchListingDetails() {
       storeId: listing.storeId,
       storeTitle: listing.storeTitle || '',
       productCode: listing.productCode || '',
-      currentPrice: listing.currentPrice ?? '',
+      currentPrice: listing.currentPrice != null ? Number(listing.currentPrice) : null,
       platformUrl: listing.platformUrl || '',
       platformProductId: listing.platformProductId || '',
     };
@@ -440,7 +452,10 @@ async function fetchListingDetails() {
 }
 
 function applyOptionPayload(payload: OptionPayload = {}) {
-  allProducts.value = payload.products || [];
+  allProducts.value = (payload.products || []).map((p) => ({
+    ...p,
+    displayLabel: `${p.sku} · ${p.name}`,
+  }));
   currencyMap.value = payload.currencyMap || {};
 }
 
@@ -455,6 +470,10 @@ function onFileSelected(event: Event) {
     previewUrl.value = URL.createObjectURL(file);
   }
 }
+
+const onDialogToggle = (visible: boolean) => {
+  if (!visible) closeModal();
+};
 
 async function fetchMappings() {
   if (!isEditMode.value) return;
@@ -473,32 +492,50 @@ async function addMapping() {
     await apiClient.post(`/admin/store-listings/${props.listingToEditId}/mappings`, newMapping.value);
     newMapping.value = { externalTitle: '', externalSku: '', variationName: '' };
     await fetchMappings();
+    toast.add({ severity: 'success', summary: '成功', detail: '别名已添加', life: 3000 });
   } catch (err: any) {
-    alert(err.response?.data?.error || '添加失败，请重试');
+    toast.add({
+      severity: 'error',
+      summary: '添加失败',
+      detail: err.response?.data?.error || '请重试',
+      life: 3000,
+    });
   } finally {
     isAddingMapping.value = false;
   }
 }
 
+function confirmDeleteMapping(id: string) {
+  confirm.require({
+    message: '确认删除该别名映射吗？',
+    header: '确认删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: () => deleteMapping(id),
+  });
+}
+
 async function deleteMapping(id: string) {
-  if (!confirm('确认删除该别名映射吗？')) return;
   try {
     await apiClient.delete(`/admin/store-listings/mappings/${id}`);
     await fetchMappings();
+    toast.add({ severity: 'success', summary: '已删除', life: 2000 });
   } catch (err) {
-    alert('删除失败');
+    toast.add({ severity: 'error', summary: '删除失败', life: 3000 });
   }
 }
 
 async function handleSubmit() {
   errorMessage.value = '';
-  isLoading.value = true;
+  isSubmitting.value = true;
   isLoadingMessage.value = isEditMode.value ? '正在保存修改...' : '正在上架商品...';
 
   const payload = new FormData();
   payload.append('storeTitle', formData.value.storeTitle || '');
   payload.append('productCode', formData.value.productCode || '');
-  const price = formData.value.currentPrice === '' ? '' : String(formData.value.currentPrice);
+  const price = formData.value.currentPrice == null ? '' : String(formData.value.currentPrice);
   payload.append('currentPrice', price);
   payload.append('platformUrl', formData.value.platformUrl || '');
   payload.append('platformProductId', formData.value.platformProductId || '');
@@ -522,6 +559,7 @@ async function handleSubmit() {
       emit('listing-created', response.data);
     }
     closeModal();
+    toast.add({ severity: 'success', summary: '成功', detail: isEditMode.value ? '已保存' : '已上架', life: 3000 });
   } catch (error: any) {
     console.error('操作失败:', error);
     if (error.response?.data?.details) {
@@ -530,7 +568,7 @@ async function handleSubmit() {
       errorMessage.value = error.response?.data?.error || '操作失败，请稍后重试。';
     }
   } finally {
-    isLoading.value = false;
+    isSubmitting.value = false;
   }
 }
 
@@ -587,45 +625,58 @@ function resetForm() {
 </script>
 
 <style scoped>
-/* ========================================
-   Store Listing Form Modal - Clean Design
-   ======================================== */
-.modal-panel {
-  width: 100%;
-  max-width: 640px;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+/* Modal Layout */
+.modal-wrapper {
+  display: flex;
+  flex-direction: column;
 }
 
+/* Header */
 .modal-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
+  align-items: flex-start;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
   border-bottom: 1px solid var(--color-border);
 }
 
-.modal-title {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.875rem;
+}
+
+.header-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
   font-size: 1.125rem;
+}
+
+.modal-title {
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
 }
 
-.modal-title i {
-  color: var(--color-accent);
+.modal-subtitle {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  margin: 0.25rem 0 0 0;
 }
 
 .close-btn {
   width: 2rem;
   height: 2rem;
   border: none;
-  background: transparent;
+  background: var(--color-bg-page);
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   cursor: pointer;
@@ -636,11 +687,12 @@ function resetForm() {
 }
 
 .close-btn:hover {
-  background: var(--color-bg-page);
+  background: var(--color-border);
   color: var(--color-text-primary);
 }
 
-.modal-loading {
+/* Loading State */
+.loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -650,114 +702,24 @@ function resetForm() {
   color: var(--color-text-secondary);
 }
 
-.modal-loading i {
+.loading-state i {
   font-size: 1.5rem;
   color: var(--color-accent);
 }
 
+/* Form Body */
 .modal-body {
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  max-height: 65vh;
-  overflow-y: auto;
+  gap: 1.25rem;
 }
 
-/* Form Sections */
-.form-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--color-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.section-title i {
-  font-size: 0.875rem;
-}
-
-.section-title .optional {
-  font-weight: 500;
-  color: var(--color-text-muted);
-  text-transform: none;
-  font-size: 0.75rem;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-/* Field Group */
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.field-group--wide {
-  grid-column: span 1;
-}
-
-.field-group label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.required {
-  color: #ef4444;
-  margin-left: 0.125rem;
-}
-
-.optional {
-  color: var(--color-text-muted);
+/* Section title optional hint */
+.uni-section-title .optional {
   font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
   margin-left: 0.25rem;
-}
-
-.currency-hint {
-  color: var(--color-text-muted);
-  font-weight: 400;
-  font-size: 0.75rem;
-}
-
-.field-input,
-.field-select {
-  width: 100%;
-  height: 40px;
-  padding: 0 0.875rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-card);
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-  transition: all var(--transition-fast);
-}
-
-.field-input:focus,
-.field-select:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-
-.field-input:disabled,
-.field-select:disabled {
-  background: var(--color-bg-page);
-  color: var(--color-text-muted);
-  cursor: not-allowed;
 }
 
 /* Image Upload */
@@ -823,125 +785,7 @@ function resetForm() {
   display: none;
 }
 
-.remove-image-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #fecaca;
-  border-radius: var(--radius-sm);
-  background: #fef2f2;
-  color: #dc2626;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.remove-image-btn:hover {
-  background: #fee2e2;
-}
-
-/* Error Message */
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: var(--radius-sm);
-  color: #dc2626;
-  font-size: 0.875rem;
-}
-
-/* Modal Footer */
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-bg-page);
-}
-
-.btn-cancel {
-  padding: 0.625rem 1.25rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-card);
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-cancel:hover {
-  background: var(--color-bg-page);
-  color: var(--color-text-primary);
-}
-
-.btn-secondary {
-  padding: 0 1rem;
-  height: 40px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-card);
-  color: var(--color-text-primary);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all var(--transition-fast);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--color-bg-page);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-submit {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-submit:hover:not(:disabled) {
-  filter: brightness(0.95);
-}
-
-.btn-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-@media (max-width: 640px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-  
-  .field-group--wide {
-    grid-column: span 1;
-  }
-}
-
-/* Mapping Custom Styles */
+/* Mapping Styles */
 .mapping-list {
   display: flex;
   flex-direction: column;
@@ -977,27 +821,6 @@ function resetForm() {
   color: var(--color-text-secondary);
 }
 
-.m-sku::before, .m-var::before {
-  content: "·";
-  margin-right: 0.25rem;
-  color: var(--color-border);
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
-}
-
-.delete-btn:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
 .mapping-empty {
   padding: 1rem;
   text-align: center;
@@ -1021,8 +844,13 @@ function resetForm() {
   display: flex;
   gap: 0.5rem;
 }
+</style>
 
-.mapping-add-row .field-input {
-  flex: 1;
+<style>
+/* Global Dialog Styles */
+.listing-form-dialog .p-dialog-content {
+  padding: 1.5rem;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
 }
 </style>

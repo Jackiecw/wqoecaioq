@@ -1,6 +1,6 @@
 import express from 'express';
 import productController from '../controllers/productController';
-import adminMiddleware from '../middlewares/adminMiddleware';
+import { requirePermission } from '../middlewares/permissionMiddleware';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -39,17 +39,15 @@ const upload = multer({
     limits: { fileSize: 1024 * 1024 * 5 } // 5MB
 });
 
-// Routes
-router.use(adminMiddleware);
-
-router.get('/products', productController.getAllProducts);
-router.get('/products/:id', productController.getProductById);
-router.get('/product-options', productController.getProductOptions);
-router.post('/products', upload.single('imageUrl'), productController.createProduct);
-router.put('/products/:id', upload.single('imageUrl'), productController.updateProduct);
-router.delete('/products/:id', productController.deleteProduct);
+// Routes - Read operations need PRODUCTS:VIEW, write operations need PRODUCTS:MANAGE
+router.get('/products', requirePermission('PRODUCTS:VIEW'), productController.getAllProducts);
+router.get('/products/:id', requirePermission('PRODUCTS:VIEW'), productController.getProductById);
+router.get('/product-options', requirePermission('PRODUCTS:VIEW'), productController.getProductOptions);
+router.post('/products', requirePermission('PRODUCTS:MANAGE'), upload.single('imageUrl'), productController.createProduct);
+router.put('/products/:id', requirePermission('PRODUCTS:MANAGE'), upload.single('imageUrl'), productController.updateProduct);
+router.delete('/products/:id', requirePermission('PRODUCTS:MANAGE'), productController.deleteProduct);
 
 // Legacy route for "products-list" used by OnSaleProductsPage
-router.get('/products-list', productController.getProductsWithListings);
+router.get('/products-list', requirePermission('PRODUCTS:VIEW'), productController.getProductsWithListings);
 
 export default router;

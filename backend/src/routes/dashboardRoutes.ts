@@ -6,19 +6,21 @@ import recurringTaskController from '../controllers/recurringTaskController';
 
 const router = express.Router();
 
+// Dashboard and personal productivity tools - accessible to all authenticated users
+// (data scoping is handled at the business logic level based on user's countries)
 router.use(authMiddleware);
 
 // Dashboard
 router.get('/dashboard/filter-options', dashboardController.getFilterOptions);
 router.get('/dashboard/summary', dashboardController.getSummary);
 
-// Todos
+// Todos (personal per-user)
 router.get('/todos', todoController.list);
 router.post('/todos', todoController.create);
 router.put('/todos/:id', todoController.update);
 router.delete('/todos/:id', todoController.remove);
 
-// Recurring Tasks
+// Recurring Tasks (personal per-user)
 router.get('/recurring-tasks', recurringTaskController.list);
 router.post('/recurring-tasks', recurringTaskController.create);
 router.put('/recurring-tasks/:id/toggle', recurringTaskController.toggle);

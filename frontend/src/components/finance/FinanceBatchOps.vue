@@ -151,11 +151,12 @@ import { computed, ref } from 'vue';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import financeService from '@/services/financeService';
 
 const authStore = useAuthStore();
-const isAdmin = computed(() => authStore.role === 'admin');
-const canExport = computed(() => authStore.permissions.includes('FINANCE_EXPORT'));
+const { hasPermission, isAdmin } = usePermission();
+const canExport = computed(() => hasPermission('FINANCE:EXPORT'));
 
 const isLoading = ref({ import: false, export: false });
 const selectedFile = ref<File | null>(null);

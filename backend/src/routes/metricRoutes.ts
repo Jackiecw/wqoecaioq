@@ -1,18 +1,13 @@
 import { Router } from 'express';
 import { metricController } from '../controllers/metricController';
-import { authMiddleware } from '../middlewares/authMiddleware';
-import adminMiddleware from '../middlewares/adminMiddleware';
+import { requirePermission } from '../middlewares/permissionMiddleware';
 
 const router = Router();
 
-// 仅管理员可以管理指标定义
-router.use(authMiddleware);
-router.use(adminMiddleware);
-
-router.get('/', metricController.getAllMetrics);
-router.get('/active', metricController.getActiveMetrics);
-router.post('/', metricController.createMetric);
-router.put('/:id', metricController.updateMetric);
-router.delete('/:id', metricController.deleteMetric);
+router.get('/', requirePermission('ADMIN_METRICS:VIEW'), metricController.getAllMetrics);
+router.get('/active', requirePermission('ADMIN_METRICS:VIEW'), metricController.getActiveMetrics);
+router.post('/', requirePermission('ADMIN_METRICS:MANAGE'), metricController.createMetric);
+router.put('/:id', requirePermission('ADMIN_METRICS:MANAGE'), metricController.updateMetric);
+router.delete('/:id', requirePermission('ADMIN_METRICS:MANAGE'), metricController.deleteMetric);
 
 export default router;

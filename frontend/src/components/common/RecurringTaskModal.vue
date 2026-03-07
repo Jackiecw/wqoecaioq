@@ -8,7 +8,7 @@
   >
     <div class="flex flex-column gap-3">
       <div class="flex flex-column gap-2">
-        <label for="taskContent" class="text-sm font-semibold text-color">任务内容 *</label>
+        <label for="taskContent" class="uni-form-label">任务内容 *</label>
         <Textarea
           id="taskContent"
           v-model="formData.content"
@@ -20,7 +20,7 @@
       </div>
 
       <div class="flex flex-column gap-2">
-        <label for="taskPeriod" class="text-sm font-semibold text-color">周期 *</label>
+        <label for="taskPeriod" class="uni-form-label">周期 *</label>
         <Dropdown
           input-id="taskPeriod"
           v-model="formData.period"

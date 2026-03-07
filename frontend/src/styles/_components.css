@@ -353,6 +353,116 @@
     color: white;
 }
 
+/* ========================================
+   Unified Form / Modal System
+   ======================================== */
+
+/* Form Grid */
+.uni-form-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+.uni-form-grid--2col {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.uni-form-grid--3col {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.uni-form-grid--4col {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* Form Field */
+.uni-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.uni-form-field--full {
+    grid-column: 1 / -1;
+}
+
+/* Form Label */
+.uni-form-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+}
+
+.uni-form-label .required {
+    color: #ef4444;
+    margin-left: 0.125rem;
+}
+
+.uni-form-label .optional {
+    color: var(--color-text-muted);
+    font-weight: 400;
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+/* Form Section (card-style grouping) */
+.uni-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.uni-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.uni-section-title i {
+    color: var(--color-accent);
+    font-size: 0.875rem;
+}
+
+/* Modal Footer */
+.uni-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 1.25rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Form Hint */
+.uni-form-hint {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+
+    .uni-form-grid--2col,
+    .uni-form-grid--3col,
+    .uni-form-grid--4col {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+
+    .uni-form-grid--2col,
+    .uni-form-grid--3col,
+    .uni-form-grid--4col {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .kpi-value {

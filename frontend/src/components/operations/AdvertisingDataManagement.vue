@@ -118,7 +118,6 @@
       :header="editingData ? '编辑广告数据' : '录入广告数据'"
       :modal="true"
       :style="{ width: '500px' }"
-      class="p-fluid"
     >
       <div v-if="!activeMetrics.length" class="text-center p-4">
          <Message severity="warn" :closable="false">尚未配置任何可用的广告指标，请联系管理员在后台配置。</Message>
@@ -126,38 +125,40 @@
 
       <div v-else class="form-wrapper mt-3">
          <div class="field mb-4">
-            <label class="block font-bold mb-2">归属日期 <span class="text-red-500">*</span></label>
+            <label class="uni-form-label">归属日期 <span class="text-red-500">*</span></label>
             <Calendar v-model="form.recordDate" dateFormat="yy-mm-dd" placeholder="选择日期" class="w-full" />
          </div>
 
          <div class="field mb-4">
-            <label class="block font-bold mb-2">选择店铺 <span class="text-red-500">*</span></label>
+            <label class="uni-form-label">选择店铺 <span class="text-red-500">*</span></label>
             <Dropdown v-model="form.storeId" :options="rawStores" optionLabel="name" optionValue="id" placeholder="必须选择店铺" class="w-full" />
          </div>
 
          <div class="field mb-4">
-             <label class="block font-bold mb-2">适用币种 <span class="text-gray-500 font-normal ml-2">默认为当地币</span></label>
-             <InputText v-model="form.currency" placeholder="如 IDR, MYR, USD" />
+             <label class="uni-form-label">适用币种 <span class="text-gray-500 font-normal ml-2">默认为当地币</span></label>
+             <InputText v-model="form.currency" placeholder="如 IDR, MYR, USD" class="w-full" />
          </div>
 
          <Divider align="left"><b>各项指标数据</b></Divider>
 
          <div v-for="metric in activeMetrics" :key="metric.id" class="field mb-4">
-            <label class="block font-bold mb-2">{{ metric.label }} <span class="text-gray-500 text-xs font-normal">({{ metric.name }})</span></label>
+            <label class="uni-form-label">{{ metric.label }} <span class="text-gray-500 text-xs font-normal">({{ metric.name }})</span></label>
             <InputNumber v-model="form.metrics[metric.name]" mode="decimal" :minFractionDigits="0" :maxFractionDigits="2" class="w-full" placeholder="0" />
          </div>
 
          <div class="field mb-4">
-            <label class="block font-bold mb-2">备注 <span class="text-gray-500 font-normal">(选填)</span></label>
+            <label class="uni-form-label">备注 <span class="text-gray-500 font-normal">(选填)</span></label>
             <Textarea v-model="form.notes" rows="2" class="w-full" />
          </div>
       </div>
 
-      <template #footer>
-        <Button label="取消" icon="pi pi-times" class="p-button-text" @click="closeModal" />
-        <Button label="保存" icon="pi pi-check" @click="saveData" :loading="isSaving" :disabled="!activeMetrics.length" autofocus />
-      </template>
+      <div class="uni-modal-footer">
+        <Button label="取消" severity="secondary" text @click="closeModal" />
+        <Button label="保存" icon="pi pi-check" @click="saveData" :loading="isSaving" :disabled="!activeMetrics.length" />
+      </div>
     </Dialog>
+
+    <ConfirmDialog />
 
     <DynamicDataImportModal 
       v-model:visible="isImportModalOpen"
@@ -177,6 +178,10 @@ import Calendar from 'primevue/calendar';
 import Dropdown from 'primevue/dropdown';
 import Paginator from 'primevue/paginator';
 import Dialog from 'primevue/dialog';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
+import Toast from 'primevue/toast';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
@@ -185,6 +190,7 @@ import Message from 'primevue/message';
 import DynamicDataImportModal from './DynamicDataImportModal.vue';
 import { useOperationsStore } from '@/stores/operations';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 
 // Types
 interface MetricDefinition {
@@ -215,6 +221,9 @@ const editingData = ref<any>(null);
 
 const opsStore = useOperationsStore();
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
+const toast = useToast();
+const confirmService = useConfirm();
 
 const form = ref({
   recordDate: new Date(),
@@ -235,7 +244,7 @@ const countryOptions = computed(() => {
      }
   });
   const all = Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name));
-  if (authStore.role === 'admin') return all;
+  if (isAdmin.value) return all;
   const allowed = authStore.operatedCountries || [];
   return all.filter((country) => allowed.includes(country.code));
 });
@@ -350,7 +359,7 @@ const closeModal = () => {
 
 const saveData = async () => {
   if (!form.value.recordDate || !form.value.storeId) {
-     alert('请填写日期和选择店铺');
+     toast.add({ severity: 'warn', summary: '提示', detail: '请填写日期和选择店铺', life: 3000 });
      return;
   }
 
@@ -387,14 +396,23 @@ const saveData = async () => {
   }
 };
 
-const confirmDelete = async (id: string) => {
-  if (!confirm('确定要删除这条记录吗？')) return;
-  try {
-    await apiClient.delete(`/advertising/${id}`);
-    fetchData(currentPage.value);
-  } catch(e) {
-    alert('删除失败');
-  }
+const confirmDelete = (id: string) => {
+  confirmService.require({
+    message: '确定要删除这条记录吗？',
+    header: '确认删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await apiClient.delete(`/advertising/${id}`);
+        fetchData(currentPage.value);
+      } catch(e) {
+        toast.add({ severity: 'error', summary: '删除失败', detail: '请稍后重试', life: 3000 });
+      }
+    }
+  });
 };
 
 const openImportModal = () => {

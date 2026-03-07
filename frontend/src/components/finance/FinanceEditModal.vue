@@ -9,22 +9,22 @@
   >
     <div v-if="loadingState.initial" class="p-5 text-center text-color-secondary">正在加载表单选项...</div>
 
-    <div v-else class="flex flex-column gap-3">
+    <div v-else class="flex flex-col gap-4 pt-1">
       <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
       <Message v-if="successMessage" severity="success" :closable="false">{{ successMessage }}</Message>
 
-      <div class="grid formgrid p-fluid">
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">支出日期 *</label>
-          <Calendar v-model="formData.expenseDate" show-icon date-format="yy-mm-dd" class="w-full" />
+      <div class="uni-form-grid uni-form-grid--2col">
+        <div class="uni-form-field">
+          <label class="uni-form-label">支出日期 <span class="required">*</span></label>
+          <Calendar v-model="formData.expenseDate" show-icon date-format="yy-mm-dd" class="w-full" :pt="{ input: { class: 'w-full' } }" />
         </div>
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">项目描述 *</label>
+        <div class="uni-form-field">
+          <label class="uni-form-label">项目描述 <span class="required">*</span></label>
           <InputText v-model="formData.itemDescription" class="w-full" />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">金额 (CNY) *</label>
+        <div class="uni-form-field">
+          <label class="uni-form-label">金额 (CNY) <span class="required">*</span></label>
           <InputNumber
             v-model="formData.amount"
             mode="decimal"
@@ -35,8 +35,8 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">付款方式 *</label>
+        <div class="uni-form-field">
+          <label class="uni-form-label">付款方式 <span class="required">*</span></label>
           <Dropdown
             v-model="formData.paymentMethod"
             :options="paymentMethodOptions"
@@ -47,18 +47,18 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">付款人 *</label>
+        <div class="uni-form-field">
+          <label class="uni-form-label">付款人 <span class="required">*</span></label>
           <InputText v-model="formData.payer" class="w-full" />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">收款人 *</label>
+        <div class="uni-form-field">
+          <label class="uni-form-label">收款人 <span class="required">*</span></label>
           <InputText v-model="formData.payee" class="w-full" />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">票据状态 *</label>
+        <div class="uni-form-field">
+          <label class="uni-form-label">票据状态 <span class="required">*</span></label>
           <Dropdown
             v-model="formData.invoiceStatus"
             :options="invoiceStatusOptions"
@@ -69,18 +69,20 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6 flex align-items-center gap-2 mt-4">
-          <Checkbox v-model="formData.isAdvancePayment" binary input-id="advancePayment" />
-          <label for="advancePayment" class="font-semibold text-sm text-color">是否垫付（个人报销）</label>
+        <div class="uni-form-field" style="justify-content: flex-end;">
+          <div class="flex items-center gap-2">
+            <Checkbox v-model="formData.isAdvancePayment" binary input-id="advancePayment" />
+            <label for="advancePayment" class="uni-form-label" style="margin: 0;">是否垫付（个人报销）</label>
+          </div>
         </div>
 
-        <div v-if="formData.isAdvancePayment" class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">预计报销日期</label>
-          <Calendar v-model="formData.reimbursementDate" show-icon date-format="yy-mm-dd" class="w-full" />
+        <div v-if="formData.isAdvancePayment" class="uni-form-field">
+          <label class="uni-form-label">预计报销日期</label>
+          <Calendar v-model="formData.reimbursementDate" show-icon date-format="yy-mm-dd" class="w-full" :pt="{ input: { class: 'w-full' } }" />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">归属国家（可选）</label>
+        <div class="uni-form-field">
+          <label class="uni-form-label">归属国家<span class="optional">（可选）</span></label>
           <Dropdown
             v-model="selectedCountry"
             :options="countryOptions"
@@ -93,8 +95,8 @@
           />
         </div>
 
-        <div class="field col-12 md:col-6">
-          <label class="font-semibold text-sm mb-2 block">归属店铺（可选）</label>
+        <div class="uni-form-field">
+          <label class="uni-form-label">归属店铺<span class="optional">（可选）</span></label>
           <Dropdown
             v-model="formData.storeId"
             :options="storeOptions"
@@ -108,13 +110,13 @@
           />
         </div>
 
-        <div class="field col-12">
-          <label class="font-semibold text-sm mb-2 block">备注（可选）</label>
+        <div class="uni-form-field uni-form-field--full">
+          <label class="uni-form-label">备注<span class="optional">（可选）</span></label>
           <Textarea v-model="formData.notes" rows="3" auto-resize class="w-full" />
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="uni-modal-footer">
         <Button label="取消" severity="secondary" text @click="closeModal" />
         <Button label="保存" icon="pi pi-check" :loading="loadingState.submit" @click="handleSubmit" />
       </div>

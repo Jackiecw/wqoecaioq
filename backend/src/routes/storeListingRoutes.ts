@@ -1,6 +1,6 @@
 import express from 'express';
 import storeListingController from '../controllers/storeListingController';
-import { authMiddleware } from '../middlewares/authMiddleware';
+import { requirePermission } from '../middlewares/permissionMiddleware';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -38,27 +38,23 @@ const upload = multer({
     limits: { fileSize: 1024 * 1024 * 5 }
 });
 
-// Routes
-router.use(authMiddleware);
+// Routes - read operations
+router.get('/store-listings', requirePermission('STORE_LISTINGS:VIEW'), storeListingController.getStoreListings);
+router.get('/store-listings/options', requirePermission('STORE_LISTINGS:VIEW'), storeListingController.getListingOptions);
+router.get('/store-listings/by-store/:storeId', requirePermission('STORE_LISTINGS:VIEW'), storeListingController.getListingsByStore);
+router.get('/store-listings/:id', requirePermission('STORE_LISTINGS:VIEW'), storeListingController.getListingById);
 
-router.get('/store-listings', storeListingController.getStoreListings);
-router.post('/store-listings', upload.single('storeImageUrl'), storeListingController.createListing);
-router.get('/store-listings/options', storeListingController.getListingOptions);
-router.get('/store-listings/by-store/:storeId', storeListingController.getListingsByStore);
-router.get('/store-listings/:id', storeListingController.getListingById);
-router.put('/store-listings/:id', upload.single('storeImageUrl'), storeListingController.updateListing);
-router.delete('/store-listings/:id', storeListingController.deleteListing);
+// Routes - write operations
+router.post('/store-listings', requirePermission('STORE_LISTINGS:MANAGE'), upload.single('storeImageUrl'), storeListingController.createListing);
+router.put('/store-listings/:id', requirePermission('STORE_LISTINGS:MANAGE'), upload.single('storeImageUrl'), storeListingController.updateListing);
+router.delete('/store-listings/:id', requirePermission('STORE_LISTINGS:MANAGE'), storeListingController.deleteListing);
 
-// Price Sync (Moved from products.js)
-// Note: The original route was /api/admin/listings/:id in products.js
-// We should probably keep the path consistent or update frontend.
-// The frontend calls /api/admin/listings/:id.
-// If we mount this router at /api/admin, we can add this route here.
-router.put('/listings/:id', storeListingController.syncPrice);
+// Price Sync
+router.put('/listings/:id', requirePermission('STORE_LISTINGS:MANAGE'), storeListingController.syncPrice);
 
 // Listing Mappings
-router.get('/store-listings/:id/mappings', storeListingController.getMappings);
-router.post('/store-listings/:id/mappings', storeListingController.createMapping);
-router.delete('/store-listings/mappings/:mappingId', storeListingController.deleteMapping);
+router.get('/store-listings/:id/mappings', requirePermission('STORE_LISTINGS:VIEW'), storeListingController.getMappings);
+router.post('/store-listings/:id/mappings', requirePermission('STORE_LISTINGS:MANAGE'), storeListingController.createMapping);
+router.delete('/store-listings/mappings/:mappingId', requirePermission('STORE_LISTINGS:MANAGE'), storeListingController.deleteMapping);
 
 export default router;

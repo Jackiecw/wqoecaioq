@@ -43,41 +43,41 @@ const routes: RouteRecordRaw[] = [
         component: AppLayout,
         meta: { requiresAuth: true },
         children: [
-            { path: '', component: DashboardHome },
-            { path: 'calendar', component: CalendarPage },
-            { path: 'reports', component: WeeklyReportPage },
+            { path: '', component: DashboardHome, meta: { permission: 'DASHBOARD:VIEW' } },
+            { path: 'calendar', component: CalendarPage, meta: { permission: 'CALENDAR:VIEW' } },
+            { path: 'reports', component: WeeklyReportPage, meta: { permission: 'REPORTS:FILL' } },
 
             // Sales
-            { path: 'sales/dashboard', component: SalesDashboard },
-            { path: 'sales/data', component: SalesDataPage },
-            { path: 'sales/import', component: DataImport },
-            { path: 'sales/history', component: ImportHistory },
+            { path: 'sales/dashboard', component: SalesDashboard, meta: { permission: 'SALES:VIEW' } },
+            { path: 'sales/data', component: SalesDataPage, meta: { permission: 'SALES:VIEW' } },
+            { path: 'sales/import', component: DataImport, meta: { permission: 'SALES:IMPORT' } },
+            { path: 'sales/history', component: ImportHistory, meta: { permission: 'SALES:IMPORT' } },
 
             // Operations
-            { path: 'products/on-sale', component: OnSaleProductsPage },
-            { path: 'products/catalog', component: ProductManagement },
+            { path: 'products/on-sale', component: OnSaleProductsPage, meta: { permission: 'STORE_LISTINGS:VIEW' } },
+            { path: 'products/catalog', component: ProductManagement, meta: { permission: 'PRODUCTS:VIEW' } },
             { path: 'operations', component: OperationsCenter },
-            { path: 'operations/advertising', component: AdvertisingDataManagement },
-            { path: 'operations/traffic', component: TrafficDataManagement },
-            { path: 'finance', component: FinancePage },
-            { path: 'logistics', component: LogisticsPage },
+            { path: 'operations/advertising', component: AdvertisingDataManagement, meta: { permission: 'ADVERTISING:VIEW' } },
+            { path: 'operations/traffic', component: TrafficDataManagement, meta: { permission: 'TRAFFIC:VIEW' } },
+            { path: 'finance', component: FinancePage, meta: { permission: 'FINANCE:VIEW' } },
+            { path: 'logistics', component: LogisticsPage, meta: { permission: 'LOGISTICS:VIEW' } },
 
             // Resources
-            { path: 'links', component: CommonLinks },
+            { path: 'links', component: CommonLinks, meta: { permission: 'LINKS:VIEW' } },
 
             // Management
-            { path: 'admin/countries', component: CountryManagement },
-            { path: 'admin/stores', component: StoreManagement },
-            { path: 'admin/users', component: UserManagement },
-            { path: 'admin/metrics', component: MetricManagement },
+            { path: 'admin/countries', component: CountryManagement, meta: { permission: 'ADMIN_COUNTRIES:VIEW' } },
+            { path: 'admin/stores', component: StoreManagement, meta: { permission: 'ADMIN_STORES:VIEW' } },
+            { path: 'admin/users', component: UserManagement, meta: { permission: 'ADMIN_USERS:VIEW' } },
+            { path: 'admin/metrics', component: MetricManagement, meta: { permission: 'ADMIN_METRICS:VIEW' } },
 
-            // Profile
+            // Profile (no permission needed - personal page)
             { path: 'profile', component: ProfileManagement },
 
             // Performance Module
-            { path: 'performance', component: PerformanceDashboard },
-            { path: 'performance/templates', component: PerformanceTemplateList },
-            { path: 'performance/reviews/:id', component: PerformanceDetail }
+            { path: 'performance', component: PerformanceDashboard, meta: { permission: 'PERFORMANCE:VIEW' } },
+            { path: 'performance/templates', component: PerformanceTemplateList, meta: { permission: 'PERFORMANCE:MANAGE' } },
+            { path: 'performance/reviews/:id', component: PerformanceDetail, meta: { permission: 'PERFORMANCE:VIEW' } }
         ]
     }
 ];
@@ -89,11 +89,27 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const authStore = useAuthStore();
+
+    // 未登录 → 跳转 login
     if (to.meta.requiresAuth && !authStore.isLoggedIn) {
-        next('/login');
-    } else {
-        next();
+        return next('/login');
     }
+
+    // 权限检查：如果路由有 permission 要求
+    const requiredPermission = to.meta.permission as string | undefined;
+    if (requiredPermission && authStore.isLoggedIn) {
+        const userRole = authStore.role;
+        const userPerms = authStore.permissions || [];
+
+        // admin 角色自动通过
+        if (userRole !== 'admin' && !userPerms.includes(requiredPermission)) {
+            // 权限不足 → 跳转首页
+            return next('/');
+        }
+    }
+
+    next();
 });
 
 export default router;
+

@@ -2,27 +2,29 @@
   <Dialog
     :visible="isOpen"
     modal
+    :showHeader="false"
     :style="{ width: '900px', maxWidth: '95vw' }"
+    :dismissableMask="true"
+    :draggable="false"
     :pt="{
-      root: { class: 'p-0' },
-      header: { class: 'hidden' },
-      content: { class: 'p-0' }
+      root: { class: 'logistics-batch-dialog' },
+      content: { class: 'logistics-batch-content' },
     }"
     @update:visible="onDialogToggle"
   >
-    <div class="modal-container">
+    <div class="modal-wrapper">
       <!-- Custom Header -->
       <div class="modal-header">
-        <div class="header-info">
+        <div class="header-left">
           <div class="header-icon">
             <i class="pi pi-box"></i>
           </div>
           <div>
-            <h2 class="header-title">新增生产批次</h2>
-            <p class="header-desc">填写订单信息</p>
+            <h3 class="modal-title">新增生产批次</h3>
+            <p class="modal-subtitle">填写订单信息</p>
           </div>
         </div>
-        <button class="btn-close" @click="closeModal">
+        <button class="close-btn" @click="closeModal">
           <i class="pi pi-times"></i>
         </button>
       </div>
@@ -36,232 +38,228 @@
       <!-- Form Content -->
       <form v-else class="modal-body" @submit.prevent="handleSubmit">
         <!-- Section 1: Basic Info -->
-        <div class="form-section">
-          <div class="section-header">
-            <span class="section-number">1</span>
-            <span class="section-title">基本信息</span>
+        <div class="uni-form-section">
+          <div class="uni-section-title">
+            <i class="pi pi-info-circle"></i>
+            <span>基本信息</span>
           </div>
-          
-          <div class="fields-grid fields-grid--3col">
-            <div class="field-group">
-              <label class="field-label">
+
+          <div class="uni-form-grid uni-form-grid--3col">
+            <div class="uni-form-field">
+              <label class="uni-form-label">
                 <i class="pi pi-calendar"></i>
                 订单日期 <span class="required">*</span>
               </label>
-              <input 
-                type="date" 
-                v-model="orderDateStr" 
-                class="field-input" 
-                required
+              <Calendar
+                v-model="orderDate"
+                date-format="yy-mm-dd"
+                show-icon
+                class="w-full"
+                :pt="{ input: { class: 'w-full' } }"
               />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">
+            <div class="uni-form-field">
+              <label class="uni-form-label">
                 <i class="pi pi-globe"></i>
                 销售地 <span class="required">*</span>
               </label>
-              <select v-model="formData.countryCode" class="field-select" required>
-                <option value="" disabled>请选择...</option>
-                <option v-for="country in countryOptions" :key="country.code" :value="country.code">
-                  {{ country.name }}
-                </option>
-              </select>
+              <Dropdown
+                v-model="formData.countryCode"
+                :options="countryOptions"
+                option-label="name"
+                option-value="code"
+                placeholder="请选择..."
+                class="w-full"
+              />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">
+            <div class="uni-form-field">
+              <label class="uni-form-label">
                 <i class="pi pi-tag"></i>
                 SKU <span class="required">*</span>
               </label>
-              <select v-model="formData.productId" class="field-select" required>
-                <option value="" disabled>请选择...</option>
-                <option v-for="product in allProducts" :key="product.id" :value="product.id">
-                  {{ product.label }}
-                </option>
-              </select>
+              <Dropdown
+                v-model="formData.productId"
+                :options="allProducts"
+                option-label="label"
+                option-value="id"
+                placeholder="请选择..."
+                class="w-full"
+                filter
+              />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">颜色 <span class="required">*</span></label>
-              <input 
-                type="text" 
-                v-model="formData.productColor" 
-                class="field-input" 
+            <div class="uni-form-field">
+              <label class="uni-form-label">颜色 <span class="required">*</span></label>
+              <InputText
+                v-model="formData.productColor"
+                class="w-full"
                 placeholder="如：黑色"
-                required
               />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">产品规格 <span class="required">*</span></label>
-              <input 
-                type="text" 
-                v-model="formData.productSpec" 
-                class="field-input" 
+            <div class="uni-form-field">
+              <label class="uni-form-label">产品规格 <span class="required">*</span></label>
+              <InputText
+                v-model="formData.productSpec"
+                class="w-full"
                 placeholder="如：同款"
-                required
               />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">插头 <span class="required">*</span></label>
-              <input 
-                type="text" 
-                v-model="formData.plugSpec" 
-                class="field-input" 
+            <div class="uni-form-field">
+              <label class="uni-form-label">插头 <span class="required">*</span></label>
+              <InputText
+                v-model="formData.plugSpec"
+                class="w-full"
                 placeholder="如：欧规"
-                required
               />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">
+            <div class="uni-form-field">
+              <label class="uni-form-label">
                 <i class="pi pi-hashtag"></i>
                 数量 <span class="required">*</span>
               </label>
-              <input 
-                type="number" 
-                v-model.number="formData.quantity" 
-                class="field-input field-input--right" 
-                min="0"
-                required
+              <InputNumber
+                v-model="formData.quantity"
+                :min="0"
+                class="w-full"
+                input-class="w-full"
               />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">
+            <div class="uni-form-field">
+              <label class="uni-form-label">
                 <i class="pi pi-dollar"></i>
                 单价 ($) <span class="required">*</span>
               </label>
-              <input 
-                type="number" 
-                v-model.number="formData.unitPrice" 
-                class="field-input field-input--right" 
-                step="0.01"
-                min="0"
-                required
+              <InputNumber
+                v-model="formData.unitPrice"
+                :min="0"
+                :max-fraction-digits="2"
+                mode="decimal"
+                class="w-full"
+                input-class="w-full"
               />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">总价 ($)</label>
-              <input 
-                type="text" 
-                :value="'$' + totalPrice.toFixed(2)" 
-                class="field-input field-input--right field-input--readonly" 
-                readonly
+            <div class="uni-form-field">
+              <label class="uni-form-label">总价 ($)</label>
+              <InputText
+                :value="'$' + totalPrice.toFixed(2)"
+                disabled
+                class="w-full text-right"
               />
             </div>
           </div>
         </div>
 
         <!-- Section 2: Logistics -->
-        <div class="form-section">
-          <div class="section-header">
-            <span class="section-number">2</span>
-            <span class="section-title">物流预填（可选）</span>
+        <div class="uni-form-section">
+          <div class="uni-section-title">
+            <i class="pi pi-truck"></i>
+            <span>物流预填（可选）</span>
           </div>
 
-          <div class="fields-grid fields-grid--3col">
-            <div class="field-group">
-              <label class="field-label">
-                <i class="pi pi-truck"></i>
-                计费方式
-              </label>
-              <select v-model="formData.billingMethod" class="field-select">
-                <option value="">未确定</option>
-                <option v-for="opt in billingOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-            </div>
-
-            <div v-if="formData.billingMethod === 'BY_CBM'" class="field-group">
-              <label class="field-label">计费体积 (CBM)</label>
-              <input 
-                type="number" 
-                v-model.number="formData.billingCbm" 
-                class="field-input field-input--right" 
-                step="0.001"
-                min="0"
+          <div class="uni-form-grid uni-form-grid--3col">
+            <div class="uni-form-field">
+              <label class="uni-form-label">计费方式</label>
+              <Dropdown
+                v-model="formData.billingMethod"
+                :options="billingOptions"
+                option-label="label"
+                option-value="value"
+                placeholder="未确定"
+                show-clear
+                class="w-full"
               />
             </div>
 
-            <div v-if="formData.billingMethod === 'BY_WEIGHT'" class="field-group">
-              <label class="field-label">计费重量 (KG)</label>
-              <input 
-                type="number" 
-                v-model.number="formData.billingKg" 
-                class="field-input field-input--right" 
-                step="0.01"
-                min="0"
+            <div v-if="formData.billingMethod === 'BY_CBM'" class="uni-form-field">
+              <label class="uni-form-label">计费体积 (CBM)</label>
+              <InputNumber
+                v-model="formData.billingCbm"
+                :min="0"
+                :max-fraction-digits="3"
+                mode="decimal"
+                class="w-full"
+                input-class="w-full"
               />
             </div>
 
-            <div v-if="formData.billingMethod && formData.billingMethod !== 'FLAT_FEE'" class="field-group">
-              <label class="field-label">物流单价</label>
-              <input 
-                type="number" 
-                v-model.number="formData.logisticsUnitPrice" 
-                class="field-input field-input--right" 
-                step="0.01"
-                min="0"
+            <div v-if="formData.billingMethod === 'BY_WEIGHT'" class="uni-form-field">
+              <label class="uni-form-label">计费重量 (KG)</label>
+              <InputNumber
+                v-model="formData.billingKg"
+                :min="0"
+                :max-fraction-digits="2"
+                mode="decimal"
+                class="w-full"
+                input-class="w-full"
               />
             </div>
 
-            <div class="field-group">
-              <label class="field-label">预估物流费</label>
-              <input 
-                type="number" 
-                v-model.number="formData.logisticsFee" 
-                class="field-input field-input--right" 
-                :class="{ 'field-input--readonly': formData.billingMethod && formData.billingMethod !== 'FLAT_FEE' }"
-                :readonly="formData.billingMethod && formData.billingMethod !== 'FLAT_FEE'"
-                step="0.01"
-                min="0"
+            <div v-if="formData.billingMethod && formData.billingMethod !== 'FLAT_FEE'" class="uni-form-field">
+              <label class="uni-form-label">物流单价</label>
+              <InputNumber
+                v-model="formData.logisticsUnitPrice"
+                :min="0"
+                :max-fraction-digits="2"
+                mode="decimal"
+                class="w-full"
+                input-class="w-full"
+              />
+            </div>
+
+            <div class="uni-form-field">
+              <label class="uni-form-label">预估物流费</label>
+              <InputNumber
+                v-model="formData.logisticsFee"
+                :min="0"
+                :max-fraction-digits="2"
+                mode="decimal"
+                :disabled="!!formData.billingMethod && formData.billingMethod !== 'FLAT_FEE'"
+                class="w-full"
+                input-class="w-full"
               />
             </div>
           </div>
         </div>
 
         <!-- Section 3: Notes -->
-        <div class="form-section">
-          <div class="section-header">
-            <span class="section-number">3</span>
-            <span class="section-title">备注</span>
+        <div class="uni-form-section">
+          <div class="uni-section-title">
+            <i class="pi pi-file-edit"></i>
+            <span>备注</span>
           </div>
 
-          <div class="field-group">
-            <textarea 
-              v-model="formData.notes" 
-              class="field-textarea" 
-              rows="3" 
+          <div class="uni-form-field">
+            <Textarea
+              v-model="formData.notes"
+              rows="3"
+              auto-resize
+              class="w-full"
               placeholder="添加备注信息（可选）..."
-            ></textarea>
+            />
           </div>
         </div>
 
         <!-- Error Message -->
-        <div v-if="errorMessage" class="error-message">
-          <i class="pi pi-exclamation-circle"></i>
-          {{ errorMessage }}
-        </div>
+        <Message v-if="errorMessage" severity="error" :closable="false">{{ errorMessage }}</Message>
       </form>
 
       <!-- Footer -->
-      <div class="modal-footer">
-        <button type="button" class="btn-secondary" @click="closeModal">取消</button>
-        <button 
-          type="button" 
-          class="btn-primary" 
-          :disabled="isSubmitting || isLoadingOptions"
+      <div class="uni-modal-footer" style="padding: 1rem 1.5rem; margin-top: 0;">
+        <Button label="取消" severity="secondary" text @click="closeModal" />
+        <Button
+          label="创建批次"
+          icon="pi pi-check"
+          :loading="isSubmitting"
+          :disabled="isLoadingOptions"
           @click="handleSubmit"
-        >
-          <i v-if="isSubmitting" class="pi pi-spin pi-spinner"></i>
-          <i v-else class="pi pi-check"></i>
-          {{ isSubmitting ? '创建中...' : '创建批次' }}
-        </button>
+        />
       </div>
     </div>
   </Dialog>
@@ -271,6 +269,13 @@
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import Calendar from 'primevue/calendar';
+import Dropdown from 'primevue/dropdown';
+import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Message from 'primevue/message';
 import apiClient from '@/services/apiClient';
 import { useCountriesStore } from '@/stores/countries';
 
@@ -339,7 +344,7 @@ const createDefaultForm = (): FormState => ({
 });
 
 const formData = ref<FormState>(createDefaultForm());
-const orderDateStr = ref(new Date().toISOString().slice(0, 10));
+const orderDate = ref<Date>(new Date());
 const errorMessage = ref('');
 const isLoadingOptions = ref(false);
 const isSubmitting = ref(false);
@@ -361,7 +366,7 @@ watch(
   () => {
     const method = formData.value.billingMethod;
     const unit = formData.value.logisticsUnitPrice ?? 0;
-    
+
     if (method === 'BY_CBM' && formData.value.billingCbm) {
       formData.value.logisticsFee = parseFloat((formData.value.billingCbm * unit).toFixed(2));
     } else if (method === 'BY_WEIGHT' && formData.value.billingKg) {
@@ -383,6 +388,13 @@ const onDialogToggle = (visible: boolean) => {
   if (!visible) {
     closeModal();
   }
+};
+
+const formatDateForApi = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const fetchOptions = async () => {
@@ -416,7 +428,7 @@ const fetchOptions = async () => {
 const handleSubmit = async () => {
   errorMessage.value = '';
 
-  if (!orderDateStr.value) {
+  if (!orderDate.value) {
     errorMessage.value = '请填写订单日期';
     return;
   }
@@ -441,7 +453,7 @@ const handleSubmit = async () => {
 
   const orders = [
     {
-      orderDate: orderDateStr.value,
+      orderDate: formatDateForApi(orderDate.value),
       productId: formData.value.productId,
       skuName: selectedProduct ? selectedProduct.sku : '',
       productColor: formData.value.productColor,
@@ -484,7 +496,7 @@ const handleSubmit = async () => {
 
 const resetForm = () => {
   formData.value = createDefaultForm();
-  orderDateStr.value = new Date().toISOString().slice(0, 10);
+  orderDate.value = new Date();
   errorMessage.value = '';
 };
 
@@ -494,72 +506,69 @@ const closeModal = () => {
 </script>
 
 <style scoped>
-/* ========================================
-   Logistics Batch Form Modal - Modern UI
-   ======================================== */
-.modal-container {
+/* Modal Layout */
+.modal-wrapper {
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
 }
 
 /* Header */
 .modal-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
+  align-items: flex-start;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-page);
 }
 
-.header-info {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.875rem;
 }
 
 .header-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  background: var(--color-accent-soft);
-  border-radius: var(--radius-md);
   color: var(--color-accent);
   font-size: 1.125rem;
 }
 
-.header-title {
-  font-size: 1.125rem;
-  font-weight: 600;
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
 }
 
-.header-desc {
+.modal-subtitle {
   font-size: 0.8125rem;
   color: var(--color-text-secondary);
-  margin: 0.125rem 0 0;
+  margin: 0.25rem 0 0 0;
 }
 
-.btn-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.close-btn {
   width: 2rem;
   height: 2rem;
-  background: transparent;
   border: none;
+  background: var(--color-bg-page);
   border-radius: var(--radius-sm);
   color: var(--color-text-muted);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all var(--transition-fast);
 }
 
-.btn-close:hover {
-  background: var(--color-bg-page);
+.close-btn:hover {
+  background: var(--color-border);
   color: var(--color-text-primary);
 }
 
@@ -575,185 +584,28 @@ const closeModal = () => {
 
 /* Body */
 .modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
-/* Section */
-.form-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.section-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  background: var(--color-accent);
-  color: white;
-  border-radius: 50%;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.section-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-/* Fields Grid */
-.fields-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.fields-grid--3col {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-@media (max-width: 768px) {
-  .fields-grid--3col {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Field Group */
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.field-label {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.field-label i {
+/* Label icons */
+.uni-form-label i {
   color: var(--color-accent);
   font-size: 0.8125rem;
+  margin-right: 0.25rem;
 }
 
-.required {
-  color: #ef4444;
-}
-
-/* Inputs */
-.field-input,
-.field-select,
-.field-textarea {
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  background: var(--color-bg-card);
-  color: var(--color-text-primary);
-  transition: all var(--transition-fast);
-}
-
-.field-input:focus,
-.field-select:focus,
-.field-textarea:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-accent-soft);
-  outline: none;
-}
-
-.field-input--right {
+.text-right :deep(input) {
   text-align: right;
   font-family: 'SF Mono', monospace;
 }
+</style>
 
-.field-input--readonly {
-  background: var(--color-bg-page);
-  color: var(--color-text-secondary);
-}
-
-.field-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-/* Error Message */
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: var(--radius-sm);
-  color: #dc2626;
-  font-size: 0.875rem;
-}
-
-/* Footer */
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-bg-page);
-}
-
-.btn-secondary,
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-}
-
-.btn-secondary:hover {
-  background: var(--color-bg-page);
-  border-color: var(--color-text-secondary);
-}
-
-.btn-primary {
-  background: var(--color-accent);
-  border: none;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  filter: brightness(0.95);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+<style>
+.logistics-batch-dialog .p-dialog-content {
+  padding: 1.5rem;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
 }
 </style>

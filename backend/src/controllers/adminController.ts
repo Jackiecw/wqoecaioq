@@ -171,6 +171,16 @@ export class AdminController {
         }
     }
 
+    // --- Permissions ---
+    async getAllPermissions(req: Request, res: Response, next: NextFunction) {
+        try {
+            const permissions = await adminService.getAllPermissions();
+            res.json(permissions);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     // --- Common Links ---
     async createLink(req: Request, res: Response, next: NextFunction) {
         try {

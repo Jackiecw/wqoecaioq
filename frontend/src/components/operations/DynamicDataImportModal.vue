@@ -5,7 +5,7 @@
     :modal="true"
     :header="modalTitle"
     :style="{ width: '80vw', minWidth: '600px' }"
-    class="p-fluid import-modal"
+    class="import-modal"
     @hide="resetForm"
   >
     <div class="import-container">
@@ -13,7 +13,7 @@
       <!-- Step 1: Upload -->
       <div v-if="!previewData.length" class="upload-section">
         <div class="field mb-4">
-          <label class="block font-bold mb-2">选择提取店铺 <span class="text-red-500">*</span></label>
+          <label class="uni-form-label">选择提取店铺 <span class="text-red-500">*</span></label>
           <Dropdown 
             v-model="selectedStoreId" 
             :options="storeOptions" 
@@ -25,7 +25,7 @@
         </div>
 
         <div class="field mb-4">
-          <label class="block font-bold mb-2">上传 Excel 报表</label>
+          <label class="uni-form-label">上传 Excel 报表</label>
           <div 
             class="file-upload-zone"
             :class="{ 'has-file': selectedFile, 'is-disabled': !selectedStoreId }"
@@ -145,6 +145,7 @@ import Dropdown from 'primevue/dropdown';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import { useToast } from 'primevue/usetoast';
 
 const props = defineProps<{
   visible: boolean;
@@ -152,6 +153,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['update:visible', 'success']);
+
+const toast = useToast();
 
 const modalTitle = computed(() => props.type === 'ADVERTISING' ? '导入广告数据' : '导入流量数据');
 const uploadUrl = computed(() => props.type === 'ADVERTISING' ? '/advertising/import/preview' : '/traffic/import/preview');
@@ -259,7 +262,7 @@ const generatePreview = async () => {
 
     previewData.value = res.data.data;
   } catch (e: any) {
-    alert('解析失败: ' + (e.response?.data?.error || e.message));
+    toast.add({ severity: 'error', summary: '解析失败', detail: e.response?.data?.error || e.message, life: 5000 });
   } finally {
     isLoading.value = false;
   }
@@ -274,12 +277,12 @@ const confirmImport = async () => {
       items: previewData.value
     };
     const res = await apiClient.post(confirmUrl.value, payload);
-    alert(`导入成功! 成功导入 ${res.data.success} 条，失败 ${res.data.failed} 条`);
+    toast.add({ severity: 'success', summary: '导入成功', detail: `成功导入 ${res.data.success} 条，失败 ${res.data.failed} 条`, life: 5000 });
     emit('success');
     emit('update:visible', false);
     resetForm();
   } catch (e: any) {
-    alert('导入失败: ' + (e.response?.data?.error || e.message));
+    toast.add({ severity: 'error', summary: '导入失败', detail: e.response?.data?.error || e.message, life: 5000 });
   } finally {
     isSubmitting.value = false;
   }

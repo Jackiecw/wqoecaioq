@@ -163,6 +163,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import apiClient from '@/services/apiClient';
 import LinkModal from './LinkModal.vue';
 import { PencilIcon, TrashIcon } from '@heroicons/vue/20/solid';
@@ -179,8 +180,7 @@ const links = ref([]); // Added missing links ref
 // 权限
 
 const authStore = useAuthStore();
-
-const isAdmin = computed(() => authStore.role === 'admin');
+const { isAdmin } = usePermission();
 
 
 

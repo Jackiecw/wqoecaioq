@@ -1,14 +1,12 @@
 import express from 'express';
 import categoryController from '../controllers/categoryController';
-import adminMiddleware from '../middlewares/adminMiddleware';
+import { requirePermission } from '../middlewares/permissionMiddleware';
 
 const router = express.Router();
 
-router.use(adminMiddleware);
-
-router.get('/', categoryController.getCategories);
-router.post('/', categoryController.createCategory);
-router.put('/:id', categoryController.updateCategory);
-router.delete('/:id', categoryController.deleteCategory);
+router.get('/', requirePermission('ADMIN_CATEGORIES:VIEW'), categoryController.getCategories);
+router.post('/', requirePermission('ADMIN_CATEGORIES:MANAGE'), categoryController.createCategory);
+router.put('/:id', requirePermission('ADMIN_CATEGORIES:MANAGE'), categoryController.updateCategory);
+router.delete('/:id', requirePermission('ADMIN_CATEGORIES:MANAGE'), categoryController.deleteCategory);
 
 export default router;

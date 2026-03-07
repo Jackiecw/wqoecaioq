@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
 import FinanceForm from '../components/finance/FinanceForm.vue';
@@ -69,16 +70,16 @@ import FinanceManagement from '../components/finance/FinanceManagement.vue';
 import FinanceBatchOps from '../components/finance/FinanceBatchOps.vue';
 
 const authStore = useAuthStore();
+const { hasPermission, isAdmin } = usePermission();
 
-const canEntry = computed(() => authStore.permissions.includes('FINANCE_ENTRY'));
-const canView = computed(() => authStore.permissions.includes('FINANCE_VIEW'));
-const isAdmin = computed(() => authStore.role === 'admin');
-const canExport = computed(() => authStore.permissions.includes('FINANCE_EXPORT'));
+const canEntry = computed(() => hasPermission('FINANCE:ENTRY'));
+const canView = computed(() => hasPermission('FINANCE:VIEW'));
+const canExport = computed(() => hasPermission('FINANCE:EXPORT'));
 
 type FinanceTab = 'entry' | 'management' | 'batch';
 
 const getDefaultTab = (): FinanceTab => {
-  if (canView.value && (authStore.role === 'admin' || canExport.value)) {
+  if (canView.value && (isAdmin.value || canExport.value)) {
     return 'management';
   }
   if (canEntry.value) {

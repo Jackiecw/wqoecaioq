@@ -5,7 +5,7 @@
       subtitle="管理所有标准产品资料，建立 SKU 与基本属性库"
     >
       <template #actions>
-        <button v-if="authStore.role === 'admin'" class="btn-subtle" @click="openCategoryModal">
+        <button v-if="isAdmin" class="btn-subtle" @click="openCategoryModal">
           <i class="pi pi-tags"></i>
           管理分类
         </button>
@@ -334,6 +334,7 @@ import EmptyState from '@/components/common/EmptyState.vue';
 import ProductFormModal from './ProductFormModal.vue';
 import CategoryManagementModal from './CategoryManagementModal.vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 
 type Product = {
   id: string;
@@ -389,6 +390,7 @@ const selectedCategory = ref<string>('ALL');
 const showFullSpecs = ref(false);
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 
 const openCategoryModal = () => {
   isCategoryModalOpen.value = true;

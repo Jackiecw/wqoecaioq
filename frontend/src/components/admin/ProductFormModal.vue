@@ -15,7 +15,7 @@
       
       <!-- Section 1: 基本信息 + 图片上传 -->
       <div class="form-section">
-        <div class="section-title">
+        <div class="uni-section-title">
           <i class="pi pi-info-circle"></i>
           基本信息
         </div>
@@ -102,7 +102,7 @@
 
       <!-- Section 2: 物理规格 -->
       <div class="form-section">
-        <div class="section-title">
+        <div class="uni-section-title">
           <i class="pi pi-box"></i>
           物理规格
         </div>
@@ -130,7 +130,7 @@
 
       <!-- Section 3: 显示与光学 -->
       <div class="form-section">
-        <div class="section-title">
+        <div class="uni-section-title">
           <i class="pi pi-desktop"></i>
           显示与光学
         </div>
@@ -176,7 +176,7 @@
 
       <!-- Section 4: 包装与物流 (Packaging & Logistics) -->
       <div class="form-section">
-        <div class="section-title">
+        <div class="uni-section-title">
           <i class="pi pi-box"></i>
           包装与物流
         </div>
@@ -218,7 +218,7 @@
 
       <!-- Section 5: 系统配置 -->
       <div class="form-section">
-        <div class="section-title">
+        <div class="uni-section-title">
           <i class="pi pi-microchip"></i>
           系统配置
         </div>
@@ -269,14 +269,11 @@
         </div>
       </div>
       
-    </div>
-
-    <template #footer>
-      <div class="modal-footer">
-        <Button label="取消" severity="secondary" @click="closeModal" />
+      <div class="uni-modal-footer" style="padding: 0 0.5rem 0.5rem 0;">
+        <Button label="取消" severity="secondary" text @click="closeModal" />
         <Button label="保存产品" icon="pi pi-check" :loading="isSubmitting" @click="handleSubmit" />
       </div>
-    </template>
+    </div>
   </Dialog>
 </template>
 

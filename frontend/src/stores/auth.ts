@@ -27,12 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 菜单权限
     const permissions = computed(() => {
-        const perms = user.value?.permissions || [];
-        // TODO: Remove this dev hack
-        if (!perms.includes('SALES_IMPORT')) {
-            return [...perms, 'SALES_IMPORT'];
-        }
-        return perms;
+        return user.value?.permissions || [];
     });
 
     // 国家权限

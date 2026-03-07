@@ -130,8 +130,10 @@
 import { ref, onMounted, computed } from 'vue';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '../../stores/auth';
+import { usePermission } from '@/composables/usePermission';
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 const batches = ref([]);
 const total = ref(0);
 const page = ref(1);
@@ -147,7 +149,7 @@ const filters = ref({
 const availableCountries = ref([]);
 
 // Permissions
-const canFilterUser = computed(() => authStore.role === 'admin' || (authStore.supervisedCountries && authStore.supervisedCountries.length > 0));
+const canFilterUser = computed(() => isAdmin.value || (authStore.supervisedCountries && authStore.supervisedCountries.length > 0));
 
 onMounted(async () => {
   await fetchCountries();
@@ -156,7 +158,7 @@ onMounted(async () => {
 
 const fetchCountries = async () => {
   try {
-    if (authStore.role === 'admin') {
+    if (isAdmin.value) {
         const res = await apiClient.get('/admin/countries');
         availableCountries.value = res.data;
     } else {

@@ -245,10 +245,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import { useToast } from 'primevue/usetoast';
 import financeService, { ExpensePayload, FinanceOptions, StoreOption } from '@/services/financeService';
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 const toast = useToast();
 
 const paymentMethodMap: Record<string, string> = {
@@ -295,7 +297,7 @@ const countryOptions = computed(() => {
     }
   });
   const allCountries = Array.from(map.values()).sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
-  if (authStore.role === 'admin') return allCountries.filter(Boolean) as { code: string; name: string }[];
+  if (isAdmin.value) return allCountries.filter(Boolean) as { code: string; name: string }[];
   const userCountryCodes = authStore.operatedCountries || [];
   return allCountries.filter((c): c is { code: string; name: string } => !!c && userCountryCodes.includes(c.code));
 });

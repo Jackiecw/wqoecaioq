@@ -316,6 +316,7 @@
       @close="closeModal"
       @sale-updated="handleSaleUpdated"
     />
+    <ConfirmDialog />
   </div>
 </template>
 
@@ -404,16 +405,6 @@
 .ghost-dropdown-panel .p-dropdown-items {
     padding: 0.25rem 0 !important;
 }
-
-/* Fix flashing gray on loading */
-/* Removed overlay to prevent hover state from being lost and flashing */
-:deep(.p-datatable-loading-overlay) {
-    background-color: transparent !important;
-    pointer-events: none !important;
-}
-:deep(.p-datatable .p-datatable-loading-icon) {
-    display: none !important;
-}
 </style>
 
 <script setup lang="ts">
@@ -429,10 +420,14 @@ import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import Tooltip from 'primevue/tooltip';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import useStoreListings from '@/composables/useStoreListings';
 import SalesDataEditModal from './SalesDataEditModal.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
 import { salesService } from '@/services/salesService';
+import ConfirmDialog from 'primevue/confirmdialog';
+import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
 
 // Define the v-tooltip directive so it resolves in the template
 const vTooltip = Tooltip;
@@ -492,6 +487,9 @@ const selectedRows = ref<SalesRow[]>([]);
 const isLoading = ref(true);
 const errorMessage = ref('');
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
+const confirmService = useConfirm();
+const toast = useToast();
 
 const page = ref(1);
 const pageSize = ref(20);
@@ -559,7 +557,7 @@ const countryOptions = computed<CountryOption[]>(() => {
     if (store.country) unique.set(store.country.code, store.country);
   });
   const all = Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name));
-  if (authStore.role === 'admin') return all;
+  if (isAdmin.value) return all;
   const allowed = authStore.operatedCountries || [];
   return all.filter((country) => allowed.includes(country.code));
 });
@@ -772,31 +770,49 @@ const fetchData = async (resetPage = false) => {
   }
 };
 
-const handleDelete = async (id: string) => {
-  if (!confirm('确定要删除这条销售数据吗？')) return;
-  try {
-    await salesService.delete(id);
-    salesData.value = salesData.value.filter((row) => row.id !== id);
-    total.value = Math.max(0, total.value - 1);
-  } catch (error: any) {
-    console.error('删除失败:', error);
-    errorMessage.value = error.response?.data?.error || '删除失败';
-  }
+const handleDelete = (id: string) => {
+  confirmService.require({
+    message: '确定要删除这条销售数据吗？',
+    header: '确认删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await salesService.delete(id);
+        salesData.value = salesData.value.filter((row) => row.id !== id);
+        total.value = Math.max(0, total.value - 1);
+      } catch (error: any) {
+        console.error('删除失败:', error);
+        errorMessage.value = error.response?.data?.error || '删除失败';
+      }
+    }
+  });
 };
 
-const handleBatchDelete = async () => {
+const handleBatchDelete = () => {
   if (selectedRows.value.length === 0) return;
-  if (!confirm(`确定要删除选中的 ${selectedRows.value.length} 条数据吗？`)) return;
-  try {
-    const ids = selectedRows.value.map((row) => row.id);
-    await Promise.all(ids.map((id) => salesService.delete(id)));
-    salesData.value = salesData.value.filter((row) => !ids.includes(row.id));
-    total.value = Math.max(0, total.value - ids.length);
-    selectedRows.value = [];
-  } catch (error: any) {
-    console.error('批量删除失败:', error);
-    errorMessage.value = '批量删除失败';
-  }
+  confirmService.require({
+    message: `确定要删除选中的 ${selectedRows.value.length} 条数据吗？`,
+    header: '确认批量删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        const ids = selectedRows.value.map((row) => row.id);
+        await Promise.all(ids.map((id) => salesService.delete(id)));
+        salesData.value = salesData.value.filter((row) => !ids.includes(row.id));
+        total.value = Math.max(0, total.value - ids.length);
+        selectedRows.value = [];
+      } catch (error: any) {
+        console.error('批量删除失败:', error);
+        errorMessage.value = '批量删除失败';
+      }
+    }
+  });
 };
 
 const isModalOpen = ref(false);

@@ -279,12 +279,14 @@ import { ref, computed, watch, onMounted } from 'vue';
 import useStoreListings from '../../composables/useStoreListings';
 import apiClient from '@/services/apiClient';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 
 const props = defineProps({
   selectedCountry: String
 });
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 
 const {
   stores,
@@ -421,7 +423,7 @@ const availableCountries = computed(() => {
   const allUniqueCountries = Array.from(uniqueCountriesMap.values())
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  if (authStore.role === 'admin') {
+  if (isAdmin.value) {
     return allUniqueCountries;
   }
   

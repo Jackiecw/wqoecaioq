@@ -217,7 +217,7 @@
           <span>快捷链接</span>
         </div>
         <Button
-          v-if="authStore.role === 'admin'"
+          v-if="isAdmin"
           icon="pi pi-cog"
           size="small"
           text
@@ -265,6 +265,7 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import Select from 'primevue/select';
 import Button from 'primevue/button';
 import { useAuthStore } from '../../stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import { useRouter } from 'vue-router';
 import apiClient from '@/services/apiClient';
 import DashboardTodo from './DashboardTodo.vue';
@@ -308,6 +309,7 @@ type StoreOption = { id: string; name: string; countryCode: string };
 type LinkItem = { id: number; title: string; url: string; description?: string };
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 const router = useRouter();
 
 // 默认参考汇率（容错机制）
@@ -382,7 +384,7 @@ const isLoadingLinks = ref(true);
 
 const countryFilterOptions = computed(() => {
   const countries = allCountries.value.map((c) => ({ code: c.code, name: c.name }));
-  if (authStore.role === 'admin') return countries;
+  if (isAdmin.value) return countries;
   const operatedCountries = authStore.operatedCountries || [];
   return countries.filter((c) => operatedCountries.includes(c.code));
 });
@@ -471,7 +473,7 @@ const kpiMetrics = computed(() => {
 });
 
 const userCountryCodesForRates = computed(() => {
-  if (authStore.role === 'admin') {
+  if (isAdmin.value) {
     return ['IDR', 'VND', 'THB', 'MYR', 'PHP', 'SGD'];
   }
   return authStore.operatedCountries
@@ -532,7 +534,7 @@ const formattedRatesUpdatedAt = computed(() => {
   }
 });
 
-const isRateRefreshLimited = computed(() => authStore.role !== 'admin');
+const isRateRefreshLimited = computed(() => !isAdmin.value);
 
 const canTriggerManualRefresh = computed(() => {
   if (manualRefreshStatus.value.isRefreshing) {

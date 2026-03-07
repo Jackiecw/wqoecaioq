@@ -49,7 +49,7 @@ class AuthService {
             include: {
                 role: {
                     include: {
-                        menus: true,
+                        permissions: true,
                     },
                 },
                 operatedCountries: {
@@ -70,7 +70,8 @@ class AuthService {
             throw new AppError('认证失败：密码错误', 401);
         }
 
-        const permissions = user.role.menus.map((menu) => menu.key);
+        // 仅使用 Permission 模型的 SCOPE:ACTION 格式
+        const permissions = user.role.permissions.map((p) => `${p.scope}:${p.action}`);
         const operatedCountries = user.operatedCountries.map((country) => country.code);
         const supervisedCountries = user.supervisedCountries.map((country) => country.code);
 

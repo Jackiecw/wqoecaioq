@@ -36,6 +36,7 @@
 import { ref, computed, onMounted, watch, type Component } from 'vue'
 import useStoreListings from '../../composables/useStoreListings'
 import { useAuthStore } from '@/stores/auth'
+import { usePermission } from '@/composables/usePermission'
 import BatchImport from './BatchImport.vue'
 import SalesForm from './SalesForm.vue'
 import ImportHistory from './ImportHistory.vue'
@@ -43,6 +44,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import ContentCard from '@/components/common/ContentCard.vue'
 
 const authStore = useAuthStore()
+const { isAdmin } = usePermission()
 const { stores, fetchStores, storesLoading } = useStoreListings()
 
 const tabs = [
@@ -69,7 +71,7 @@ const availableCountries = computed(() => {
   const allUniqueCountries = Array.from(uniqueCountriesMap.values())
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  if (authStore.role === 'admin') {
+  if (isAdmin.value) {
     return allUniqueCountries
   }
   

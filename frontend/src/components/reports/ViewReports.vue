@@ -187,6 +187,7 @@ import { computed, ref, onMounted } from 'vue';
 import reportService, { WeeklyReport } from '@/services/reportService';
 import ReportDetailModal from './ReportDetailModal.vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
@@ -201,8 +202,9 @@ const vTooltip = Tooltip;
 const reports = ref<WeeklyReport[]>([]);
 const isLoading = ref(true);
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 const toast = useToast();
-const isSuperAdmin = computed(() => authStore.role === 'admin');
+const isSuperAdmin = isAdmin;
 
 const isModalOpen = ref(false);
 const selectedReport = ref<WeeklyReport | null>(null);

@@ -166,6 +166,7 @@ import UserFormModal from './UserFormModal.vue';
 import RoleFormModal from './RoleFormModal.vue';
 import CountryManagement from './CountryManagement.vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import PageHeader from '@/components/common/PageHeader.vue';
 import ContentCard from '@/components/common/ContentCard.vue';
 
@@ -198,7 +199,8 @@ const isRoleModalOpen = ref(false);
 const currentRoleToEditId = ref<string | null>(null);
 
 const authStore = useAuthStore();
-const isSuperAdmin = computed(() => authStore.role === 'admin');
+const { isAdmin } = usePermission();
+const isSuperAdmin = isAdmin;
 const currentUserId = computed(() => authStore.user?.userId);
 
 const fetchUsers = async () => {

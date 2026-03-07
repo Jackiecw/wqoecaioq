@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import { useOperationsStore } from '@/stores/operations';
 import apiClient from '@/services/apiClient';
 import PageHeader from '@/components/common/PageHeader.vue';
@@ -81,6 +82,7 @@ const errorMessage = ref('');
 const currentSubTab = ref<'matrix' | 'sop'>('matrix');
 
 const authStore = useAuthStore();
+const { isAdmin } = usePermission();
 const opsStore = useOperationsStore();
 
 const fetchCountries = async () => {
@@ -90,7 +92,7 @@ const fetchCountries = async () => {
     const response = await apiClient.get<Country[]>('/countries');
     const allCountries = response.data;
 
-    if (authStore.role === 'admin') {
+    if (isAdmin.value) {
       countries.value = allCountries;
     } else {
       const userOperatedCodes = authStore.operatedCountries || [];

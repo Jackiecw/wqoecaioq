@@ -198,6 +198,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import zhCnLocale from '@fullcalendar/core/locales/zh-cn';
 import { useAuthStore } from '@/stores/auth';
+import { usePermission } from '@/composables/usePermission';
 import calendarService, { CalendarEventDto } from '@/services/calendarService';
 import EventModal from '@/components/calendar/EventModal.vue';
 import Button from 'primevue/button';
@@ -229,7 +230,7 @@ const adminFilterOptions = [
 ];
 
 const authStore = useAuthStore();
-const isAdmin = computed(() => authStore.role === 'admin');
+const { isAdmin } = usePermission();
 const apiError = ref('');
 const isLoadingEvents = ref(false);
 const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null);
